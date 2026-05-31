@@ -107,7 +107,6 @@ export const useCartStore = create<CartStore>()(
           orderId: null,
           hasPlacedOrder: false,
           savedItems: [],
-          windowId: null,
         }),
 
       loadExistingOrder: ({ orderId, items }) =>
