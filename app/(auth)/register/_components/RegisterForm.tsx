@@ -31,7 +31,7 @@ export function RegisterForm() {
     setServerError(null);
     const result = await signUpAction(values);
     if (!result.success) return setServerError(result.error);
-    router.push("/");
+    router.push("/dashboard");
   }
 
   return (

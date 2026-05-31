@@ -26,7 +26,7 @@ export async function authIsNotRequired() {
   if (!session) return;
   if (session.user.role === "super_admin") redirect("/super-admin/dashboard");
   if (session.user.role === "admin") redirect("/admin/dashboard");
-  redirect("/");
+  redirect("/dashboard");
 }
 
 // org-level member

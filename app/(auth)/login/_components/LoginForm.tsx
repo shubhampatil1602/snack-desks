@@ -35,7 +35,7 @@ export function LoginForm() {
     if (session?.user.role === "super_admin")
       router.push("/super-admin/dashboard");
     else if (session?.user.role === "admin") router.push("/admin/dashboard");
-    else router.push("/");
+    else router.push("/dashboard");
   }
 
   return (

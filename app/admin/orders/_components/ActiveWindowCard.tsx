@@ -20,37 +20,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { closeWindowAction } from "@/actions/order-window";
 import { useSSE } from "@/hooks/use-sse";
 import type { ActiveWindow } from "@/modules/order-window/queries";
+import { formatTime, urgencyClass, useCountdown } from "@/hooks/use-countdown";
 
 interface ActiveWindowCardProps {
   window: NonNullable<ActiveWindow>;
-}
-
-function useCountdown(endsAt: Date | null) {
-  const [remaining, setRemaining] = useState<number | null>(() => {
-    if (!endsAt) return null;
-    return Math.max(0, endsAt.getTime() - Date.now());
-  });
-
-  useEffect(() => {
-    if (!endsAt) return;
-
-    const interval = setInterval(() => {
-      const diff = Math.max(0, endsAt.getTime() - Date.now());
-      setRemaining(diff);
-      if (diff === 0) clearInterval(interval);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [endsAt]);
-
-  return remaining;
-}
-
-function formatTime(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 export function ActiveWindowCard({ window }: ActiveWindowCardProps) {
@@ -98,16 +71,6 @@ export function ActiveWindowCard({ window }: ActiveWindowCardProps) {
 
   if (closed) return null;
 
-  // determine urgency color
-  const urgencyClass =
-    remaining === null
-      ? "text-foreground"
-      : remaining < 60000
-        ? "text-destructive" // under 1 min — red
-        : remaining < 300000
-          ? "text-yellow-600" // under 5 min — yellow
-          : "text-foreground"; // normal
-
   return (
     <div className='border bg-card p-6'>
       <div className='flex items-start justify-between'>
@@ -134,7 +97,9 @@ export function ActiveWindowCard({ window }: ActiveWindowCardProps) {
         <div className='text-right'>
           {remaining !== null ? (
             <div>
-              <p className={`text-3xl font-mono font-semibold ${urgencyClass}`}>
+              <p
+                className={`text-3xl font-mono font-semibold ${urgencyClass(remaining)}`}
+              >
                 {formatTime(remaining)}
               </p>
               <p className='text-xs text-muted-foreground mt-0.5'>remaining</p>
