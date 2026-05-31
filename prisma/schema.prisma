@@ -179,9 +179,9 @@ model MenuItem {
   updatedAt   DateTime @updatedAt
 
   orderItems     OrderItem[]
-  organization   Organization  @relation(fields: [organizationId], references: [id]) // ← add
-  menuCategory   MenuCategory? @relation(fields: [menuCategoryId], references: [id])
-  menuCategoryId String?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  menuCategory   MenuCategory @relation(fields: [menuCategoryId], references: [id])
+  menuCategoryId String
 
   @@map("menu_item")
 }
