@@ -7,6 +7,10 @@ import { prisma } from "@/lib/db";
 import { ActiveWindowCard } from "./_components/ActiveWindowCard";
 import { CreateWindowForm } from "./_components/CreateWindowForm";
 import { TodaysWindowsList } from "./_components/TodaysWindowsList";
+import { Tabs, TabsTrigger, TabsList, TabsContent } from "@/components/ui/tabs";
+import { getLiveOrders } from "@/modules/orders/admin-queries";
+import { LiveOrdersTable } from "./_components/LiveOrdersTable";
+import { LiveOrdersSSE } from "./_components/LiveOrdersSSE";
 
 export default async function AdminOrdersPage() {
   const { session } = await requireAdmin();
@@ -22,6 +26,8 @@ export default async function AdminOrdersPage() {
       ])
     : [null, []];
 
+  const liveOrders = activeWindow ? await getLiveOrders(activeWindow.id) : [];
+
   return (
     <div className='px-4 space-y-6'>
       <div>
@@ -33,13 +39,34 @@ export default async function AdminOrdersPage() {
 
       {/* active window or create form */}
       {activeWindow ? (
-        <ActiveWindowCard window={activeWindow} />
-      ) : (
-        <CreateWindowForm />
-      )}
+        <>
+          <ActiveWindowCard window={activeWindow} />
+          <Tabs defaultValue='active-orders'>
+            <TabsList className='w-full mb-1'>
+              <TabsTrigger value='active-orders'>Active Orders</TabsTrigger>
 
-      {/* today's windows */}
-      <TodaysWindowsList windows={todaysWindows} />
+              <TabsTrigger value='todays-windows'>
+                Today&apos;s Windows
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value='active-orders'>
+              <LiveOrdersSSE />
+              <LiveOrdersTable orders={liveOrders} />
+            </TabsContent>
+
+            <TabsContent value='todays-windows'>
+              <TodaysWindowsList windows={todaysWindows} />
+            </TabsContent>
+          </Tabs>
+        </>
+      ) : (
+        <>
+          <CreateWindowForm />
+          <h2 className='text-sm font-medium mb-3'>Today&apos;s Windows</h2>
+          <TodaysWindowsList windows={todaysWindows} />
+        </>
+      )}
     </div>
   );
 }

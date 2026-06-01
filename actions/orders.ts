@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { authIsRequired } from "./user";
+import { authIsRequired, requireAdmin } from "./user";
 import { notify } from "@/lib/sse/pg-notify";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -201,6 +201,13 @@ export async function cancelOrderAction(
     return { success: false, error: "Cannot cancel after window closes" };
   }
 
+  if (order.status !== "pending") {
+    return {
+      success: false,
+      error: "Order can no longer be cancelled",
+    };
+  }
+
   const member = await prisma.member.findFirst({
     where: { userId: session.user.id },
   });
@@ -222,4 +229,62 @@ export async function cancelOrderAction(
 
   revalidatePath("/orders");
   return { success: true, orderId: order.id };
+}
+
+export async function updateOrderStatusAction(
+  orderId: string,
+  status: "approved" | "rejected" | "pending",
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const member = await prisma.member.findFirst({
+    where: {
+      userId: session.user.id,
+    },
+  });
+
+  if (!member) {
+    return {
+      success: false,
+      error: "Organization not found",
+    };
+  }
+
+  const order = await prisma.order.findUnique({
+    where: {
+      id: orderId,
+    },
+  });
+
+  if (!order) {
+    return {
+      success: false,
+      error: "Order not found",
+    };
+  }
+
+  await prisma.order.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      status,
+    },
+  });
+
+  await notify({
+    type: "order_status_changed",
+    orgId: member.organizationId,
+    payload: {
+      orderId,
+      status,
+    },
+  });
+
+  revalidatePath("/admin/orders");
+
+  return {
+    success: true,
+    orderId,
+  };
 }

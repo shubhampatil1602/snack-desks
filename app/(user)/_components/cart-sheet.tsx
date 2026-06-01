@@ -38,6 +38,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { hasCartChanged } from "@/lib/cart";
 import { useState } from "react";
+import { ORDER_STATUS } from "@/lib/constants";
 
 type CartSheetProps = {
   open: boolean;
@@ -55,6 +56,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const hasPlacedOrder = useCartStore((state) => state.hasPlacedOrder);
   const orderId = useCartStore((state) => state.orderId);
   const savedItems = useCartStore((state) => state.savedItems);
+  const orderStatus = useCartStore((state) => state.orderStatus);
 
   const router = useRouter();
   const subtotal = useCartSubtotal();
@@ -231,7 +233,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 >
                   Place Order
                 </Button>
-              ) : (
+              ) : orderStatus === ORDER_STATUS.PENDING ? (
                 <div className='flex justify-between gap-3'>
                   <Button
                     onClick={handleUpdateOrder}
@@ -272,6 +274,10 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                </div>
+              ) : (
+                <div className='border p-3 text-center'>
+                  Order Status: {orderStatus}
                 </div>
               )}
             </div>

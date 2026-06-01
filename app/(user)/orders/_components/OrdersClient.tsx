@@ -12,6 +12,8 @@ import type {
   ActiveWindowWithMenu,
   UserActiveOrder,
 } from "@/modules/orders/queries";
+import { toast } from "sonner";
+import { ORDER_STATUS } from "@/lib/constants";
 
 type OrdersClientProps = {
   menuItems: NonNullable<ActiveWindowWithMenu>["menuItems"];
@@ -31,6 +33,18 @@ export function OrdersClient({
     onWindowClosed: () => {
       sendNotification(`🍱 Order window is closed!`, "Thanks.");
       clearCart();
+      router.refresh();
+    },
+
+    onOrderStatusChanged: (payload) => {
+      if (payload.status === ORDER_STATUS.APPROVED) {
+        toast.success("Your order has been approved");
+      }
+
+      if (payload.status === ORDER_STATUS.REJECTED) {
+        toast.error("Your order has been rejected");
+      }
+
       router.refresh();
     },
   });
@@ -63,6 +77,7 @@ export function OrdersClient({
 
     loadExistingOrder({
       orderId: existingOrder.id,
+      status: existingOrder.status,
       items: existingOrder.items.map((item) => ({
         menuItemId: item.menuItem.id,
         name: item.menuItem.name,

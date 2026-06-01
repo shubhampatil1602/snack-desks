@@ -14,6 +14,7 @@ type CartStore = {
   hasPlacedOrder: boolean;
   windowId: string | null;
   savedItems: CartItem[];
+  orderStatus: string | null;
 
   addItem: (item: Omit<CartItem, "quantity">) => void;
   removeItem: (menuItemId: string) => void;
@@ -23,7 +24,11 @@ type CartStore = {
 
   clearCart: () => void;
 
-  loadExistingOrder: (data: { orderId: string; items: CartItem[] }) => void;
+  loadExistingOrder: (data: {
+    orderId: string;
+    status: string;
+    items: CartItem[];
+  }) => void;
   setWindowId: (windowId: string) => void;
   markCurrentAsSaved: () => void;
 };
@@ -36,6 +41,7 @@ export const useCartStore = create<CartStore>()(
       hasPlacedOrder: false,
       windowId: null,
       savedItems: [],
+      orderStatus: null,
 
       addItem: (item) =>
         set((state) => {
@@ -105,13 +111,15 @@ export const useCartStore = create<CartStore>()(
         set({
           items: [],
           orderId: null,
+          orderStatus: null,
           hasPlacedOrder: false,
           savedItems: [],
         }),
 
-      loadExistingOrder: ({ orderId, items }) =>
+      loadExistingOrder: ({ orderId, status, items }) =>
         set({
           orderId,
+          orderStatus: status,
           hasPlacedOrder: true,
           items,
           savedItems: items,
@@ -132,6 +140,7 @@ export const useCartStore = create<CartStore>()(
       partialize: (state) => ({
         items: state.items,
         orderId: state.orderId,
+        orderStatus: state.orderStatus,
         hasPlacedOrder: state.hasPlacedOrder,
         savedItems: state.savedItems,
       }),
