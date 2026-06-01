@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  IconChefHat,
   IconMenuOrder,
   IconGraph,
   IconHelp,
@@ -40,19 +39,14 @@ const data = {
       icon: IconMenuOrder,
     },
     {
-      title: "Menus",
-      url: "/menus",
-      icon: IconChefHat,
+      title: "History",
+      url: "/history",
+      icon: IconHistory,
     },
     {
       title: "Rankings",
       url: "/users-rankings",
       icon: IconChartBar,
-    },
-    {
-      title: "History",
-      url: "/history",
-      icon: IconHistory,
     },
   ],
   navSecondary: [
