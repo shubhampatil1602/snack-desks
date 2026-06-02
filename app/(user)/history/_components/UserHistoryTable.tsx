@@ -12,20 +12,22 @@ import {
   TableCell,
 } from "@/components/ui/table";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { usePagination } from "@/hooks/use-pagination";
 import { DataPagination } from "@/components/ui/data-pagination";
+
 import { UserOrderHistory } from "@/modules/orders/user-history-queries";
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsTrigger, TabsList } from "@/components/ui/tabs";
+  OrderHistoryFilters,
+  HistoryPeriod,
+  HistoryStatus,
+} from "@/components/orders/OrderHistoryFilters";
+
+import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
+
+import { OrderHistoryDetails } from "@/components/orders/OrderHistoryDetails";
 
 type UserHistoryTableProps = {
   orders: UserOrderHistory;
@@ -33,17 +35,19 @@ type UserHistoryTableProps = {
 
 export function UserHistoryTable({ orders }: UserHistoryTableProps) {
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
-  const [period, setPeriod] = useState<"all" | "today" | "week" | "month">(
-    "all",
-  );
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "pending" | "approved" | "rejected" | "cancelled"
-  >("all");
+
+  const [period, setPeriod] = useState<HistoryPeriod>("all");
+
+  const [statusFilter, setStatusFilter] = useState<HistoryStatus>("all");
+
   const filteredOrders = orders.filter((order) => {
     if (statusFilter !== "all" && order.status !== statusFilter) {
       return false;
     }
-    if (period === "all") return true;
+
+    if (period === "all") {
+      return true;
+    }
 
     const orderDate = new Date(order.createdAt);
     const now = new Date();
@@ -68,44 +72,21 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
 
     return true;
   });
+
   const pagination = usePagination({
     data: filteredOrders,
     itemsPerPage: 10,
   });
 
   return (
-    <div className=''>
-      <div className='flex justify-between mb-3'>
-        <Tabs
-          value={period}
-          onValueChange={(value) => setPeriod(value as typeof period)}
-        >
-          <TabsList>
-            <TabsTrigger value='all'>All</TabsTrigger>
-            <TabsTrigger value='today'>Today</TabsTrigger>
-            <TabsTrigger value='week'>This Week</TabsTrigger>
-            <TabsTrigger value='month'>This Month</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <Select
-          value={statusFilter}
-          onValueChange={(value) =>
-            setStatusFilter(value as typeof statusFilter)
-          }
-        >
-          <SelectTrigger className='w-[180px]'>
-            <SelectValue placeholder='Status' />
-          </SelectTrigger>
+    <div>
+      <OrderHistoryFilters
+        period={period}
+        statusFilter={statusFilter}
+        onPeriodChange={setPeriod}
+        onStatusChange={setStatusFilter}
+      />
 
-          <SelectContent>
-            <SelectItem value='all'>All Status</SelectItem>
-            <SelectItem value='pending'>Pending</SelectItem>
-            <SelectItem value='approved'>Approved</SelectItem>
-            <SelectItem value='rejected'>Rejected</SelectItem>
-            <SelectItem value='cancelled'>Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
       <div className='border'>
         <Table>
           <TableHeader className='bg-muted'>
@@ -121,7 +102,7 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
           <TableBody>
             {pagination.paginatedData.map((order) => {
               const total = order.items.reduce(
-                (sum: number, item) =>
+                (sum, item) =>
                   sum + Number(item.menuItem.price) * item.quantity,
                 0,
               );
@@ -130,7 +111,11 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
 
               return (
                 <Fragment key={order.id}>
-                  <TableRow>
+                  <TableRow
+                    onClick={() =>
+                      setExpandedOrderId(expanded ? null : order.id)
+                    }
+                  >
                     <TableCell className='px-3 py-0.5'>
                       {new Date(order.createdAt).toLocaleDateString("en-IN")}
                     </TableCell>
@@ -144,17 +129,11 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                     </TableCell>
 
                     <TableCell className='px-3 py-0.5'>
-                      <Badge variant='outline'>{order.status}</Badge>
+                      <OrderStatusBadge status={order.status} />
                     </TableCell>
 
                     <TableCell className='px-3 py-0.5'>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={() =>
-                          setExpandedOrderId(expanded ? null : order.id)
-                        }
-                      >
+                      <Button variant='ghost' size='icon'>
                         {expanded ? <ChevronUp /> : <ChevronDown />}
                       </Button>
                     </TableCell>
@@ -163,27 +142,7 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                   {expanded && (
                     <TableRow>
                       <TableCell colSpan={5} className='bg-muted/60'>
-                        <div className='space-y-2'>
-                          {order.items.map((item) => (
-                            <div key={item.id} className='flex justify-between'>
-                              <span>
-                                {item.menuItem.name} × {item.quantity}
-                              </span>
-
-                              <span>
-                                ₹
-                                {(
-                                  Number(item.menuItem.price) * item.quantity
-                                ).toFixed(2)}
-                              </span>
-                            </div>
-                          ))}
-
-                          <div className='border-t pt-2 flex justify-between font-medium'>
-                            <span>Total</span>
-                            <span>₹{total.toFixed(2)}</span>
-                          </div>
-                        </div>
+                        <OrderHistoryDetails items={order.items} />
                       </TableCell>
                     </TableRow>
                   )}
