@@ -6,8 +6,8 @@ import {
 import { prisma } from "@/lib/db";
 import { NoActiveWindow } from "./_components/NoActiveWindow";
 import { OrdersClient } from "./_components/OrdersClient";
-import { CountdownTimer } from "./_components/CountdownTimer";
 import { WindowBanner } from "./_components/WindowBanner";
+import { ClearCartOnMount } from "./_components/ClearCartOnMount";
 
 export default async function OrdersPage() {
   const session = await authIsRequired();
@@ -25,7 +25,12 @@ export default async function OrdersPage() {
     : null;
 
   if (!activeWindowData) {
-    return <NoActiveWindow />;
+    return (
+      <>
+        <ClearCartOnMount />
+        <NoActiveWindow />;
+      </>
+    );
   }
 
   return (

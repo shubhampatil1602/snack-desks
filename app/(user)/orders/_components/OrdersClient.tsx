@@ -73,7 +73,10 @@ export function OrdersClient({
     setWindowId(windowId);
   }, [windowId, setWindowId]);
   useEffect(() => {
-    if (!existingOrder) return;
+    if (!existingOrder) {
+      clearCart();
+      return;
+    }
 
     loadExistingOrder({
       orderId: existingOrder.id,
@@ -85,7 +88,7 @@ export function OrdersClient({
         quantity: item.quantity,
       })),
     });
-  }, [existingOrder, loadExistingOrder]);
+  }, [existingOrder, loadExistingOrder, clearCart]);
 
   return (
     <div className='space-y-6 w-full mt-6'>
