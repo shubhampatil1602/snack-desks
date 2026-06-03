@@ -1,18 +1,51 @@
 import { authIsRequired } from "@/actions/user";
+import { prisma } from "@/lib/db";
+import { getUserDashboardData } from "@/modules/user-dashboard/queries";
+
+import { UserStatsCards } from "./_components/UserStatsCards";
+import { UserRankCard } from "./_components/UserRankCard";
+import { RecentOrdersCard } from "./_components/RecentOrdersCard";
+import { FavoriteItemsCard } from "./_components/FavoriteItemsCard";
+import { DashboardSSE } from "@/app/admin/dashboard/_components/DashboardSSE";
 
 export default async function UserDashboard() {
   const session = await authIsRequired();
 
+  const member = await prisma.member.findFirst({
+    where: {
+      userId: session.user.id,
+    },
+  });
+
+  if (!member) return null;
+
+  const data = await getUserDashboardData(
+    member.organizationId,
+    session.user.id,
+  );
+
   return (
-    <div className='space-y-8 px-4'>
+    <div className='space-y-6 px-4'>
       <div>
         <h1 className='text-2xl font-heading tracking-wide'>
           Hello, {session.user.name}
         </h1>
+
         <p className='text-sm text-muted-foreground mt-1'>
-          Here&apos;s what&apos;s happening across your organization.
+          You&apos;ve placed {data.stats.totalOrders} orders and spent ₹
+          {data.stats.totalSpent.toFixed(2)} so far.
         </p>
       </div>
+      <DashboardSSE />
+      <UserStatsCards stats={data.stats} />
+
+      <div className='grid gap-3 lg:grid-cols-2'>
+        <UserRankCard rank={data.rank} />
+
+        <RecentOrdersCard orders={data.recentOrders} />
+      </div>
+
+      <FavoriteItemsCard items={data.favoriteItems} />
     </div>
   );
 }
