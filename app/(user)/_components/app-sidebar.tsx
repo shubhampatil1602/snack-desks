@@ -45,7 +45,7 @@ const data = {
     },
     {
       title: "Rankings",
-      url: "/users-rankings",
+      url: "/rankings",
       icon: IconChartBar,
     },
   ],
