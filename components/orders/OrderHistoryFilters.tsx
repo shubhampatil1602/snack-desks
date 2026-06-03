@@ -35,7 +35,7 @@ export function OrderHistoryFilters({
   onStatusChange,
 }: OrderHistoryFiltersProps) {
   return (
-    <div className='flex justify-between mb-3'>
+    <div className='flex justify-between mb-2 flex-wrap'>
       <Tabs
         value={period}
         onValueChange={(value) => onPeriodChange(value as HistoryPeriod)}
@@ -55,7 +55,7 @@ export function OrderHistoryFilters({
         value={statusFilter}
         onValueChange={(value) => onStatusChange(value as HistoryStatus)}
       >
-        <SelectTrigger className='w-[180px]'>
+        <SelectTrigger className='w-[150px]'>
           <SelectValue placeholder='Status' />
         </SelectTrigger>
 

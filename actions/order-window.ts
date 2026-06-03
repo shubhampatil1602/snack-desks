@@ -110,13 +110,14 @@ export async function closeWindowAction(
     return { success: false, error: "Unauthorized" };
   }
 
-  await prisma.orderWindow.update({
-    where: { id: windowId },
-    data: {
-      status: "closed",
-      endsAt: new Date(), // set endsAt to now if manually closed
-    },
-  });
+  if (window.status === "closed") {
+    return {
+      success: false,
+      error: "Window already closed",
+    };
+  }
+
+  await closeWindowInternal(windowId);
 
   await notify({
     type: "window_closed",
@@ -126,4 +127,28 @@ export async function closeWindowAction(
 
   revalidatePath("/admin/orders");
   return { success: true };
+}
+
+export async function closeWindowInternal(windowId: string) {
+  await prisma.$transaction(async (tx) => {
+    await tx.order.updateMany({
+      where: {
+        windowId,
+        status: "pending",
+      },
+      data: {
+        status: "approved",
+      },
+    });
+
+    await tx.orderWindow.update({
+      where: {
+        id: windowId,
+      },
+      data: {
+        status: "closed",
+        endsAt: new Date(),
+      },
+    });
+  });
 }

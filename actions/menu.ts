@@ -37,7 +37,7 @@ export async function createMenuItemAction(
       name: parsed.data.name,
       price: parsed.data.price,
       unit: parsed.data.unit,
-      menuCategoryId: parsed.data.categoryId || null,
+      menuCategoryId: parsed.data.categoryId,
       updatedAt: new Date(),
     },
   });

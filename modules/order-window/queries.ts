@@ -1,3 +1,4 @@
+import { closeWindowInternal } from "@/actions/order-window";
 import { prisma } from "@/lib/db";
 
 export async function getActiveWindow(organizationId: string) {
@@ -10,10 +11,7 @@ export async function getActiveWindow(organizationId: string) {
 
   // lazy close — if endsAt has passed, treat as closed
   if (window && window.endsAt && window.endsAt < new Date()) {
-    await prisma.orderWindow.update({
-      where: { id: window.id },
-      data: { status: "closed" },
-    });
+    await closeWindowInternal(window.id);
     return null;
   }
 

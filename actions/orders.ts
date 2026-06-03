@@ -131,6 +131,13 @@ export async function updateOrderAction(
     return { success: false, error: "Order not found" };
   }
 
+  if (order.status === "cancelled") {
+    return {
+      success: false,
+      error: "Cancelled orders cannot be modified",
+    };
+  }
+
   if (order.userId !== session.user.id) {
     return { success: false, error: "Unauthorized" };
   }
@@ -142,6 +149,13 @@ export async function updateOrderAction(
 
   if (order.orderWindow.endsAt && order.orderWindow.endsAt < new Date()) {
     return { success: false, error: "Order window has expired" };
+  }
+
+  if (order.status !== "pending") {
+    return {
+      success: false,
+      error: "Order can no longer be modified",
+    };
   }
 
   const member = await prisma.member.findFirst({
@@ -233,7 +247,7 @@ export async function cancelOrderAction(
 
 export async function updateOrderStatusAction(
   orderId: string,
-  status: "approved" | "rejected" | "pending",
+  status: "approved" | "rejected",
 ): Promise<ActionResult> {
   const { session } = await requireAdmin();
 
@@ -263,6 +277,13 @@ export async function updateOrderStatusAction(
     };
   }
 
+  if (order.status === "cancelled") {
+    return {
+      success: false,
+      error: "Cancelled orders cannot be modified",
+    };
+  }
+
   await prisma.order.update({
     where: {
       id: orderId,
@@ -278,6 +299,107 @@ export async function updateOrderStatusAction(
     payload: {
       orderId,
       status,
+    },
+  });
+
+  revalidatePath("/admin/orders");
+
+  return {
+    success: true,
+    orderId,
+  };
+}
+
+export async function updateAdminOrderAction(
+  orderId: string,
+  items: {
+    menuItemId: string;
+    quantity: number;
+  }[],
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const member = await prisma.member.findFirst({
+    where: {
+      userId: session.user.id,
+    },
+  });
+
+  if (!member) {
+    return {
+      success: false,
+      error: "Organization not found",
+    };
+  }
+
+  const order = await prisma.order.findUnique({
+    where: {
+      id: orderId,
+    },
+  });
+
+  if (!order) {
+    return {
+      success: false,
+      error: "Order not found",
+    };
+  }
+
+  if (order.status !== "approved") {
+    return {
+      success: false,
+      error: "Only approved orders can be edited",
+    };
+  }
+
+  if (items.length === 0) {
+    await prisma.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        status: "cancelled",
+        updatedAt: new Date(),
+      },
+    });
+
+    return {
+      success: true,
+      orderId,
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.orderItem.deleteMany({
+      where: {
+        orderId,
+      },
+    });
+
+    await tx.orderItem.createMany({
+      data: items.map((item) => ({
+        id: nanoid(),
+        orderId,
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+      })),
+    });
+
+    await tx.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        updatedAt: new Date(),
+      },
+    });
+  });
+
+  await notify({
+    type: "order_updated",
+    orgId: member.organizationId,
+    payload: {
+      orderId,
     },
   });
 

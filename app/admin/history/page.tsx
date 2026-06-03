@@ -2,8 +2,10 @@ import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
 
 import { AdminWindowHistory } from "./_components/AdminWindowHistory";
+import { ExportOrdersDialog } from "./_components/ExportOrdersDialog";
 
 import { getOrganizationOrderHistoryGroupedByWindow } from "@/modules/orders/admin-history-queries";
+import { getMenuItems } from "@/modules/menu/queries";
 
 export default async function AdminHistoryPage() {
   const { session } = await requireAdmin();
@@ -17,21 +19,24 @@ export default async function AdminHistoryPage() {
   if (!member) {
     return null;
   }
-  const windows = await getOrganizationOrderHistoryGroupedByWindow(
-    member.organizationId,
-  );
+  const [windows, menuItems] = await Promise.all([
+    getOrganizationOrderHistoryGroupedByWindow(member.organizationId),
+    getMenuItems(member.organizationId),
+  ]);
 
   return (
     <div className='px-4 space-y-6'>
-      <div>
-        <h1 className='text-2xl font-heading tracking-wide'>Order History</h1>
-
-        <p className='text-sm text-muted-foreground mt-1'>
-          View history of your organization orders
-        </p>
+      <div className='flex justify-between items-center pb-4 border-b'>
+        <div>
+          <h1 className='text-2xl font-heading tracking-wide'>Order History</h1>
+          <p className='text-sm text-muted-foreground mt-1'>
+            View history of your organization orders
+          </p>
+        </div>
+        <ExportOrdersDialog />
       </div>
 
-      <AdminWindowHistory windows={windows} />
+      <AdminWindowHistory windows={windows} menuItems={menuItems} />
     </div>
   );
 }

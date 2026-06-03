@@ -129,8 +129,9 @@ export function ActiveWindowCard({ window }: ActiveWindowCardProps) {
             <AlertDialogHeader>
               <AlertDialogTitle>End this order window?</AlertDialogTitle>
               <AlertDialogDescription>
-                All pending orders will be locked. Users won&apos;t be able to
-                place or edit orders after this. This cannot be undone.
+                Any pending orders will be automatically approved and the order
+                window will be closed. Users won&apos;t be able to place or edit
+                orders after this.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

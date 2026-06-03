@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { ChevronDown, ChevronRight, Dot } from "lucide-react";
+import { ChevronDown, ChevronRight, Dot, Search } from "lucide-react";
 
 import {
   Table,
@@ -31,12 +31,21 @@ import {
   HistoryPeriod,
   HistoryStatus,
 } from "@/components/orders/OrderHistoryFilters";
+import { AdminEditOrderDialog } from "./AdminEditOrderDialog";
+import { MenuItem } from "@/types/menu";
+import { HistoryOrderActions } from "./HistoryOrderActions";
+import { OrderWindowSummaryDialog } from "./OrderWindowSummaryDialog";
+import { OrderWindowUserSummaryDialog } from "./OrderWindowUserSummaryDialog";
 
 type AdminWindowHistoryProps = {
   windows: AdminWindowHistoryType;
+  menuItems: MenuItem[];
 };
 
-export function AdminWindowHistory({ windows }: AdminWindowHistoryProps) {
+export function AdminWindowHistory({
+  windows,
+  menuItems,
+}: AdminWindowHistoryProps) {
   const [expandedWindows, setExpandedWindows] = useState<
     Record<string, boolean>
   >(() => ({
@@ -49,6 +58,7 @@ export function AdminWindowHistory({ windows }: AdminWindowHistoryProps) {
   const [sortBy, setSortBy] = useState<
     "newest" | "oldest" | "revenue" | "orders"
   >("newest");
+
   const processedWindows = windows
     .map((window) => ({
       ...window,
@@ -59,57 +69,45 @@ export function AdminWindowHistory({ windows }: AdminWindowHistoryProps) {
         ) {
           return false;
         }
-
         if (statusFilter !== "all" && order.status !== statusFilter) {
           return false;
         }
-
         return true;
       }),
     }))
     .filter((window) => window.orders.length > 0)
     .filter((window) => {
       if (period === "all") return true;
-
       const windowDate = new Date(window.createdAt);
       const now = new Date();
-
       if (period === "today") {
         return windowDate.toDateString() === now.toDateString();
       }
-
       if (period === "week") {
         const weekAgo = new Date();
         weekAgo.setDate(now.getDate() - 7);
-
         return windowDate >= weekAgo;
       }
-
       if (period === "month") {
         return (
           windowDate.getMonth() === now.getMonth() &&
           windowDate.getFullYear() === now.getFullYear()
         );
       }
-
       return true;
     });
 
   const sortedWindows = [...processedWindows];
-
   sortedWindows.sort((a, b) => {
     if (sortBy === "newest") {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
-
     if (sortBy === "oldest") {
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     }
-
     if (sortBy === "orders") {
       return b.orders.length - a.orders.length;
     }
-
     const revenueA = a.orders.reduce(
       (sum, order) =>
         sum +
@@ -120,7 +118,6 @@ export function AdminWindowHistory({ windows }: AdminWindowHistoryProps) {
         ),
       0,
     );
-
     const revenueB = b.orders.reduce(
       (sum, order) =>
         sum +
@@ -131,7 +128,6 @@ export function AdminWindowHistory({ windows }: AdminWindowHistoryProps) {
         ),
       0,
     );
-
     return revenueB - revenueA;
   });
 
@@ -149,7 +145,7 @@ export function AdminWindowHistory({ windows }: AdminWindowHistoryProps) {
 
   return (
     <div className='space-y-4'>
-      <div className='space-y-3'>
+      <div className=''>
         <OrderHistoryFilters
           period={period}
           statusFilter={statusFilter}
@@ -157,22 +153,24 @@ export function AdminWindowHistory({ windows }: AdminWindowHistoryProps) {
           onStatusChange={setStatusFilter}
         />
 
-        <div className='flex justify-between gap-3'>
-          <Input
-            placeholder='Search employee...'
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className='max-w-sm'
-          />
+        <div className='flex items-center justify-between gap-2'>
+          <div className='relative'>
+            <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
+            <Input
+              placeholder='Search employee...'
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className='w-[220px] pl-8 h-8 text-sm'
+            />
+          </div>
 
           <Select
             value={sortBy}
             onValueChange={(value) => setSortBy(value as typeof sortBy)}
           >
-            <SelectTrigger className='w-[200px]'>
+            <SelectTrigger className='w-[150px] h-8 text-sm'>
               <SelectValue />
             </SelectTrigger>
-
             <SelectContent>
               <SelectItem value='newest'>Newest First</SelectItem>
               <SelectItem value='oldest'>Oldest First</SelectItem>
@@ -182,137 +180,202 @@ export function AdminWindowHistory({ windows }: AdminWindowHistoryProps) {
           </Select>
         </div>
       </div>
-      <div className='border'>
-        <Table>
-          <TableHeader>
-            <TableRow className='hover:bg-transparent border-b'>
-              <TableHead className='w-[28px]' />
-              <TableHead className='text-xs uppercase tracking-wide'>
-                User
-              </TableHead>
-              <TableHead className='text-xs uppercase tracking-wide'>
-                Total
-              </TableHead>
-              <TableHead className='text-xs uppercase tracking-wide'>
-                Status
-              </TableHead>
-              <TableHead className='w-[40px]' />
-            </TableRow>
-          </TableHeader>
 
-          <TableBody>
-            {pagination.paginatedData.map((window) => {
-              const isExpanded = expandedWindows[window.id];
-              const windowRevenue = window.orders
-                .filter((o) => o.status !== "cancelled")
-                .reduce(
-                  (sum, order) =>
-                    sum +
-                    order.items.reduce(
-                      (itemSum, item) =>
-                        itemSum + Number(item.menuItem.price) * item.quantity,
-                      0,
-                    ),
+      {/* Windows List - Tighter spacing */}
+      <div className=''>
+        {pagination.paginatedData.map((window) => {
+          const isExpanded = expandedWindows[window.id];
+          const windowRevenue = window.orders
+            .filter((o) => o.status !== "cancelled")
+            .reduce(
+              (sum, order) =>
+                sum +
+                order.items.reduce(
+                  (itemSum, item) =>
+                    itemSum + Number(item.menuItem.price) * item.quantity,
                   0,
-                );
+                ),
+              0,
+            );
 
-              return (
-                <Fragment key={window.id}>
-                  {/* Window group header row */}
-                  <TableRow
-                    className='cursor-pointer select-none bg-muted/50 hover:bg-muted/70'
-                    onClick={() => toggleWindow(window.id)}
-                  >
-                    <TableCell className='pl-4 pr-0 text-center py-4'>
+          return (
+            <Fragment key={window.id}>
+              {/* Window Card */}
+              <div className='border-collapse border my-3'>
+                {/* Window Header */}
+                <div className='flex items-center justify-between px-3 py-2 bg-muted/20 overflow-x-auto'>
+                  <div className='flex items-center gap-2 w-4xl'>
+                    <button className='p-0'>
                       {isExpanded ? (
-                        <ChevronDown className='h-3.5 w-3.5 text-muted-foreground' />
+                        <ChevronDown className='h-3.5 w-3.5' />
                       ) : (
-                        <ChevronRight className='h-3.5 w-3.5 text-muted-foreground' />
+                        <ChevronRight className='h-3.5 w-3.5' />
                       )}
-                    </TableCell>
+                    </button>
+                    <button
+                      onClick={() => toggleWindow(window.id)}
+                      className='flex items-center gap-2 cursor-pointer'
+                    >
+                      <span className='text-sm font-medium'>
+                        {new Date(window.createdAt).toLocaleDateString(
+                          "en-IN",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          },
+                        )}
+                      </span>
+                      <span className='text-muted-foreground text-xs'>·</span>
+                      <span className='text-sm font-medium'>
+                        {window.label} Window
+                      </span>
+                      <span className='text-muted-foreground text-xs'>·</span>
+                      <span className='text-xs text-muted-foreground'>
+                        {new Date(window.createdAt).toLocaleTimeString(
+                          "en-IN",
+                          {
+                            hour: "numeric",
+                            minute: "numeric",
+                            hour12: true,
+                          },
+                        )}
+                      </span>
+                    </button>
+                  </div>
 
-                    <TableCell colSpan={4} className='py-4'>
-                      <div className='flex items-center justify-between'>
-                        <div>
-                          <p className='font-semibold leading-none text-foreground'>
-                            {new Date(window.createdAt).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              },
-                            )}{" "}
-                            · {window.label} Window
-                          </p>
-                        </div>
-                        <div className='text-right'>
-                          <p className='font-semibold leading-none text-foreground'>
-                            ₹{windowRevenue.toFixed(2)} · {window.orders.length}{" "}
-                            orders
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <div className='flex items-center justify-start gap-3 w-xl'>
+                    <OrderWindowSummaryDialog window={window} />
+                    <OrderWindowUserSummaryDialog window={window} />
+                    <div className='text-right border-l pl-3 space-x-2'>
+                      <span className='text-sm font-semibold'>
+                        ₹{windowRevenue.toFixed(2)}
+                      </span>
+                      <span className='text-muted-foreground text-xs'>·</span>
+                      <span className='text-sm text-muted-foreground'>
+                        {window.orders.length} orders
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-                  {/* Order rows */}
-                  {isExpanded &&
-                    window.orders.map((order) => {
-                      const total = order.items.reduce(
-                        (sum, item) =>
-                          sum + Number(item.menuItem.price) * item.quantity,
-                        0,
-                      );
-                      const isExpandedOrder = expandedOrderId === order.id;
+                {/* Orders Table */}
+                {isExpanded && (
+                  <div className='border-t'>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className='hover:bg-transparent bg-muted/10'>
+                          <TableHead className='w-[30px] py-2 text-xs' />
+                          <TableHead className='py-2 text-xs font-medium'>
+                            User
+                          </TableHead>
+                          <TableHead className='py-2 text-xs font-medium'>
+                            Items
+                          </TableHead>
+                          <TableHead className='py-2 text-xs font-medium'>
+                            Total
+                          </TableHead>
+                          <TableHead className='py-2 text-xs font-medium'>
+                            Status
+                          </TableHead>
+                          <TableHead className='w-[80px] py-2' />
+                        </TableRow>
+                      </TableHeader>
 
-                      return (
-                        <Fragment key={order.id}>
-                          <TableRow
-                            className={`cursor-pointer ${
-                              isExpandedOrder ? "border-b-0" : ""
-                            }`}
-                            onClick={() =>
-                              setExpandedOrderId(
-                                isExpandedOrder ? null : order.id,
-                              )
-                            }
-                          >
-                            <TableCell className='py-2 pr-0'>
-                              <Dot className='size-5' />
-                            </TableCell>
+                      <TableBody>
+                        {window.orders.map((order) => {
+                          const total = order.items.reduce(
+                            (sum, item) =>
+                              sum + Number(item.menuItem.price) * item.quantity,
+                            0,
+                          );
+                          const isExpandedOrder = expandedOrderId === order.id;
+                          const totalItems = order.items.reduce(
+                            (sum, item) => sum + item.quantity,
+                            0,
+                          );
 
-                            <TableCell className='py-2 text-sm font-medium'>
-                              {order.user.name}
-                            </TableCell>
+                          return (
+                            <Fragment key={order.id}>
+                              <TableRow
+                                className={`cursor-pointer ${
+                                  isExpandedOrder ? "border-b-0" : ""
+                                } hover:bg-muted/5`}
+                              >
+                                <TableCell className='pl-3 py-2'>
+                                  <Dot className='h-3 w-3 text-muted-foreground' />
+                                </TableCell>
 
-                            <TableCell className='py-2 text-sm'>
-                              ₹{total.toFixed(2)}
-                            </TableCell>
+                                <TableCell
+                                  className='py-2 text-sm font-medium hover:underline'
+                                  onClick={() =>
+                                    setExpandedOrderId(
+                                      isExpandedOrder ? null : order.id,
+                                    )
+                                  }
+                                >
+                                  {order.user.name}
+                                </TableCell>
 
-                            <TableCell className='py-2'>
-                              <OrderStatusBadge status={order.status} />
-                            </TableCell>
+                                <TableCell
+                                  className='py-2 text-xs text-muted-foreground'
+                                  onClick={() =>
+                                    setExpandedOrderId(
+                                      isExpandedOrder ? null : order.id,
+                                    )
+                                  }
+                                >
+                                  {totalItems} item{totalItems !== 1 ? "s" : ""}
+                                </TableCell>
 
-                            <TableCell />
-                          </TableRow>
+                                <TableCell className='py-2 text-sm font-medium'>
+                                  ₹{total.toFixed(2)}
+                                </TableCell>
 
-                          {isExpandedOrder && (
-                            <TableRow className='hover:bg-transparent'>
-                              <TableCell className='py-0' />
-                              <TableCell colSpan={4} className='pb-3 pt-1'>
-                                <OrderHistoryDetails items={order.items} />
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                </Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
+                                <TableCell className='py-2'>
+                                  <OrderStatusBadge status={order.status} />
+                                </TableCell>
+
+                                <TableCell className='py-2'>
+                                  <div className='flex items-center gap-1'>
+                                    {order.status === "approved" && (
+                                      <AdminEditOrderDialog
+                                        orderId={order.id}
+                                        userName={order.user.name}
+                                        items={order.items}
+                                        menuItems={menuItems}
+                                      />
+                                    )}
+                                    {(order.status === "approved" ||
+                                      order.status === "rejected") && (
+                                      <HistoryOrderActions
+                                        orderId={order.id}
+                                        status={order.status}
+                                      />
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+
+                              {isExpandedOrder && (
+                                <TableRow className='hover:bg-transparent'>
+                                  <TableCell className='py-0' />
+                                  <TableCell colSpan={5} className='pb-3 pt-0'>
+                                    <OrderHistoryDetails items={order.items} />
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </Fragment>
+          );
+        })}
       </div>
 
       <DataPagination {...pagination} />
