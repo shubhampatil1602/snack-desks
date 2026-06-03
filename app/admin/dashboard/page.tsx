@@ -1,18 +1,41 @@
 import { requireAdmin } from "@/actions/user";
+import { getDashboardData } from "@/modules/admin-dashboard/queries";
 
-export default async function SuperAdminDashboard() {
-  const session = await requireAdmin();
+import { DashboardStats } from "./_components/DashboardStats";
+import { ActiveWindowCard } from "./_components/ActiveWindowCard";
+import { TopSellingItemsCard } from "./_components/TopSellingItemsCard";
+import { TopEmployeesCard } from "./_components/TopEmployeesCard";
+import { RecentWindowsCard } from "./_components/RecentWindowsCard";
+import { DashboardSSE } from "./_components/DashboardSSE";
+
+export default async function AdminDashboard() {
+  const { member } = await requireAdmin();
+
+  const dashboardData = await getDashboardData(member.organizationId);
 
   return (
-    <div className='space-y-8 px-4'>
+    <div className='space-y-6 px-4'>
       <div>
         <h1 className='text-2xl font-heading tracking-wide'>
-          Hello, {session.member.user.name}
-        </h1>
+          {" "}
+          Hello, {member.user.name}{" "}
+        </h1>{" "}
         <p className='text-sm text-muted-foreground mt-1'>
-          Here&apos;s what&apos;s happening across your organization.
+          {" "}
+          Here&apos;s what&apos;s happening across your organization.{" "}
         </p>
       </div>
+      <DashboardSSE />
+      <ActiveWindowCard window={dashboardData.activeWindow} />
+
+      <DashboardStats stats={dashboardData.stats} />
+
+      <div className='grid gap-3 lg:grid-cols-2'>
+        <TopSellingItemsCard items={dashboardData.topSellingItems} />
+        <TopEmployeesCard employees={dashboardData.topEmployees} />
+      </div>
+
+      <RecentWindowsCard windows={dashboardData.recentWindows} />
     </div>
   );
 }

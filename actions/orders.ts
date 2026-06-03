@@ -303,6 +303,7 @@ export async function updateOrderStatusAction(
   });
 
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/dashboard");
 
   return {
     success: true,
@@ -404,6 +405,7 @@ export async function updateAdminOrderAction(
   });
 
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/dashboard");
 
   return {
     success: true,
