@@ -10,6 +10,10 @@ export function LiveUserSSE() {
   const clearCart = useCartStore((state) => state.clearCart);
 
   useSSE({
+    onWindowOpened: () => {
+      console.log("[SSE] window opened");
+      router.refresh();
+    },
     onWindowClosed: () => {
       clearCart();
       router.refresh();

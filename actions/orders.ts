@@ -247,7 +247,7 @@ export async function cancelOrderAction(
 
 export async function updateOrderStatusAction(
   orderId: string,
-  status: "approved" | "rejected",
+  status: "approved" | "rejected" | "pending",
 ): Promise<ActionResult> {
   const { session } = await requireAdmin();
 

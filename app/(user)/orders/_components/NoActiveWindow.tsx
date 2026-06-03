@@ -27,6 +27,7 @@ export function NoActiveWindow() {
 
   useSSE({
     onWindowOpened: (payload) => {
+      console.log("sending notification");
       sendNotification(
         `🍱 ${payload.label} order window is now open!`,
         payload.endsAt

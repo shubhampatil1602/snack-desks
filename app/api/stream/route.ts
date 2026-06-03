@@ -41,6 +41,7 @@ export async function GET(request: Request) {
         // forward org-scoped events to this client
         pgClient.on("notification", (msg) => {
           if (!msg.payload) return;
+          console.log("RECEIVED", msg.payload);
           try {
             const event = JSON.parse(msg.payload);
             if (event.orgId !== orgId) return; // only this org's events
