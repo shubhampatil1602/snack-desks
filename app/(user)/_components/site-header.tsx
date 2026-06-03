@@ -6,7 +6,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Suspense } from "react";
 import { CartButton } from "./cart-button";
 import { LiveUserSSE } from "./live-user-sse";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 

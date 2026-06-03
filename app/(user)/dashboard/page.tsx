@@ -7,9 +7,18 @@ import { UserRankCard } from "./_components/UserRankCard";
 import { RecentOrdersCard } from "./_components/RecentOrdersCard";
 import { FavoriteItemsCard } from "./_components/FavoriteItemsCard";
 import { DashboardSSE } from "@/app/admin/dashboard/_components/DashboardSSE";
+import { redirect } from "next/navigation";
 
 export default async function UserDashboard() {
   const session = await authIsRequired();
+
+  if (session.user.role === "admin") {
+    redirect("/admin/dashboard");
+  }
+
+  if (session.user.role === "super_admin") {
+    redirect("/super-admin/dashboard");
+  }
 
   const member = await prisma.member.findFirst({
     where: {
