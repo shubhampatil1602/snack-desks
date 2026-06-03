@@ -99,7 +99,7 @@ export function OrgDetail({ org }: OrgDetailProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {org.members.map((member) => (
+              {pagination.paginatedData.map((member) => (
                 <TableRow key={member.id}>
                   <TableCell className='font-medium'>
                     {member.user.name}
