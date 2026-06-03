@@ -130,9 +130,15 @@ export function Rankings({ rankings, mode, currentUserId }: RankingsProps) {
                     </span>
                   </div>
 
-                  <span className='text-sm text-muted-foreground'>
-                    {user.orders} orders
-                  </span>
+                  <div className='flex justify-center items-center gap-2'>
+                    <span className='text-sm text-muted-foreground'>
+                      {user.orders} orders
+                    </span>
+                    <span className='text-muted-foreground text-xs'>·</span>
+                    <span className='text-sm text-muted-foreground'>
+                      All time: ₹{user.spent.toFixed(0)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
