@@ -3,8 +3,6 @@ import { prisma } from "@/lib/db";
 import { UsersTable } from "./_components/UsersTable";
 
 export default async function UsersPage() {
-  console.time("AdminUsersPage");
-
   const { member } = await requireAdmin();
 
   const organization = await prisma.organization.findUnique({
@@ -28,8 +26,6 @@ export default async function UsersPage() {
   });
 
   if (!organization) return null;
-
-  console.timeEnd("AdminUsersPage");
 
   return (
     <div className='space-y-6 px-4'>

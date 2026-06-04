@@ -37,8 +37,9 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { hasCartChanged } from "@/lib/cart";
-import { useState } from "react";
 import { ORDER_STATUS } from "@/lib/constants";
+import { useTransition, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 type CartSheetProps = {
   open: boolean;
@@ -47,6 +48,8 @@ type CartSheetProps = {
 
 export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const [cancelling, setCancelling] = useState(false);
+  const [placing, startPlacing] = useTransition();
+  const [updating, startUpdating] = useTransition();
   const items = useCartStore((state) => state.items);
   const increment = useCartStore((state) => state.increment);
   const decrement = useCartStore((state) => state.decrement);
@@ -61,53 +64,60 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const router = useRouter();
   const subtotal = useCartSubtotal();
 
-  async function handlePlaceOrder() {
-    if (!windowId) {
-      toast.error("Order window not found");
-      return;
-    }
-    const result = await placeOrderAction({
-      windowId,
-      items: items.map((item) => ({
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-      })),
+  const isMutating = placing || updating || cancelling;
+
+  function handlePlaceOrder() {
+    startPlacing(async () => {
+      if (!windowId) {
+        toast.error("Order window not found");
+        return;
+      }
+
+      const result = await placeOrderAction({
+        windowId,
+        items: items.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+        })),
+      });
+
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success("Order placed");
+      router.refresh();
     });
-
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success("Order placed");
-    router.refresh();
   }
-  async function handleUpdateOrder() {
-    if (!orderId) {
-      toast.error("Order not found");
-      return;
-    }
-    if (!hasChanges) {
-      toast.info("No changes to update");
-      return;
-    }
+  function handleUpdateOrder() {
+    startUpdating(async () => {
+      if (!orderId) {
+        toast.error("Order not found");
+        return;
+      }
 
-    const result = await updateOrderAction(
-      orderId,
-      items.map((item) => ({
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-      })),
-    );
+      if (!hasChanges) {
+        toast.info("No changes to update");
+        return;
+      }
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
+      const result = await updateOrderAction(
+        orderId,
+        items.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+        })),
+      );
 
-    toast.success("Order updated");
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
 
-    router.refresh();
+      toast.success("Order updated");
+      router.refresh();
+    });
   }
   async function handleCancelOrder() {
     if (!orderId) {
@@ -181,6 +191,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                             size='icon'
                             className='h-8 w-8'
                             onClick={() => decrement(item.menuItemId)}
+                            disabled={isMutating}
                           >
                             <Minus className='h-3 w-3' />
                           </Button>
@@ -192,6 +203,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                             size='icon'
                             className='h-8 w-8'
                             onClick={() => increment(item.menuItemId)}
+                            disabled={isMutating}
                           >
                             <Plus className='h-3 w-3' />
                           </Button>
@@ -206,6 +218,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           size='icon'
                           className='h-8 w-8'
                           onClick={() => removeItem(item.menuItemId)}
+                          disabled={isMutating}
                         >
                           <X className='h-4 w-4' />
                         </Button>
@@ -228,25 +241,36 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 <Button
                   className='w-full'
                   onClick={handlePlaceOrder}
-                  disabled={items.length === 0}
+                  disabled={items.length === 0 || placing}
                   size='lg'
                 >
-                  Place Order
+                  {placing && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+                  {placing ? "Placing..." : "Place Order"}
                 </Button>
               ) : orderStatus === ORDER_STATUS.PENDING ? (
                 <div className='flex justify-between gap-3'>
                   <Button
                     onClick={handleUpdateOrder}
-                    disabled={!hasChanges}
+                    disabled={!hasChanges || updating}
                     className='flex-1'
                   >
-                    Update Order
+                    {updating && (
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    )}
+                    {updating ? "Updating..." : "Update Order"}
                   </Button>
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant='outline' className='flex-1'>
-                        Cancel Order
+                      <Button
+                        variant='outline'
+                        className='flex-1'
+                        disabled={cancelling}
+                      >
+                        {cancelling && (
+                          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                        )}
+                        {cancelling ? "Cancelling..." : "Cancel Order"}
                       </Button>
                     </AlertDialogTrigger>
 

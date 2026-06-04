@@ -10,7 +10,6 @@ import { WindowBanner } from "./_components/WindowBanner";
 import { ClearCartOnMount } from "./_components/ClearCartOnMount";
 
 export default async function OrdersPage() {
-  console.time("UserOrdersPage");
   const session = await authIsRequired();
 
   const member = await prisma.member.findFirst({
@@ -33,8 +32,6 @@ export default async function OrdersPage() {
       </>
     );
   }
-
-  console.timeEnd("UserOrdersPage");
 
   return (
     <div className='px-4 space-y-6'>

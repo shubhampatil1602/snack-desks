@@ -3,12 +3,9 @@ import { UserHistoryTable } from "./_components/UserHistoryTable";
 import { getUserOrderHistory } from "@/modules/orders/user-history-queries";
 
 export default async function OrderHistoryPage() {
-  console.time("UserOrderHistory");
   const session = await authIsRequired();
 
   const orders = await getUserOrderHistory(session.user.id);
-
-  console.timeEnd("UserOrderHistory");
 
   return (
     <div className='px-4 space-y-6'>

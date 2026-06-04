@@ -8,7 +8,6 @@ import { getOrganizationOrderHistoryGroupedByWindow } from "@/modules/orders/adm
 import { getMenuItems } from "@/modules/menu/queries";
 
 export default async function AdminHistoryPage() {
-  console.time("AdminHistoryPage");
   const { session } = await requireAdmin();
 
   const member = await prisma.member.findFirst({
@@ -24,8 +23,6 @@ export default async function AdminHistoryPage() {
     getOrganizationOrderHistoryGroupedByWindow(member.organizationId),
     getMenuItems(member.organizationId),
   ]);
-
-  console.timeEnd("AdminHistoryPage");
 
   return (
     <div className='px-4 space-y-6'>
