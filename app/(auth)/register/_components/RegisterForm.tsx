@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { signUpSchema, SignUpSchema } from "@/types/auth";
 import { signUpAction } from "@/actions/auth";
+import { toast } from "sonner";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export function RegisterForm() {
     setServerError(null);
     const result = await signUpAction(values);
     if (!result.success) return setServerError(result.error);
+    toast.success("Welcome");
     router.push("/dashboard");
   }
 

@@ -14,6 +14,7 @@ import { signInSchema, SignInSchema } from "@/types/auth";
 import { signInAction } from "@/actions/auth";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { authSession } from "@/actions/user";
+import { toast } from "sonner";
 
 export function LoginForm() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export function LoginForm() {
     setServerError(null);
     const result = await signInAction(values);
     if (!result.success) return setServerError(result.error);
+    toast.success("Welcome back");
     const session = await authSession();
     if (session?.user.role === "super_admin")
       router.push("/super-admin/dashboard");
