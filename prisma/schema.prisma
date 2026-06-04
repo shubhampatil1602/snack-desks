@@ -102,6 +102,9 @@ model Member {
   role           String
   createdAt      DateTime
 
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId])
   @@map("member")
 }
 
@@ -116,6 +119,8 @@ model Invitation {
   inviterId      String
   createdAt      DateTime?
 
+  @@index([organizationId])
+  @@index([email])
   @@map("invitation")
 }
 
@@ -133,6 +138,9 @@ model OrderWindow {
   orders       Order[]
   organization Organization @relation(fields: [organizationId], references: [id])
 
+  @@index([organizationId])
+  @@index([status])
+  @@index([organizationId, status])
   @@map("order_window")
 }
 
@@ -150,6 +158,12 @@ model Order {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([windowId])
+  @@index([organizationId])
+  @@index([organizationId, createdAt])
+  @@index([windowId, status])
+  @@index([status])
   @@map("order")
 }
 
@@ -164,6 +178,8 @@ model OrderItem {
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem  MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
 
+  @@index([orderId])
+  @@index([menuItemId])
   @@map("order_item")
 }
 
@@ -183,6 +199,9 @@ model MenuItem {
   menuCategory   MenuCategory @relation(fields: [menuCategoryId], references: [id])
   menuCategoryId String
 
+  @@index([organizationId])
+  @@index([menuCategoryId])
+  @@index([organizationId, isAvailable])
   @@map("menu_item")
 }
 
@@ -194,5 +213,6 @@ model MenuCategory {
   menuItems      MenuItem[]
   createdAt      DateTime     @default(now())
 
+  @@index([organizationId])
   @@map("menu_category")
 }

@@ -3,9 +3,12 @@ import { getEmployeeRankings } from "@/modules/rankings/queries";
 import { Rankings } from "@/components/rankings/Rankings";
 
 export default async function AdminRankingsPage() {
+  console.time("AdminRankingsPage");
   const { member } = await requireAdmin();
 
   const rankings = await getEmployeeRankings(member.organizationId);
+
+  console.timeEnd("AdminRankingsPage");
 
   return (
     <div className='space-y-6 px-4'>

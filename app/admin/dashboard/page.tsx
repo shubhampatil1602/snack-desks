@@ -9,9 +9,12 @@ import { RecentWindowsCard } from "./_components/RecentWindowsCard";
 import { DashboardSSE } from "./_components/DashboardSSE";
 
 export default async function AdminDashboard() {
+  console.time("AdminDashboard");
   const { member } = await requireAdmin();
 
   const dashboardData = await getDashboardData(member.organizationId);
+
+  console.timeEnd("AdminDashboard");
 
   return (
     <div className='space-y-6 px-4'>

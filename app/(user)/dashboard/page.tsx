@@ -10,6 +10,7 @@ import { DashboardSSE } from "@/app/admin/dashboard/_components/DashboardSSE";
 import { redirect } from "next/navigation";
 
 export default async function UserDashboard() {
+  console.time("UserDashboard");
   const session = await authIsRequired();
 
   if (session.user.role === "admin") {
@@ -32,6 +33,8 @@ export default async function UserDashboard() {
     member.organizationId,
     session.user.id,
   );
+
+  console.timeEnd("UserDashboard");
 
   return (
     <div className='space-y-6 px-4'>

@@ -10,11 +10,28 @@ export async function getUserDashboardData(
       userId,
       status: "approved",
     },
-    include: {
-      orderWindow: true,
+    select: {
+      id: true,
+      status: true,
+      createdAt: true,
+
+      orderWindow: {
+        select: {
+          label: true,
+        },
+      },
+
       items: {
-        include: {
-          menuItem: true,
+        select: {
+          quantity: true,
+          menuItemId: true,
+
+          menuItem: {
+            select: {
+              name: true,
+              price: true,
+            },
+          },
         },
       },
     },
@@ -103,15 +120,21 @@ export async function getUserDashboardData(
       organizationId,
       status: "approved",
     },
-    include: {
+
+    select: {
+      userId: true,
+
       user: {
         select: {
           id: true,
           name: true,
         },
       },
+
       items: {
-        include: {
+        select: {
+          quantity: true,
+
           menuItem: {
             select: {
               price: true,

@@ -13,6 +13,7 @@ import { LiveOrdersTable } from "./_components/LiveOrdersTable";
 import { LiveOrdersSSE } from "./_components/LiveOrdersSSE";
 
 export default async function AdminOrdersPage() {
+  console.time("AdminOrdersPage");
   const { session } = await requireAdmin();
 
   const member = await prisma.member.findFirst({
@@ -27,6 +28,8 @@ export default async function AdminOrdersPage() {
     : [null, []];
 
   const liveOrders = activeWindow ? await getLiveOrders(activeWindow.id) : [];
+
+  console.timeEnd("AdminOrdersPage");
 
   return (
     <div className='px-4 space-y-6'>

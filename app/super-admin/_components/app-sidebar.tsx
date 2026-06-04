@@ -70,7 +70,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <Link href='/super-admin/dashboard'>
                 <IconInnerShadowTop className='size-5!' />
-                <span className='text-base font-semibold'>Tech Snacks.</span>
+                <span className='text-base font-semibold'>Snack Desk.</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

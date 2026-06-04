@@ -1,11 +1,10 @@
-// app/rankings/page.tsx
-
 import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { getEmployeeRankings } from "@/modules/rankings/queries";
 import { Rankings } from "@/components/rankings/Rankings";
 
 export default async function RankingsPage() {
+  console.time("UserRankingsPage");
   const session = await authIsRequired();
 
   const member = await prisma.member.findFirst({
@@ -17,6 +16,8 @@ export default async function RankingsPage() {
   if (!member) return null;
 
   const rankings = await getEmployeeRankings(member.organizationId);
+
+  console.timeEnd("UserRankingsPage");
 
   return (
     <div className='space-y-6 px-4'>

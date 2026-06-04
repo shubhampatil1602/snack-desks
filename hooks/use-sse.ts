@@ -59,7 +59,7 @@ export function useSSE(options: UseSSEOptions) {
     eventSourceRef.current = es;
 
     es.addEventListener("connected", () => {
-      console.log("[SSE] Connected to techsnacks stream");
+      console.log("[SSE] Connected to snackdesk stream");
     });
 
     es.addEventListener("heartbeat", () => {

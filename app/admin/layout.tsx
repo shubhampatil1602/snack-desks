@@ -10,6 +10,7 @@ export default async function SuperAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  console.time("AdminLayout");
   const { member } = await requireAdmin();
 
   const organization = await prisma.organization.findUnique({
@@ -20,6 +21,7 @@ export default async function SuperAdminLayout({
       inviteCode: true,
     },
   });
+  console.timeEnd("AdminLayout");
   return (
     <div>
       <TooltipProvider>

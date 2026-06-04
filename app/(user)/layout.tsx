@@ -10,6 +10,7 @@ export default async function UserLayout({
 }: {
   children: React.ReactNode;
 }) {
+  console.time("UserLayout");
   const session = await authIsRequired();
   const member = await prisma.member.findFirst({
     where: {
@@ -29,6 +30,8 @@ export default async function UserLayout({
       endsAt: true,
     },
   });
+  console.timeEnd("UserLayout");
+
   return (
     <div>
       <TooltipProvider>

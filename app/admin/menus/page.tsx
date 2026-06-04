@@ -6,6 +6,7 @@ import { CategoryManager } from "./_components/CategoryManager";
 import { MenuFormDialog } from "./_components/MenuFormDialog";
 
 export default async function MenusPage() {
+  console.time("AdminMenusPage");
   const { session } = await requireAdmin();
 
   const member = await prisma.member.findFirst({
@@ -18,6 +19,8 @@ export default async function MenusPage() {
         getMenuCategories(member.organizationId),
       ])
     : [[], []];
+
+  console.timeEnd("AdminMenusPage");
 
   return (
     <div className='px-4'>
