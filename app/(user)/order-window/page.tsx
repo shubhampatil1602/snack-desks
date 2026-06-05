@@ -9,7 +9,7 @@ import { OrdersClient } from "./_components/OrdersClient";
 import { WindowBanner } from "./_components/WindowBanner";
 import { ClearCartOnMount } from "./_components/ClearCartOnMount";
 
-export default async function OrdersPage() {
+export default async function OrderWindowPage() {
   const session = await authIsRequired();
 
   const member = await prisma.member.findFirst({

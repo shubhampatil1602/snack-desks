@@ -99,25 +99,6 @@ export function TopEmployeesCard({ employees }: TopEmployeesCardProps) {
                 );
               })}
             </div>
-
-            {/* 4th+ */}
-            {/* {rest.length > 0 && (
-              <div className='border-t pt-3 space-y-2'>
-                {rest.map((emp, i) => (
-                  <div key={emp.userId} className='flex items-center gap-2'>
-                    <span className='text-xs text-muted-foreground w-6 text-right'>
-                      #{i + 4}
-                    </span>
-                    <span className='text-sm font-medium flex-1'>
-                      {emp.name}
-                    </span>
-                    <span className='text-xs text-muted-foreground'>
-                      {emp.orders} orders
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )} */}
           </>
         )}
       </CardContent>

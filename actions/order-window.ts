@@ -81,7 +81,7 @@ export async function createWindowAction(
     },
   });
 
-  revalidatePath("/admin/orders");
+  revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
   return { success: true };
 }
@@ -126,7 +126,7 @@ export async function closeWindowAction(
     payload: { windowId },
   });
 
-  revalidatePath("/admin/orders");
+  revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
   return { success: true };
 }

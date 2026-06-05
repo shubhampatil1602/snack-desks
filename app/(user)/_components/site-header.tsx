@@ -36,7 +36,7 @@ export function SiteHeader({ activeWindow }: SiteHeaderProps) {
           {activeWindow && (
             <div className='relative inline-block'>
               <Button size='sm' variant='outline'>
-                <Link href='/orders'>{activeWindow.label}</Link>
+                <Link href='/order-window'>{activeWindow.label}</Link>
               </Button>
               <span className='absolute -top-1 -right-1 flex h-3 w-3'>
                 <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75'></span>

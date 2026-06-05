@@ -72,7 +72,9 @@ export function RecentWindowsCard({ windows }: RecentWindowsCardProps) {
             <Link
               key={window.id}
               href={
-                window.status === "active" ? "/admin/orders" : "/admin/history"
+                window.status === "active"
+                  ? "/admin/order-window"
+                  : "/admin/history"
               }
               className='block border-b last:border-0'
             >

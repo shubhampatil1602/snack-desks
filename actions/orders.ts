@@ -112,7 +112,7 @@ export async function placeOrderAction(
     },
   });
 
-  revalidatePath("/orders");
+  revalidatePath("/order-window");
   return { success: true, orderId: order.id };
 }
 
@@ -189,7 +189,7 @@ export async function updateOrderAction(
     payload: { orderId },
   });
 
-  revalidatePath("/orders");
+  revalidatePath("/order-window");
   return { success: true, orderId: order.id };
 }
 
@@ -241,7 +241,7 @@ export async function cancelOrderAction(
     payload: { orderId },
   });
 
-  revalidatePath("/orders");
+  revalidatePath("/order-window");
   return { success: true, orderId: order.id };
 }
 
@@ -302,7 +302,7 @@ export async function updateOrderStatusAction(
     },
   });
 
-  revalidatePath("/admin/orders");
+  revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
 
   return {
@@ -404,7 +404,7 @@ export async function updateAdminOrderAction(
     },
   });
 
-  revalidatePath("/admin/orders");
+  revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
 
   return {

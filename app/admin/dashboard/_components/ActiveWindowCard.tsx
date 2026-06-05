@@ -43,7 +43,7 @@ export function ActiveWindowCard({ window }: ActiveWindowCardProps) {
           <p className='text-sm text-muted-foreground mt-1 mb-4'>
             Create a new order window to start accepting orders.
           </p>
-          <Button onClick={() => router.push("/admin/orders")}>
+          <Button onClick={() => router.push("/admin/order-window")}>
             Create Window
           </Button>
         </div>
@@ -77,7 +77,7 @@ export function ActiveWindowCard({ window }: ActiveWindowCardProps) {
             </Badge>
           </div>
 
-          <Button onClick={() => router.push("/admin/orders")}>
+          <Button onClick={() => router.push("/admin/order-window")}>
             View Orders
           </Button>
         </div>

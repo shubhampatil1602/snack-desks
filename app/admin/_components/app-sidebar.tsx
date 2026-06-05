@@ -36,8 +36,8 @@ const data = {
       icon: IconGraph,
     },
     {
-      title: "Orders",
-      url: "/admin/orders",
+      title: "Order Window",
+      url: "/admin/order-window",
       icon: IconMenuOrder,
     },
     {

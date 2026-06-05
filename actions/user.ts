@@ -7,19 +7,17 @@ import type { Session } from "@/lib/auth/auth";
 
 // nullable session
 export async function authSession(): Promise<Session | null> {
-  const start = Date.now();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
-  console.log(`[AUTH_SESSION] ${Date.now() - start}ms`);
+
   return session;
 }
 
 // must be logged in or redirects to /login
 export async function authIsRequired() {
-  const start = Date.now();
   const session = await authSession();
-  console.log(`[AUTH_REQUIRED] ${Date.now() - start}ms`);
+
   if (!session) redirect("/login");
   return session;
 }
@@ -36,24 +34,16 @@ export async function authIsNotRequired() {
 
 // org-level member
 export async function getCurrentMember() {
-  const start = Date.now();
-
   const member = await auth.api.getActiveMember({
     headers: await headers(),
   });
-
-  console.log(`[ACTIVE_MEMBER] ${Date.now() - start}ms`);
 
   return member;
 }
 // must be admin or owner in org
 export async function requireAdmin() {
-  const start = Date.now();
-
   const session = await authIsRequired();
   const member = await getCurrentMember();
-
-  console.log(`[REQUIRE_ADMIN] ${Date.now() - start}ms`);
 
   if (!member || (member.role !== "admin" && member.role !== "owner")) {
     redirect("/");

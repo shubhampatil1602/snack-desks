@@ -38,8 +38,8 @@ export async function deleteOrderWindowAction(windowId: string) {
       },
     });
 
-    revalidatePath("/admin/orders");
-    revalidatePath("/orders");
+    revalidatePath("/admin/order-window");
+    revalidatePath("/order-window");
 
     return {
       success: true,

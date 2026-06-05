@@ -12,7 +12,7 @@ import { getLiveOrders } from "@/modules/orders/admin-queries";
 import { LiveOrdersTable } from "./_components/LiveOrdersTable";
 import { LiveOrdersSSE } from "./_components/LiveOrdersSSE";
 
-export default async function AdminOrdersPage() {
+export default async function AdminOrderWindowPage() {
   const { session } = await requireAdmin();
 
   const member = await prisma.member.findFirst({
