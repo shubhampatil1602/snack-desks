@@ -13,9 +13,9 @@ export function DashboardPreview() {
             <div className='overflow-hidden rounded border border-slate-200 dark:border-zinc-800 bg-background dark:bg-zinc-950 shadow-2xl'>
               <Image
                 src={
-                  theme === "light"
-                    ? "/dashboard-preview.png"
-                    : "/dashboard-preview-dark.png"
+                  theme === "dark"
+                    ? "/dashboard-preview-dark.png"
+                    : "/dashboard-preview.png"
                 }
                 alt='SnackDesk Dashboard'
                 width={1600}
