@@ -45,9 +45,7 @@ export default async function AdminOrderWindowPage() {
             <TabsList className='w-full mb-1'>
               <TabsTrigger value='active-orders'>Active Orders</TabsTrigger>
 
-              <TabsTrigger value='todays-windows'>
-                Today&apos;s Windows
-              </TabsTrigger>
+              <TabsTrigger value='recent-windows'>Recent Windows</TabsTrigger>
             </TabsList>
 
             <TabsContent value='active-orders'>
@@ -55,7 +53,7 @@ export default async function AdminOrderWindowPage() {
               <LiveOrdersTable orders={liveOrders} />
             </TabsContent>
 
-            <TabsContent value='todays-windows'>
+            <TabsContent value='recent-windows'>
               <TodaysWindowsList windows={todaysWindows} />
             </TabsContent>
           </Tabs>
@@ -63,7 +61,7 @@ export default async function AdminOrderWindowPage() {
       ) : (
         <>
           <CreateWindowForm />
-          <h2 className='text-sm font-medium mb-3'>Today&apos;s Windows</h2>
+          <h2 className='text-sm font-medium mb-3'>Recent Windows</h2>
           <TodaysWindowsList windows={todaysWindows} />
         </>
       )}

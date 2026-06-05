@@ -25,7 +25,7 @@ export function TodaysWindowsList({ windows }: TodaysWindowsListProps) {
             </div>
             <div className='flex items-center gap-4 text-xs text-muted-foreground'>
               <span>{w._count.orders} orders</span>
-              <span>
+              {/* <span>
                 {new Date(w.startsAt).toLocaleTimeString("en-IN", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -33,9 +33,10 @@ export function TodaysWindowsList({ windows }: TodaysWindowsListProps) {
                 {w.endsAt &&
                   ` → ${new Date(w.endsAt).toLocaleTimeString("en-IN", {
                     hour: "2-digit",
-                    minute: "2-digit",
+                    minute: "2-digit",Today's Windows
+
                   })}`}
-              </span>
+              </span> */}
             </div>
           </div>
         </Link>
