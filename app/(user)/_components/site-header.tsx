@@ -8,6 +8,7 @@ import { CartButton } from "./cart-button";
 import { LiveUserSSE } from "./live-user-sse";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { ModeToggle } from "@/components/theme/theme-button";
 
 type SiteHeaderProps = {
   activeWindow: {
@@ -31,6 +32,7 @@ export function SiteHeader({ activeWindow }: SiteHeaderProps) {
         </Suspense>
 
         <div className='ml-auto flex items-center gap-2'>
+          <ModeToggle />
           {activeWindow && (
             <div className='relative inline-block'>
               <Button size='sm' variant='outline'>

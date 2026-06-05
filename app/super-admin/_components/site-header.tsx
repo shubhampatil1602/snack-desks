@@ -1,5 +1,6 @@
 "use client";
 
+import { ModeToggle } from "@/components/theme/theme-button";
 import { DynamicBreadcrumb } from "@/components/ui/dynamic-breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -17,7 +18,9 @@ export function SiteHeader() {
         <Suspense fallback={null}>
           <DynamicBreadcrumb />
         </Suspense>
-        <div className='ml-auto'></div>
+        <div className='ml-auto'>
+          <ModeToggle />
+        </div>
       </div>
     </header>
   );

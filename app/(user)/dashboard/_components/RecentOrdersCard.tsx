@@ -67,7 +67,7 @@ export function RecentOrdersCard({ orders }: RecentOrdersCardProps) {
           {orders.map((order) => (
             <Link
               key={order.id}
-              href='/orders'
+              href='/history'
               className='block border-b last:border-0'
             >
               <div className='flex items-center justify-between pt-1 pb-2'>

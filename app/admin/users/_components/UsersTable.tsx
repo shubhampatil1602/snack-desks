@@ -1,9 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { Copy, Check } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { usePagination } from "@/hooks/use-pagination";
 
@@ -15,64 +11,43 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DeleteUserButton } from "@/components/admins/DeleteUserButton";
+import { OrganizationHeader } from "@/components/admins/OrganizationHeader";
 
 type UsersTableProps = {
-  inviteCode: string;
+  organization: {
+    name: string;
+    slug: string;
+    inviteCode: string;
+    createdAt: Date;
+    memberCount: number;
+  };
   members: {
     id: string;
     createdAt: Date;
     user: {
+      id: string;
       name: string;
       email: string;
     };
   }[];
 };
-
-export function UsersTable({ inviteCode, members }: UsersTableProps) {
-  const [copied, setCopied] = useState(false);
-
+export function UsersTable({ organization, members }: UsersTableProps) {
   const pagination = usePagination({
     data: members,
     itemsPerPage: 10,
   });
 
-  async function copyInviteCode() {
-    await navigator.clipboard.writeText(inviteCode);
-
-    setCopied(true);
-
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
-  }
-
   return (
     <div className='space-y-6'>
       {/* Invite Code */}
-      <div className='border bg-muted/30 p-4'>
-        <p className='text-xs text-muted-foreground mb-1'>
-          Invite teammates using this code
-        </p>
-
-        <div className='flex items-center gap-2'>
-          <span className='font-mono font-medium tracking-widest'>
-            {inviteCode}
-          </span>
-
-          <Button
-            variant='ghost'
-            size='icon'
-            className='h-7 w-7'
-            onClick={copyInviteCode}
-          >
-            {copied ? (
-              <Check className='h-3.5 w-3.5 text-green-600' />
-            ) : (
-              <Copy className='h-3.5 w-3.5' />
-            )}
-          </Button>
-        </div>
-      </div>
+      <OrganizationHeader
+        createdAt={organization.createdAt}
+        inviteCode={organization.inviteCode}
+        memberCount={organization.memberCount}
+        name={organization.name}
+        slug={organization.slug}
+      />
 
       {/* Users Table */}
       <div className='border'>
@@ -82,6 +57,7 @@ export function UsersTable({ inviteCode, members }: UsersTableProps) {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Joined</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -112,6 +88,13 @@ export function UsersTable({ inviteCode, members }: UsersTableProps) {
                       month: "short",
                       year: "numeric",
                     })}
+                  </TableCell>
+
+                  <TableCell>
+                    <DeleteUserButton
+                      userId={member.user.id}
+                      userName={member.user.name}
+                    />
                   </TableCell>
                 </TableRow>
               ))

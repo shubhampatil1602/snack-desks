@@ -10,6 +10,9 @@ export default async function UsersPage() {
       id: member.organizationId,
     },
     select: {
+      name: true,
+      slug: true,
+      createdAt: true,
       inviteCode: true,
       members: {
         where: {
@@ -38,7 +41,13 @@ export default async function UsersPage() {
       </div>
 
       <UsersTable
-        inviteCode={organization.inviteCode}
+        organization={{
+          name: organization.name,
+          slug: organization.slug,
+          inviteCode: organization.inviteCode,
+          createdAt: organization.createdAt,
+          memberCount: organization.members.length,
+        }}
         members={organization.members}
       />
     </div>
