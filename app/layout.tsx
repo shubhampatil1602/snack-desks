@@ -8,6 +8,7 @@ import {
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 const instrumentSerifHeading = Instrument_Serif({
   subsets: ["latin"],
@@ -51,8 +52,15 @@ export default function RootLayout({
       )}
     >
       <body className='min-h-full flex flex-col'>
-        {children}
-        <Toaster position='bottom-right' />
+        <ThemeProvider
+          attribute='class'
+          defaultTheme='light'
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster position='bottom-right' />
+        </ThemeProvider>
       </body>
     </html>
   );

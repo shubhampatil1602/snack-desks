@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight } from "lucide-react";
+import { BgGradient } from "./client-components";
 
 export function HeroSection() {
   return (
     <section className='relative overflow-hidden min-h-[80vh]'>
       {/* Grid background */}
-      <div className='absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-size-[48px_48px] opacity-40' />
+      <BgGradient />
 
       <div className='relative mx-auto max-w-7xl px-6 py-40'>
         <div className='mx-auto max-w-4xl text-center'>

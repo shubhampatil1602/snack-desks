@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Bell, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Session } from "@/lib/auth/auth";
+import { ModeToggle } from "../theme/theme-button";
 
 type LandingNavbarProps = {
   session: Session | null;
@@ -47,13 +47,7 @@ export function LandingNavbar({ session }: LandingNavbarProps) {
 
         {/* Right */}
         <div className='flex items-center gap-2'>
-          <Button variant='ghost' size='icon'>
-            <Bell className='size-4' />
-          </Button>
-
-          <Button variant='ghost' size='icon'>
-            <Sun className='size-4' />
-          </Button>
+          <ModeToggle />
 
           {session ? (
             session.user.role === "admin" ? (
