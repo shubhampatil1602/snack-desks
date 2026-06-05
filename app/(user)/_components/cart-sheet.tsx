@@ -153,10 +153,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const hasChanges = hasCartChanged(items, savedItems);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        className='w-full h-full'
-        style={{ width: "100%", maxWidth: "50vw" }}
-      >
+      <SheetContent>
         <div className='flex h-full flex-col'>
           <div className='border-b shrink-0'>
             <SheetHeader>
