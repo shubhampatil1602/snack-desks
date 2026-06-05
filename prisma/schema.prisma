@@ -136,7 +136,7 @@ model OrderWindow {
   createdAt DateTime  @default(now())
 
   orders       Order[]
-  organization Organization @relation(fields: [organizationId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
   @@index([status])
@@ -195,7 +195,7 @@ model MenuItem {
   updatedAt   DateTime @updatedAt
 
   orderItems     OrderItem[]
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   menuCategory   MenuCategory @relation(fields: [menuCategoryId], references: [id])
   menuCategoryId String
 
