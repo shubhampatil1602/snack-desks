@@ -31,7 +31,7 @@ export function HistoryOrderActions({ orderId, status }: Props) {
     return (
       <Button
         size='sm'
-        variant='outline'
+        variant='delete'
         disabled={pending}
         onClick={() => updateStatus("rejected")}
       >

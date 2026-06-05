@@ -36,6 +36,7 @@ import { MenuItem } from "@/types/menu";
 import { HistoryOrderActions } from "./HistoryOrderActions";
 import { OrderWindowSummaryDialog } from "./OrderWindowSummaryDialog";
 import { OrderWindowUserSummaryDialog } from "./OrderWindowUserSummaryDialog";
+import { DeleteOrderWindowButton } from "@/components/admins/DeleteOrderWindowButton";
 
 type AdminWindowHistoryProps = {
   windows: AdminWindowHistoryType;
@@ -204,7 +205,7 @@ export function AdminWindowHistory({
               <div className='border-collapse border my-3'>
                 {/* Window Header */}
                 <div className='flex items-center justify-between px-3 py-2 bg-muted/20 overflow-x-auto'>
-                  <div className='flex items-center gap-2 w-4xl'>
+                  <div className='flex items-center gap-2 w-xl'>
                     <button className='p-0'>
                       {isExpanded ? (
                         <ChevronDown className='h-3.5 w-3.5' />
@@ -213,8 +214,8 @@ export function AdminWindowHistory({
                       )}
                     </button>
                     <button
-                      onClick={() => toggleWindow(window.id)}
                       className='flex items-center gap-2 cursor-pointer'
+                      onClick={() => toggleWindow(window.id)}
                     >
                       <span className='text-sm font-medium'>
                         {new Date(window.createdAt).toLocaleDateString(
@@ -244,18 +245,13 @@ export function AdminWindowHistory({
                     </button>
                   </div>
 
-                  <div className='flex items-center justify-start gap-3 w-xl'>
+                  <div className='flex items-center justify-end gap-3 w-xl'>
                     <OrderWindowSummaryDialog window={window} />
                     <OrderWindowUserSummaryDialog window={window} />
-                    <div className='text-right border-l pl-3 space-x-2'>
-                      <span className='text-sm font-semibold'>
-                        ₹{windowRevenue.toFixed(2)}
-                      </span>
-                      <span className='text-muted-foreground text-xs'>·</span>
-                      <span className='text-sm text-muted-foreground'>
-                        {window.orders.length} orders
-                      </span>
-                    </div>
+                    <DeleteOrderWindowButton
+                      windowId={window.id}
+                      windowLabel={window.label}
+                    />
                   </div>
                 </div>
 
@@ -278,7 +274,22 @@ export function AdminWindowHistory({
                           <TableHead className='py-2 text-xs font-medium'>
                             Status
                           </TableHead>
-                          <TableHead className='w-[80px] py-2' />
+                          <TableHead className='py-2 text-center'>
+                            Actions
+                          </TableHead>
+                          <TableHead className='py-2 mr-3 text-center w-[80px]'>
+                            <div className='text-right space-x-2'>
+                              <span className='text-sm font-semibold'>
+                                ₹{windowRevenue.toFixed(2)}
+                              </span>
+                              <span className='text-muted-foreground text-xs'>
+                                ·
+                              </span>
+                              <span className='text-sm text-muted-foreground'>
+                                {window.orders.length} orders
+                              </span>
+                            </div>
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
 
@@ -336,8 +347,8 @@ export function AdminWindowHistory({
                                   <OrderStatusBadge status={order.status} />
                                 </TableCell>
 
-                                <TableCell className='py-2'>
-                                  <div className='flex items-center gap-1'>
+                                <TableCell className='py-2 text-center'>
+                                  <div className='flex items-center justify-center gap-3'>
                                     {order.status === "approved" && (
                                       <AdminEditOrderDialog
                                         orderId={order.id}

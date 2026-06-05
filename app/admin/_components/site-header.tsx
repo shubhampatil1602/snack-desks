@@ -1,5 +1,6 @@
 "use client";
 
+import { ModeToggle } from "@/components/theme/theme-button";
 import { Button } from "@/components/ui/button";
 import { DynamicBreadcrumb } from "@/components/ui/dynamic-breadcrumb";
 import { Separator } from "@/components/ui/separator";
@@ -43,6 +44,7 @@ export function SiteHeader({ inviteCode }: { inviteCode: string | undefined }) {
                 <Copy className='h-3.5 w-3.5' />
               )}
             </Button>
+            <ModeToggle />
           </div>
         </div>
       </div>
