@@ -1,5 +1,3 @@
-// app/admin/dashboard/_components/ActiveWindowCard.tsx
-
 "use client";
 
 import { Badge } from "@/components/ui/badge";

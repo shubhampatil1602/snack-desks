@@ -64,8 +64,10 @@ export function UserRankCard({ rank }: UserRankCardProps) {
                 </div>
                 <div>
                   <p className='text-sm text-amber-600 dark:text-amber-500 font-medium'>
-                    ✨ You just need {Math.max(0, rank.rank - 1)} more to be on
-                    top
+                    {rank.rank === 1
+                      ? "💸 Paisa wala party haaa 👑"
+                      : `✨ You just need ${Math.max(0, rank.rank - 1)} more to be on
+                    top`}
                   </p>
                 </div>
 

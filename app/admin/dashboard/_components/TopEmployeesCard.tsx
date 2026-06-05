@@ -24,22 +24,28 @@ const PODIUM_RANKS = [2, 1, 3] as const;
 
 const podiumStyles = {
   avatar: [
-    "bg-muted text-muted-foreground border border-border",
-    "bg-amber-100 text-amber-800 border-2 border-amber-400",
-    "bg-orange-100 text-orange-800 border border-orange-300",
+    "bg-slate-100 text-slate-800 border border-slate-300 dark:bg-slate-900/50 dark:text-slate-300 dark:border-slate-700",
+    "bg-yellow-100 text-yellow-900 border-2 border-yellow-400 dark:bg-yellow-950/50 dark:text-yellow-300 dark:border-yellow-700",
+    "bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-700",
   ],
+
   block: ["h-[72px]", "h-[130px]", "h-[56px]"],
+
   blockBg: [
-    "bg-muted/60",
-    "bg-amber-50 border border-amber-200",
-    "bg-orange-50 border border-orange-200",
+    "bg-slate-100/70 border border-slate-200 dark:bg-slate-900/30 dark:border-slate-800",
+    "bg-yellow-50 border border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800",
+    "bg-rose-50 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-800",
   ],
-  rankColor: ["text-muted-foreground", "text-amber-700", "text-orange-700"],
+
+  rankColor: [
+    "text-slate-600 dark:text-slate-400",
+    "text-yellow-700 dark:text-yellow-400",
+    "text-rose-700 dark:text-rose-400",
+  ],
 };
 
 export function TopEmployeesCard({ employees }: TopEmployeesCardProps) {
   const top3 = employees.slice(0, 3);
-  const rest = employees.slice(3);
 
   return (
     <Card size='sm' className='justify-between'>

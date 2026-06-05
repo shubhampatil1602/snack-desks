@@ -39,7 +39,7 @@ export function NavMain({
                   <SidebarMenuButton
                     tooltip={item.title}
                     className={cn(
-                      "duration-200 ease-linear",
+                      "duration-200 ease-linear cursor-pointer",
                       isActive && activeClasses,
                     )}
                   >

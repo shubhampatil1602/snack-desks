@@ -16,7 +16,7 @@ export function CartButton() {
       <Button
         variant='outline'
         size='sm'
-        className='relative gap-2'
+        className='relative gap-2 cursor-pointer'
         onClick={() => setOpen(true)}
       >
         <ShoppingCart className='h-4 w-4' />
