@@ -268,27 +268,20 @@ export function AdminWindowHistory({
                           <TableHead className='py-2 text-xs font-medium'>
                             Items
                           </TableHead>
-                          <TableHead className='py-2 text-xs font-medium'>
-                            Total
+                          <TableHead className='py-2 text-xs font-medium text-center'>
+                            <div className='space-x-2'>
+                              <span> ₹{windowRevenue.toFixed(2)}</span>
+                              <span className='text-muted-foreground text-xs'>
+                                ·
+                              </span>
+                              <span>{window.orders.length} orders</span>
+                            </div>
                           </TableHead>
                           <TableHead className='py-2 text-xs font-medium'>
                             Status
                           </TableHead>
                           <TableHead className='py-2 text-center'>
                             Actions
-                          </TableHead>
-                          <TableHead className='py-2 mr-3 text-center w-[80px]'>
-                            <div className='text-right space-x-2'>
-                              <span className='text-sm font-semibold'>
-                                ₹{windowRevenue.toFixed(2)}
-                              </span>
-                              <span className='text-muted-foreground text-xs'>
-                                ·
-                              </span>
-                              <span className='text-sm text-muted-foreground'>
-                                {window.orders.length} orders
-                              </span>
-                            </div>
                           </TableHead>
                         </TableRow>
                       </TableHeader>
@@ -339,7 +332,7 @@ export function AdminWindowHistory({
                                   {totalItems} item{totalItems !== 1 ? "s" : ""}
                                 </TableCell>
 
-                                <TableCell className='py-2 text-sm font-medium'>
+                                <TableCell className='py-2 text-sm text-center font-medium'>
                                   ₹{total.toFixed(2)}
                                 </TableCell>
 
