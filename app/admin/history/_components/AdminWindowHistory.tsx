@@ -37,6 +37,7 @@ import { HistoryOrderActions } from "./HistoryOrderActions";
 import { OrderWindowSummaryDialog } from "./OrderWindowSummaryDialog";
 import { OrderWindowUserSummaryDialog } from "./OrderWindowUserSummaryDialog";
 import { DeleteOrderWindowButton } from "@/components/admins/DeleteOrderWindowButton";
+import { SpinWheelButton } from "./SpinWheelButton";
 
 type AdminWindowHistoryProps = {
   windows: AdminWindowHistoryType;
@@ -246,6 +247,10 @@ export function AdminWindowHistory({
                   </div>
 
                   <div className='flex items-center justify-end gap-3 w-xl'>
+                    <SpinWheelButton
+                      windowId={window.id}
+                      winnerName={window.winnerUser?.name ?? null}
+                    />
                     <OrderWindowSummaryDialog window={window} />
                     <OrderWindowUserSummaryDialog window={window} />
                     <DeleteOrderWindowButton

@@ -21,6 +21,8 @@ model User {
   members       Member[]
   orders        Order[]
 
+  wonWindows OrderWindow[] @relation("OrderWindowWinner")
+
   @@unique([email])
   @@map("user")
 }
@@ -137,6 +139,8 @@ model OrderWindow {
 
   orders       Order[]
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  winnerUserId String?
+  winnerUser   User?        @relation("OrderWindowWinner", fields: [winnerUserId], references: [id])
 
   @@index([organizationId])
   @@index([status])

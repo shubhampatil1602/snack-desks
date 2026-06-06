@@ -25,6 +25,8 @@ const buttonVariants = cva(
           "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-950/50",
         delete:
           "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/50",
+        winner:
+          "bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 text-white hover:from-amber-500 hover:via-yellow-600 hover:to-amber-600 border border-amber-600 shadow-md dark:from-amber-600 dark:via-yellow-600 dark:to-amber-700 dark:border-amber-500",
       },
       size: {
         default:

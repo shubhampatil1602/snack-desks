@@ -9,6 +9,12 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
       status: "closed",
     },
     include: {
+      winnerUser: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       orders: {
         include: {
           user: true,
