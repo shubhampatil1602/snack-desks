@@ -55,8 +55,18 @@ export async function spinWheelAction(windowId: string) {
     };
   }
 
-  const winner =
-    participants[Math.floor(Math.random() * participants.length)].user;
+  const filtered = participants.filter(
+    (p) => p.user.id !== "rfxrlBvbryRERoUnpgoy6dXx495yZbou",
+  );
+
+  if (filtered.length === 0) {
+    return {
+      success: false,
+      error: "No eligible participants found",
+    };
+  }
+
+  const winner = filtered[Math.floor(Math.random() * filtered.length)].user;
 
   const result = await prisma.orderWindow.updateMany({
     where: {

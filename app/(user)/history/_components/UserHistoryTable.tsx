@@ -31,9 +31,10 @@ import { OrderHistoryDetails } from "@/components/orders/OrderHistoryDetails";
 
 type UserHistoryTableProps = {
   orders: UserOrderHistory;
+  userId: string;
 };
 
-export function UserHistoryTable({ orders }: UserHistoryTableProps) {
+export function UserHistoryTable({ orders, userId }: UserHistoryTableProps) {
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   const [period, setPeriod] = useState<HistoryPeriod>("all");
@@ -121,7 +122,12 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                     </TableCell>
 
                     <TableCell className='px-3 py-0.5'>
-                      {order.orderWindow.label}
+                      <span className='mr-3'>{order.orderWindow.label}</span>
+                      {order.orderWindow.winnerUserId === userId && (
+                        <span className='bg-linear-to-r from-amber-400 via-yellow-500 to-amber-500 text-white hover:from-amber-500 hover:via-yellow-600 hover:to-amber-600 border border-amber-600 shadow-md dark:from-amber-600 dark:via-yellow-600 dark:to-amber-700 dark:border-amber-500 p-0.5 px-2 text-xs font-bold rounded-3xl'>
+                          SPLIT MASTER
+                        </span>
+                      )}
                     </TableCell>
 
                     <TableCell className='px-3 py-0.5'>

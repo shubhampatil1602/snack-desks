@@ -54,7 +54,7 @@ export function SpinWheelButton({ windowId, winnerName }: Props) {
       setWinner(result.winner!);
 
       confetti({
-        particleCount: 150,
+        particleCount: 250,
         spread: 100,
         origin: {
           y: 0.6,

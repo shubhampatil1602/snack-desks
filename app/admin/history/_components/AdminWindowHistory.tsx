@@ -207,7 +207,10 @@ export function AdminWindowHistory({
                 {/* Window Header */}
                 <div className='flex items-center justify-between px-3 py-2 bg-muted/20 overflow-x-auto'>
                   <div className='flex items-center gap-2 w-xl'>
-                    <button className='p-0'>
+                    <button
+                      className='p-0'
+                      onClick={() => toggleWindow(window.id)}
+                    >
                       {isExpanded ? (
                         <ChevronDown className='h-3.5 w-3.5' />
                       ) : (
