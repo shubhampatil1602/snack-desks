@@ -6,7 +6,11 @@ export async function getUserOrderHistory(userId: string) {
       userId,
     },
     include: {
-      orderWindow: true,
+      orderWindow: {
+        include: {
+          winnerUser: true,
+        },
+      },
       items: {
         include: {
           menuItem: true,

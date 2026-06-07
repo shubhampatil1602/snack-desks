@@ -13,6 +13,9 @@ import {
 } from "@/components/ui/table";
 import { DeleteUserButton } from "@/components/admins/DeleteUserButton";
 import { OrganizationHeader } from "@/components/admins/OrganizationHeader";
+import { useState } from "react";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 type UsersTableProps = {
   organization: {
@@ -33,8 +36,17 @@ type UsersTableProps = {
   }[];
 };
 export function UsersTable({ organization, members }: UsersTableProps) {
+  const [search, setSearch] = useState("");
+  const filteredMembers = members.filter((member) => {
+    const query = search.toLowerCase();
+
+    return (
+      member.user.name.toLowerCase().includes(query) ||
+      member.user.email.toLowerCase().includes(query)
+    );
+  });
   const pagination = usePagination({
-    data: members,
+    data: filteredMembers,
     itemsPerPage: 10,
   });
 
@@ -48,6 +60,16 @@ export function UsersTable({ organization, members }: UsersTableProps) {
         name={organization.name}
         slug={organization.slug}
       />
+
+      <div className='relative'>
+        <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
+        <Input
+          placeholder='Search employee...'
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className='w-full pl-8 h-8 text-sm'
+        />
+      </div>
 
       {/* Users Table */}
       <div className='border'>
@@ -65,7 +87,7 @@ export function UsersTable({ organization, members }: UsersTableProps) {
             {pagination.paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={3}
+                  colSpan={4}
                   className='text-center text-muted-foreground py-8'
                 >
                   No users found

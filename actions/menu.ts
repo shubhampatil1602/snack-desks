@@ -30,11 +30,28 @@ export async function createMenuItemAction(
     return { success: false, error: "Organization not found" };
   }
 
+  const existingItem = await prisma.menuItem.findFirst({
+    where: {
+      organizationId: member.organizationId,
+      name: {
+        equals: parsed.data.name.trim(),
+        mode: "insensitive",
+      },
+    },
+  });
+
+  if (existingItem) {
+    return {
+      success: false,
+      error: "Menu item name must be unique.",
+    };
+  }
+
   await prisma.menuItem.create({
     data: {
       id: nanoid(),
       organizationId: member.organizationId,
-      name: parsed.data.name,
+      name: parsed.data.name.trim(),
       price: parsed.data.price,
       unit: parsed.data.unit,
       menuCategoryId: parsed.data.categoryId,
@@ -60,11 +77,28 @@ export async function updateMenuItemAction(
   if (!item) {
     return { success: false, error: "Menu item not found" };
   }
-
+  const duplicateItem = await prisma.menuItem.findFirst({
+    where: {
+      organizationId: item.organizationId,
+      id: {
+        not: id,
+      },
+      name: {
+        equals: parsed.data.name.trim(),
+        mode: "insensitive",
+      },
+    },
+  });
+  if (duplicateItem) {
+    return {
+      success: false,
+      error: "An item with this name already exists in your menu.",
+    };
+  }
   await prisma.menuItem.update({
     where: { id },
     data: {
-      name: parsed.data.name,
+      name: parsed.data.name.trim(),
       price: parsed.data.price,
       unit: parsed.data.unit,
       menuCategoryId: parsed.data.categoryId ?? null,
@@ -132,11 +166,28 @@ export async function createCategoryAction(
     return { success: false, error: "Organization not found" };
   }
 
+  const existingCategory = await prisma.menuCategory.findFirst({
+    where: {
+      organizationId: member.organizationId,
+      name: {
+        equals: parsed.data.name.trim(),
+        mode: "insensitive",
+      },
+    },
+  });
+
+  if (existingCategory) {
+    return {
+      success: false,
+      error: "Category already exists",
+    };
+  }
+
   await prisma.menuCategory.create({
     data: {
       id: nanoid(),
       organizationId: member.organizationId,
-      name: parsed.data.name,
+      name: parsed.data.name.trim(),
     },
   });
 

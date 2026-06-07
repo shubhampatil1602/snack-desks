@@ -55,7 +55,7 @@ export function MenuFormDialog({
     setValue,
     control,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<MenuItemFormValues>({
     resolver: zodResolver(schema) as Resolver<MenuItemFormValues>,
     defaultValues:
@@ -73,6 +73,10 @@ export function MenuFormDialog({
   const categoryValue = useWatch({ control, name: "categoryId" });
 
   async function onSubmit(values: MenuItemInput) {
+    if (mode === "edit" && !isDirty) {
+      setOpen(false);
+      return;
+    }
     const result =
       mode === "create"
         ? await createMenuItemAction(values)
@@ -171,9 +175,9 @@ export function MenuFormDialog({
             <Field>
               <FieldLabel htmlFor='category'>Category</FieldLabel>
               <Select
-                value={categoryValue || "none"}
+                value={categoryValue}
                 onValueChange={(val) =>
-                  setValue("categoryId", val === "none" ? "" : val, {
+                  setValue("categoryId", !val ? "" : val, {
                     shouldValidate: true,
                   })
                 }
@@ -201,7 +205,10 @@ export function MenuFormDialog({
             >
               Cancel
             </Button>
-            <Button type='submit' disabled={isSubmitting}>
+            <Button
+              type='submit'
+              disabled={isSubmitting || (mode === "edit" && !isDirty)}
+            >
               {isSubmitting ? <Spinner className='mr-2' /> : null}
               {mode === "create" ? "Add item" : "Save changes"}
             </Button>

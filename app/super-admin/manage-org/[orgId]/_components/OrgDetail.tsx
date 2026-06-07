@@ -15,13 +15,25 @@ import { usePagination } from "@/hooks/use-pagination";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { DeleteUserButton } from "@/components/admins/DeleteUserButton";
 import { OrganizationHeader } from "@/components/admins/OrganizationHeader";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 interface OrgDetailProps {
   org: NonNullable<OrganizationDetail>;
 }
 
 export function OrgDetail({ org }: OrgDetailProps) {
-  const pagination = usePagination({ data: org.members, itemsPerPage: 10 });
+  const [search, setSearch] = useState("");
+  const filteredMembers = org.members.filter((member) => {
+    const query = search.toLowerCase();
+
+    return (
+      member.user.name.toLowerCase().includes(query) ||
+      member.user.email.toLowerCase().includes(query)
+    );
+  });
+  const pagination = usePagination({ data: filteredMembers, itemsPerPage: 10 });
 
   return (
     <div className='space-y-6'>
@@ -33,6 +45,16 @@ export function OrgDetail({ org }: OrgDetailProps) {
         name={org.name}
         slug={org.slug}
       />
+
+      <div className='relative'>
+        <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
+        <Input
+          placeholder='Search employee...'
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className='w-full pl-8 h-8 text-sm'
+        />
+      </div>
 
       {/* Members table */}
       <div className='border'>

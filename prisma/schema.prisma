@@ -203,6 +203,7 @@ model MenuItem {
   menuCategory   MenuCategory @relation(fields: [menuCategoryId], references: [id])
   menuCategoryId String
 
+  @@unique([organizationId, name])
   @@index([organizationId])
   @@index([menuCategoryId])
   @@index([organizationId, isAvailable])
@@ -217,6 +218,7 @@ model MenuCategory {
   menuItems      MenuItem[]
   createdAt      DateTime     @default(now())
 
+  @@unique([organizationId, name])
   @@index([organizationId])
   @@map("menu_category")
 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getMenuCategories, getMenuItems } from "@/modules/menu/queries";
 
 export const menuItemSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().trim().min(1, "Name is required"),
   price: z.coerce.number().min(0, "Price must be positive"),
   unit: z.string().min(1, "Unit is required"),
   categoryId: z.string().min(1, "Category is required"),

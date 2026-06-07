@@ -17,7 +17,7 @@ export default async function OrderHistoryPage() {
         </p>
       </div>
 
-      <UserHistoryTable orders={orders} userId={session.user.id} />
+      <UserHistoryTable orders={orders} />
     </div>
   );
 }

@@ -19,6 +19,8 @@ import { DeleteMenuDialog } from "./DeleteMenuDialog";
 import { toggleMenuItemAvailabilityAction } from "@/actions/menu";
 import type { MenuCategory, MenuItem } from "@/types/menu";
 import { cn } from "@/lib/utils";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface MenuTableProps {
   data: MenuItem[];
@@ -26,6 +28,7 @@ interface MenuTableProps {
 }
 
 export function MenuTable({ data, categories }: MenuTableProps) {
+  const [search, setSearch] = useState("");
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [toggledItems, setToggledItems] = useState<Record<string, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -40,7 +43,15 @@ export function MenuTable({ data, categories }: MenuTableProps) {
       selectedCategory === null
         ? true
         : item.menuCategoryId === selectedCategory,
-    );
+    )
+    .filter((item) => {
+      const query = search.toLowerCase();
+
+      return (
+        item.name.toLowerCase().includes(query) ||
+        item.menuCategory?.name.toLowerCase().includes(query)
+      );
+    });
 
   const pagination = usePagination({ data: items, itemsPerPage: 10 });
 
@@ -60,7 +71,7 @@ export function MenuTable({ data, categories }: MenuTableProps) {
     setDeletedIds((prev) => new Set(prev).add(id));
   }
 
-  if (items.length === 0) {
+  if (data.length === 0) {
     return (
       <div className='border border-dashed p-12 text-center'>
         <p className='text-sm text-muted-foreground'>
@@ -69,7 +80,6 @@ export function MenuTable({ data, categories }: MenuTableProps) {
       </div>
     );
   }
-
   return (
     <div className='space-y-6'>
       <div className='flex items-center gap-2 flex-wrap'>
@@ -105,6 +115,17 @@ export function MenuTable({ data, categories }: MenuTableProps) {
           </Badge>
         ))}
       </div>
+
+      <div className='relative max-w-sm'>
+        <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
+        <Input
+          placeholder='Search menu item...'
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className='pl-8'
+        />
+      </div>
+
       <div className='border'>
         <Table>
           <TableHeader className='bg-muted'>
@@ -118,45 +139,57 @@ export function MenuTable({ data, categories }: MenuTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pagination.paginatedData.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className='font-medium'>{item.name}</TableCell>
-                <TableCell>₹{Number(item.price).toFixed(2)}</TableCell>
-                <TableCell>
-                  <Badge variant='secondary'>{item.unit}</Badge>
-                </TableCell>
-                <TableCell>
-                  {item.menuCategory ? (
-                    <Badge variant='outline'>{item.menuCategory.name}</Badge>
-                  ) : (
-                    <span className='text-xs text-muted-foreground'>—</span>
-                  )}
-                </TableCell>
-
-                <TableCell>
-                  <Switch
-                    checked={item.isAvailable}
-                    onCheckedChange={() =>
-                      handleToggle(item.id, item.isAvailable)
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <div className='flex items-center gap-1'>
-                    <MenuFormDialog
-                      mode='edit'
-                      item={item}
-                      categories={categories}
-                    />
-                    <DeleteMenuDialog
-                      id={item.id}
-                      name={item.name}
-                      onDeleted={() => handleDeleted(item.id)}
-                    />
-                  </div>
+            {pagination.paginatedData.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className='text-center text-muted-foreground py-8'
+                >
+                  No menu items found for{" "}
+                  <span className='font-semibold'>{search}</span>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              pagination.paginatedData.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className='font-medium'>{item.name}</TableCell>
+                  <TableCell>₹{Number(item.price).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge variant='secondary'>{item.unit}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {item.menuCategory ? (
+                      <Badge variant='outline'>{item.menuCategory.name}</Badge>
+                    ) : (
+                      <span className='text-xs text-muted-foreground'>—</span>
+                    )}
+                  </TableCell>
+
+                  <TableCell>
+                    <Switch
+                      checked={item.isAvailable}
+                      onCheckedChange={() =>
+                        handleToggle(item.id, item.isAvailable)
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className='flex items-center gap-1'>
+                      <MenuFormDialog
+                        mode='edit'
+                        item={item}
+                        categories={categories}
+                      />
+                      <DeleteMenuDialog
+                        id={item.id}
+                        name={item.name}
+                        onDeleted={() => handleDeleted(item.id)}
+                      />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
         <DataPagination {...pagination} />

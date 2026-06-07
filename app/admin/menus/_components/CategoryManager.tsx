@@ -22,7 +22,11 @@ import { createCategoryAction, deleteCategoryAction } from "@/actions/menu";
 import type { MenuCategory } from "@/types/menu";
 
 const schema = z.object({
-  name: z.string().min(1, "Category name is required"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Category name is required")
+    .max(30, "Category name is too long"),
 });
 
 interface CategoryManagerProps {
