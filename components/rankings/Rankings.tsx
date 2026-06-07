@@ -159,7 +159,7 @@ export function Rankings({ rankings, mode, currentUserId }: RankingsProps) {
           </CardHeader>
 
           <CardContent>
-            <div className='flex items-center justify-between rounded-lg border p-4'>
+            <div className='flex items-center justify-between border p-4'>
               <div>
                 <p className='font-medium'>{currentUser.name}</p>
 
@@ -168,7 +168,15 @@ export function Rankings({ rankings, mode, currentUserId }: RankingsProps) {
                 </p>
               </div>
 
-              <span className='font-semibold'>{currentUser.orders} orders</span>
+              <div className='flex justify-center items-center gap-2'>
+                <span className='text-sm text-muted-foreground'>
+                  {currentUser.orders} orders
+                </span>
+                <span className='text-muted-foreground text-xs'>·</span>
+                <span className='text-sm text-muted-foreground'>
+                  All time: ₹{currentUser.spent.toFixed(0)}
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -200,9 +208,15 @@ export function Rankings({ rankings, mode, currentUserId }: RankingsProps) {
                   </span>
                 </div>
 
-                <span className='text-sm text-muted-foreground'>
-                  {user.orders} orders
-                </span>
+                <div className='flex justify-center items-center gap-2'>
+                  <span className='text-sm text-muted-foreground'>
+                    {user.orders} orders
+                  </span>
+                  <span className='text-muted-foreground text-xs'>·</span>
+                  <span className='text-sm text-muted-foreground'>
+                    All time: ₹{user.spent.toFixed(0)}
+                  </span>
+                </div>
               </div>
             ))}
           </CardContent>
