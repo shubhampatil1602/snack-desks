@@ -53,7 +53,7 @@ export function Footer() {
               shubhamspatilnbr@gmail.com
             </Link>
             <Link
-              href='https://shubhamspatil.me'
+              href='https://www.shubhamspatil.me/'
               target='_blank'
               className='block text-sm text-muted-foreground hover:text-foreground'
             >
