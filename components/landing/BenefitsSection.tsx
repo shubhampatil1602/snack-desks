@@ -1,4 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
+import { Heading, SubHeading } from "./FadeIn";
 
 const benefits = [
   {
@@ -29,12 +30,14 @@ export function BenefitsSection() {
         <div className='grid gap-12 lg:grid-cols-2 lg:items-center'>
           {/* Left */}
           <div>
-            <h2 className='text-4xl font-heading'>Built for busy teams</h2>
+            <Heading className='text-4xl font-heading'>
+              Built for busy teams
+            </Heading>
 
-            <p className='mt-4 text-muted-foreground'>
+            <SubHeading className='mt-4 text-muted-foreground'>
               SnackDesk helps organizations streamline snack ordering without
               adding more operational work.
-            </p>
+            </SubHeading>
 
             <div className='mt-10 space-y-6'>
               {benefits.map((benefit) => (
@@ -42,11 +45,16 @@ export function BenefitsSection() {
                   <CheckCircle2 className='mt-1 h-5 w-5 text-emerald-600' />
 
                   <div>
-                    <h3 className='font-semibold'>{benefit.title}</h3>
+                    <Heading as='h3' className='font-semibold'>
+                      {benefit.title}
+                    </Heading>
 
-                    <p className='mt-1 text-sm text-muted-foreground'>
+                    <SubHeading
+                      as='h4'
+                      className='mt-1 text-sm text-muted-foreground'
+                    >
                       {benefit.description}
-                    </p>
+                    </SubHeading>
                   </div>
                 </div>
               ))}

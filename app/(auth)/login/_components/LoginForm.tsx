@@ -42,9 +42,11 @@ export function LoginForm() {
 
   return (
     <div className='min-h-screen flex items-center justify-center px-4'>
-      <div className='w-full max-w-md bg-background px-6 py-7 shadow'>
+      <div className='w-full max-w-md bg-background/60 px-6 py-7 shadow'>
         <div className='mb-4'>
-          <p className='text-base font-medium'>Snack Desk</p>
+          <Link href='/' className='text-base font-medium'>
+            Snack Desk
+          </Link>
           <p className='text-sm text-muted-foreground mt-0.5'>
             Office snack ordering, simplified
           </p>

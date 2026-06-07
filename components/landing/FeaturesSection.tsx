@@ -6,6 +6,7 @@ import {
   Trophy,
   Building2,
 } from "lucide-react";
+import { Heading, SubHeading } from "./FadeIn";
 
 const features = [
   {
@@ -47,13 +48,13 @@ export function FeaturesSection() {
     <section id='features' className='py-16'>
       <div className='mx-auto max-w-7xl px-6'>
         <div className='mx-auto max-w-2xl text-center'>
-          <h2 className='text-4xl font-heading'>
+          <Heading className='text-4xl font-heading'>
             Everything you need to manage office snacks
-          </h2>
+          </Heading>
 
-          <p className='mt-4 text-muted-foreground'>
+          <SubHeading className='mt-4 text-muted-foreground'>
             Streamlined tools for office managers and happy employees.
-          </p>
+          </SubHeading>
         </div>
 
         <div className='mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
@@ -63,17 +64,32 @@ export function FeaturesSection() {
             return (
               <div
                 key={feature.title}
-                className='group border bg-background p-6 transition-all hover:shadow-md'
+                className='group relative overflow-hidden border bg-background/70 backdrop-blur-sm p-6 transition-all duration-300 hover:border-emerald-500/20 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]'
               >
-                <div className='mb-4 flex h-10 w-10 items-center justify-center border bg-muted'>
+                {/* subtle top glow */}
+                <div className='absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-emerald-500/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100' />
+
+                {/* icon */}
+                <div className='mt-3 flex h-12 w-12 items-center justify-center border border-border/50 bg-muted/50 transition-all duration-300 group-hover:scale-105 group-hover:bg-emerald-500/5'>
                   <Icon className='h-5 w-5' />
                 </div>
 
-                <h3 className='font-semibold'>{feature.title}</h3>
+                {/* content */}
+                <div className='mt-6'>
+                  <Heading
+                    as='h3'
+                    className='text-lg font-semibold tracking-tight'
+                  >
+                    {feature.title}
+                  </Heading>
 
-                <p className='mt-2 text-sm leading-relaxed text-muted-foreground'>
-                  {feature.description}
-                </p>
+                  <SubHeading
+                    as='h4'
+                    className='mt-2 text-sm text-muted-foreground'
+                  >
+                    {feature.description}
+                  </SubHeading>
+                </div>
               </div>
             );
           })}

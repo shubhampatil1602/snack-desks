@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Session } from "@/lib/auth/auth";
 import { ModeToggle } from "../theme/theme-button";
+import { IconInnerShadowTop } from "@tabler/icons-react";
 
 type LandingNavbarProps = {
   session: Session | null;
@@ -9,16 +10,13 @@ type LandingNavbarProps = {
 
 export function LandingNavbar({ session }: LandingNavbarProps) {
   return (
-    <header className='sticky top-0 z-50 border-b bg-background/80 backdrop-blur'>
+    <header className='sticky top-0 z-50 border-b bg-background/60 backdrop-blur'>
       <div className='mx-auto flex h-14 max-w-7xl items-center justify-between px-6'>
         {/* Left */}
         <div className='flex items-center gap-8'>
-          <Link href='/' className='flex items-center gap-2'>
-            <div className='flex h-5 w-5 items-center justify-center rounded-sm bg-primary text-[10px] font-bold text-primary-foreground'>
-              S
-            </div>
-
-            <span className='text-sm font-semibold'>SnackDesk</span>
+          <Link href='/' className='flex items-center gap-1'>
+            <IconInnerShadowTop className='size-5!' />
+            <span className='text-base font-semibold'>Snack Desk.</span>
           </Link>
 
           <nav className='hidden items-center gap-6 text-sm text-muted-foreground md:flex'>

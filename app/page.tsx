@@ -1,4 +1,5 @@
 import { authSession } from "@/actions/user";
+import { GradientPatternEffect } from "@/components/gradient-pattern-effect";
 import { BenefitsSection } from "@/components/landing/BenefitsSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { DashboardPreview } from "@/components/landing/DashboardPreview";
@@ -14,6 +15,7 @@ export default async function Home() {
   return (
     <div>
       <LandingNavbar session={session} />
+      <GradientPatternEffect />
       <HeroSection />
       <DashboardPreview />
       <FeaturesSection />
