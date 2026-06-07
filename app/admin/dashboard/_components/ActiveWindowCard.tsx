@@ -15,13 +15,13 @@ type ActiveWindowCardProps = {
       status: string;
     }[];
   } | null;
+  serverNow: number;
 };
 
-export function ActiveWindowCard({ window }: ActiveWindowCardProps) {
+export function ActiveWindowCard({ window, serverNow }: ActiveWindowCardProps) {
   const router = useRouter();
-  const remaining = useCountdown(
-    window?.endsAt ? new Date(window.endsAt) : null,
-  );
+
+  const remaining = useCountdown(window?.endsAt ?? null, serverNow);
 
   if (!window) {
     return (

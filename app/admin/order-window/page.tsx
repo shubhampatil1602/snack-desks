@@ -27,6 +27,7 @@ export default async function AdminOrderWindowPage() {
     : [null, []];
 
   const liveOrders = activeWindow ? await getLiveOrders(activeWindow.id) : [];
+  const serverNow = new Date().getTime();
 
   return (
     <div className='px-4 space-y-6'>
@@ -40,7 +41,7 @@ export default async function AdminOrderWindowPage() {
       {/* active window or create form */}
       {activeWindow ? (
         <>
-          <ActiveWindowCard window={activeWindow} />
+          <ActiveWindowCard window={activeWindow} serverNow={serverNow} />
           <Tabs defaultValue='active-orders'>
             <TabsList className='w-full mb-1'>
               <TabsTrigger value='active-orders'>Active Orders</TabsTrigger>

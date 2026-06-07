@@ -3,9 +3,10 @@ import { CountdownTimer } from "./CountdownTimer";
 type Props = {
   label: string;
   endsAt: string | Date | null;
+  serverNow: number;
 };
 
-export function WindowBanner({ label, endsAt }: Props) {
+export function WindowBanner({ label, endsAt, serverNow }: Props) {
   return (
     <div className='relative overflow-hidden bg-card px-4 py-4 shadow'>
       {/* Paper Texture */}
@@ -48,7 +49,7 @@ export function WindowBanner({ label, endsAt }: Props) {
           </div>
 
           <div className='flex items-center gap-2 text-right'>
-            <CountdownTimer endsAt={endsAt} />
+            <CountdownTimer endsAt={endsAt} serverNow={serverNow} />
           </div>
         </div>
 

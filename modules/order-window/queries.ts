@@ -10,7 +10,7 @@ export async function getActiveWindow(organizationId: string) {
   });
 
   // lazy close — if endsAt has passed, treat as closed
-  if (window && window.endsAt && window.endsAt < new Date()) {
+  if (window && window.endsAt && window.endsAt <= new Date()) {
     await closeWindowInternal(window.id);
     return null;
   }

@@ -12,6 +12,7 @@ export default async function AdminDashboard() {
   const { member } = await requireAdmin();
 
   const dashboardData = await getDashboardData(member.organizationId);
+  const serverNow = new Date().getTime();
 
   return (
     <div className='space-y-6 px-4'>
@@ -26,7 +27,10 @@ export default async function AdminDashboard() {
         </p>
       </div>
       <DashboardSSE />
-      <ActiveWindowCard window={dashboardData.activeWindow} />
+      <ActiveWindowCard
+        window={dashboardData.activeWindow}
+        serverNow={serverNow}
+      />
 
       <DashboardStats stats={dashboardData.stats} />
 

@@ -24,14 +24,15 @@ import { formatTime, urgencyClass, useCountdown } from "@/hooks/use-countdown";
 
 interface ActiveWindowCardProps {
   window: NonNullable<ActiveWindow>;
+  serverNow: number;
 }
 
-export function ActiveWindowCard({ window }: ActiveWindowCardProps) {
+export function ActiveWindowCard({ window, serverNow }: ActiveWindowCardProps) {
   const router = useRouter();
   const [closing, setClosing] = useState(false);
   const [closed, setClosed] = useState(false);
   const endsAt = window.endsAt ? new Date(window.endsAt) : null;
-  const remaining = useCountdown(endsAt);
+  const remaining = useCountdown(endsAt, serverNow);
   const autoClosedRef = useRef(false);
 
   // auto close when timer hits zero

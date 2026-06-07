@@ -32,6 +32,7 @@ export default async function OrderWindowPage() {
       </>
     );
   }
+  const serverNow = new Date().getTime();
 
   return (
     <div className='px-4 space-y-6'>
@@ -39,6 +40,7 @@ export default async function OrderWindowPage() {
         <WindowBanner
           endsAt={activeWindowData.window.endsAt}
           label={activeWindowData.window.label}
+          serverNow={serverNow}
         />
         <OrdersClient
           windowId={activeWindowData.window.id}

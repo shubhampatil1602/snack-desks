@@ -9,7 +9,7 @@ export function DashboardPreview() {
       className='relative mx-auto max-w-7xl px-6 mt-6 pb-16'
     >
       {/* Bottom emerald glow - reduced further */}
-      <div className='absolute bottom-0 left-1/2 h-[150px] w-[500px] -translate-x-1/2 bg-linear-to-t from-emerald-500/10 via-emerald-500/3 to-transparent blur-xl pointer-events-none z-0' />
+      <div className='absolute bottom-0 left-1/2 h-[150px] md:w-[500px] -translate-x-1/2 bg-linear-to-t from-emerald-500/10 via-emerald-500/3 to-transparent blur-xl pointer-events-none z-0' />
 
       {/* Left subtle emerald glow - reduced */}
       <div className='absolute left-0 top-1/2 h-[250px] w-[100px] -translate-y-1/2 bg-linear-to-r from-emerald-500/8 via-emerald-500/2 to-transparent blur-xl pointer-events-none z-0' />

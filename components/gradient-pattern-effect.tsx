@@ -9,10 +9,10 @@ export function GradientPatternEffect() {
         <div className='absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(16,185,129,0.04),transparent_85%)]' />
 
         {/* Top subtle glow */}
-        <div className='absolute left-1/2 top-0 h-[300px] w-[500px] -translate-x-1/2 rounded-full bg-emerald-500/8 blur-[60px]' />
+        <div className='absolute left-1/2 top-0 h-[300px] sm:w-[500px] -translate-x-1/2 rounded-full bg-emerald-500/8 blur-[60px]' />
 
         {/* Bottom subtle glow */}
-        <div className='absolute bottom-0 left-1/2 h-[250px] w-[450px] -translate-x-1/2 rounded-full bg-emerald-500/6 blur-[70px]' />
+        <div className='absolute bottom-0 left-1/2 h-[250px] sm:w-[450px] -translate-x-1/2 rounded-full bg-emerald-500/6 blur-[70px]' />
       </div>
 
       {/*  grid pattern */}
