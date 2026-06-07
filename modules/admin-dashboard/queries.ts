@@ -1,12 +1,9 @@
 import { prisma } from "@/lib/db";
 
 export async function getDashboardData(organizationId: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   const [
     activeWindow,
-    todaysOrders,
+    allOrders,
     recentWindows,
     topSellingRaw,
     topEmployeesRaw,
@@ -35,9 +32,6 @@ export async function getDashboardData(organizationId: string) {
     prisma.order.findMany({
       where: {
         organizationId,
-        createdAt: {
-          gte: today,
-        },
       },
       include: {
         user: true,
@@ -154,11 +148,11 @@ export async function getDashboardData(organizationId: string) {
   // Stats
   // =========================
 
-  const approvedOrdersToday = todaysOrders.filter(
+  const approvedOrders = allOrders.filter(
     (order) => order.status === "approved",
   );
 
-  const revenueToday = approvedOrdersToday.reduce(
+  const totalRevenue = approvedOrders.reduce(
     (sum, order) =>
       sum +
       order.items.reduce(
@@ -170,9 +164,7 @@ export async function getDashboardData(organizationId: string) {
   );
 
   const avgOrderValue =
-    approvedOrdersToday.length === 0
-      ? 0
-      : revenueToday / approvedOrdersToday.length;
+    approvedOrders.length === 0 ? 0 : totalRevenue / approvedOrders.length;
 
   // =========================
   // Top Selling Items
@@ -216,9 +208,9 @@ export async function getDashboardData(organizationId: string) {
     activeWindow,
 
     stats: {
-      revenueToday,
-      ordersToday: todaysOrders.length,
-      approvedToday: approvedOrdersToday.length,
+      totalRevenue,
+      totalOrders: allOrders.length,
+      approvedOrders: approvedOrders.length,
       avgOrderValue,
     },
 

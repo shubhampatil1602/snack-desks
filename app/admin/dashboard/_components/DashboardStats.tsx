@@ -2,9 +2,9 @@ import { Card } from "@/components/ui/card";
 
 type DashboardStatsProps = {
   stats: {
-    revenueToday: number;
-    ordersToday: number;
-    approvedToday: number;
+    totalRevenue: number;
+    totalOrders: number;
+    approvedOrders: number;
     avgOrderValue: number;
   };
 };
@@ -13,19 +13,19 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
   const statsConfig = [
     {
       title: "Total Revenue",
-      value: `₹${stats.revenueToday.toFixed(2)}`,
+      value: `₹${stats.totalRevenue.toFixed(2)}`,
       color: "from-emerald-500 to-emerald-600",
       gradient: "via-emerald-400",
     },
     {
       title: "Total Orders",
-      value: stats.ordersToday,
+      value: stats.totalOrders,
       color: "from-blue-500 to-blue-600",
       gradient: "via-blue-400",
     },
     {
       title: "Approved Orders",
-      value: stats.approvedToday,
+      value: stats.approvedOrders,
       color: "from-green-500 to-green-600",
       gradient: "via-green-400",
     },
