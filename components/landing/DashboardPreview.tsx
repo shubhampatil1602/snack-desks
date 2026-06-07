@@ -4,7 +4,10 @@ import { motion } from "motion/react";
 
 export function DashboardPreview() {
   return (
-    <section id='dashboard' className='relative mx-auto max-w-7xl px-6 pb-16'>
+    <section
+      id='dashboard'
+      className='relative mx-auto max-w-7xl px-6 mt-6 pb-16'
+    >
       {/* Bottom emerald glow - reduced further */}
       <div className='absolute bottom-0 left-1/2 h-[150px] w-[500px] -translate-x-1/2 bg-linear-to-t from-emerald-500/10 via-emerald-500/3 to-transparent blur-xl pointer-events-none z-0' />
 
@@ -32,7 +35,7 @@ export function DashboardPreview() {
             delay: 0.1,
             ease: "easeInOut",
           }}
-          className='group mb-4'
+          className='group'
         >
           <div className='overflow-hidden p-6'>
             <div className='relative overflow-hidden bg-white dark:bg-zinc-950'>
