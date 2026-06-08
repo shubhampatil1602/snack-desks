@@ -25,8 +25,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth/auth-clients";
+
 import Link from "next/link";
+import { Session } from "@/lib/auth/auth";
 
 const data = {
   navMain: [
@@ -75,8 +76,11 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session } = authClient.useSession();
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  session: Session;
+}
+
+export function AppSidebar({ session, ...props }: AppSidebarProps) {
   return (
     <Sidebar collapsible='icon' {...props}>
       <SidebarHeader>

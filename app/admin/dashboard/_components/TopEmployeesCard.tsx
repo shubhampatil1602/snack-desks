@@ -4,6 +4,8 @@ type TopEmployee = {
   userId: string;
   name: string;
   orders: number;
+  spent: number;
+  rank: number;
 };
 
 type TopEmployeesCardProps = {
@@ -65,12 +67,13 @@ export function TopEmployeesCard({ employees }: TopEmployeesCardProps) {
               {PODIUM_ORDER.map((empIdx, colIdx) => {
                 const emp = top3[empIdx];
                 if (!emp) return null;
+
                 const rank = PODIUM_RANKS[colIdx];
 
                 return (
                   <div
                     key={emp.userId}
-                    className='flex flex-col items-center gap-2 w-[110px]'
+                    className='flex flex-col items-center gap-2 w-[120px]'
                   >
                     <div
                       className={`h-10 w-10 rounded-full flex items-center justify-center text-xs font-semibold ${podiumStyles.avatar[colIdx]}`}
@@ -78,7 +81,7 @@ export function TopEmployeesCard({ employees }: TopEmployeesCardProps) {
                       {initials(emp.name)}
                     </div>
 
-                    <p className='text-xs font-medium text-center leading-tight line-clamp-2'>
+                    <p className='text-xs font-medium text-center leading-tight'>
                       {emp.name}
                     </p>
 
@@ -87,13 +90,19 @@ export function TopEmployeesCard({ employees }: TopEmployeesCardProps) {
                     </p>
 
                     <div
-                      className={`w-full rounded-t flex items-center justify-center ${podiumStyles.block[colIdx]} ${podiumStyles.blockBg[colIdx]}`}
+                      className={`w-full rounded-t flex flex-col items-center justify-center ${podiumStyles.block[colIdx]} ${podiumStyles.blockBg[colIdx]}`}
                     >
                       <span
                         className={`text-lg font-semibold ${podiumStyles.rankColor[colIdx]}`}
                       >
                         #{rank}
                       </span>
+                      <p className='text-xs'>
+                        All time:{" "}
+                        <span className='font-semibold pl-1'>
+                          ₹{emp.spent.toFixed(0)}
+                        </span>
+                      </p>
                     </div>
                   </div>
                 );

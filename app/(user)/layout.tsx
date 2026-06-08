@@ -41,7 +41,7 @@ export default async function UserLayout({
             } as React.CSSProperties
           }
         >
-          <AppSidebar variant='inset' />
+          <AppSidebar variant='inset' session={session} />
           <SidebarInset>
             <SiteHeader activeWindow={activeWindow} />
             <div className='flex flex-1 flex-col bg-for'>

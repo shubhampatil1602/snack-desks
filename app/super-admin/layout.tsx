@@ -9,7 +9,7 @@ export default async function SuperAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireSuperAdmin();
+  const session = await requireSuperAdmin();
   return (
     <div>
       <TooltipProvider>
@@ -21,7 +21,7 @@ export default async function SuperAdminLayout({
             } as React.CSSProperties
           }
         >
-          <AppSidebar variant='inset' />
+          <AppSidebar variant='inset' session={session} />
           <SidebarInset>
             <SiteHeader />
             <div className='flex flex-1 flex-col'>

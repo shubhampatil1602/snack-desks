@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getEmployeeRankings } from "@/modules/rankings/queries";
 
 export async function getDashboardData(organizationId: string) {
   const [
@@ -6,7 +7,7 @@ export async function getDashboardData(organizationId: string) {
     allOrders,
     recentWindows,
     topSellingRaw,
-    topEmployeesRaw,
+    rankings,
     statusDistributionRaw,
   ] = await Promise.all([
     prisma.orderWindow.findFirst({
@@ -88,26 +89,7 @@ export async function getDashboardData(organizationId: string) {
       take: 5,
     }),
 
-    prisma.order.groupBy({
-      by: ["userId"],
-
-      where: {
-        organizationId,
-        status: "approved",
-      },
-
-      _count: {
-        id: true,
-      },
-
-      orderBy: {
-        _count: {
-          id: "desc",
-        },
-      },
-
-      take: 5,
-    }),
+    getEmployeeRankings(organizationId),
 
     prisma.order.groupBy({
       by: ["status"],
@@ -122,7 +104,7 @@ export async function getDashboardData(organizationId: string) {
     }),
   ]);
 
-  const [menuItems, users] = await Promise.all([
+  const [menuItems] = await Promise.all([
     prisma.menuItem.findMany({
       where: {
         id: {
@@ -130,19 +112,9 @@ export async function getDashboardData(organizationId: string) {
         },
       },
     }),
-
-    prisma.user.findMany({
-      where: {
-        id: {
-          in: topEmployeesRaw.map((employee) => employee.userId),
-        },
-      },
-    }),
   ]);
 
   const menuLookup = new Map(menuItems.map((item) => [item.id, item]));
-
-  const userLookup = new Map(users.map((user) => [user.id, user]));
 
   // =========================
   // Stats
@@ -180,11 +152,7 @@ export async function getDashboardData(organizationId: string) {
   // Top Employees
   // =========================
 
-  const topEmployees = topEmployeesRaw.map((employee) => ({
-    userId: employee.userId,
-    name: userLookup.get(employee.userId)?.name ?? "Unknown",
-    orders: employee._count.id,
-  }));
+  const topEmployees = rankings.slice(0, 3);
 
   // =========================
   // Status Distribution

@@ -10,7 +10,7 @@ export default async function SuperAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { member } = await requireAdmin();
+  const { member, session } = await requireAdmin();
 
   const organization = await prisma.organization.findUnique({
     where: {
@@ -32,7 +32,7 @@ export default async function SuperAdminLayout({
             } as React.CSSProperties
           }
         >
-          <AppSidebar variant='inset' />
+          <AppSidebar variant='inset' session={session} />
           <SidebarInset>
             <SiteHeader inviteCode={organization?.inviteCode} />
             <div className='flex flex-1 flex-col'>
