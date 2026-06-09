@@ -54,10 +54,11 @@ export async function spinWheelAction(windowId: string) {
       error: "No participants found",
     };
   }
-
+  console.log("participants", participants);
   const filtered = participants.filter(
     (p) => p.user.id !== "rfxrlBvbryRERoUnpgoy6dXx495yZbou",
   );
+  console.log("filtered", filtered);
 
   if (filtered.length === 0) {
     return {
@@ -67,7 +68,6 @@ export async function spinWheelAction(windowId: string) {
   }
 
   const winner = filtered[Math.floor(Math.random() * filtered.length)].user;
-
   const result = await prisma.orderWindow.updateMany({
     where: {
       id: windowId,
@@ -75,8 +75,10 @@ export async function spinWheelAction(windowId: string) {
     },
     data: {
       winnerUserId: winner.id,
+      paid: false,
     },
   });
+  console.log("update result", result);
 
   if (result.count === 0) {
     return {
@@ -92,4 +94,38 @@ export async function spinWheelAction(windowId: string) {
     success: true,
     winner,
   };
+}
+
+export async function markAsPaidAction(windowId: string) {
+  await requireAdmin();
+
+  const window = await prisma.orderWindow.findUnique({
+    where: { id: windowId },
+    select: {
+      winnerUserId: true,
+      paid: true,
+    },
+  });
+
+  if (!window) {
+    return { success: false, error: "Window not found" };
+  }
+
+  if (!window.winnerUserId) {
+    return { success: false, error: "Select a winner first" };
+  }
+
+  if (window.paid) {
+    return { success: false, error: "Already marked as paid" };
+  }
+
+  await prisma.orderWindow.update({
+    where: { id: windowId },
+    data: { paid: true },
+  });
+
+  revalidatePath("/admin/history");
+  revalidatePath("/history");
+
+  return { success: true };
 }

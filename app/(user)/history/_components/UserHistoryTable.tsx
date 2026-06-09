@@ -28,6 +28,7 @@ import {
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 
 import { OrderHistoryDetails } from "@/components/orders/OrderHistoryDetails";
+import { Badge } from "@/components/ui/badge";
 
 type UserHistoryTableProps = {
   orders: UserOrderHistory;
@@ -127,6 +128,18 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                           SPLIT MASTER:{" "}
                           {order.orderWindow.winnerUser?.name.toUpperCase()}
                         </span>
+                      )}
+                      <span className='text-muted-foreground text-xs mx-1'>
+                        ·
+                      </span>
+                      {order.orderWindow.paid ? (
+                        <Badge className='bg-linear-to-r from-emerald-400 via-green-500 to-emerald-500 text-white hover:from-emerald-500 hover:via-emerald-600 hover:to-emerald-600 border border-emerald-600 shadow-md dark:from-emerald-600 dark:via-emerald-600 dark:to-emerald-700 dark:border-emerald-500 rounded-full py-0.5 px-2'>
+                          Paid
+                        </Badge>
+                      ) : (
+                        <Badge className='bg-linear-to-r from-red-400 via-orange-500 to-red-500 text-white hover:from-red-500 hover:via-red-600 hover:to-red-600 border border-red-600 shadow-md dark:from-red-600 dark:via-red-600 dark:to-red-700 dark:border-red-500 rounded-full py-0.5 px-2'>
+                          Unpaid
+                        </Badge>
                       )}
                     </TableCell>
 

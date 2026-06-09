@@ -38,6 +38,9 @@ import { OrderWindowSummaryDialog } from "./OrderWindowSummaryDialog";
 import { OrderWindowUserSummaryDialog } from "./OrderWindowUserSummaryDialog";
 import { DeleteOrderWindowButton } from "@/components/admins/DeleteOrderWindowButton";
 import { SpinWheelButton } from "./SpinWheelButton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { markAsPaidAction } from "@/actions/spin-wheel";
 
 type AdminWindowHistoryProps = {
   windows: AdminWindowHistoryType;
@@ -184,7 +187,7 @@ export function AdminWindowHistory({
       </div>
 
       {/* Windows List - Tighter spacing */}
-      <div className=''>
+      <div>
         {pagination.paginatedData.map((window) => {
           const isExpanded = expandedWindows[window.id];
           const windowRevenue = window.orders
@@ -246,10 +249,28 @@ export function AdminWindowHistory({
                           },
                         )}
                       </span>
+                      <span className='text-muted-foreground text-xs'>·</span>
+                      {window.paid ? (
+                        <Badge className='bg-linear-to-r from-emerald-400 via-green-500 to-emerald-500 text-white hover:from-emerald-500 hover:via-emerald-600 hover:to-emerald-600 border border-emerald-600 shadow-md dark:from-emerald-600 dark:via-emerald-600 dark:to-emerald-700 dark:border-emerald-500 rounded-full py-0.5 px-2'>
+                          Paid
+                        </Badge>
+                      ) : (
+                        <Badge className='bg-linear-to-r from-red-400 via-orange-500 to-red-500 text-white hover:from-red-500 hover:via-red-600 hover:to-red-600 border border-red-600 shadow-md dark:from-red-600 dark:via-red-600 dark:to-red-700 dark:border-red-500 rounded-full py-0.5 px-2'>
+                          Unpaid
+                        </Badge>
+                      )}
                     </button>
                   </div>
 
                   <div className='flex items-center justify-end gap-3 w-xl'>
+                    {window.winnerUserId && !window.paid && (
+                      <Button
+                        size='sm'
+                        onClick={() => markAsPaidAction(window.id)}
+                      >
+                        Mark as Paid
+                      </Button>
+                    )}
                     <SpinWheelButton
                       windowId={window.id}
                       winnerName={window.winnerUser?.name ?? null}

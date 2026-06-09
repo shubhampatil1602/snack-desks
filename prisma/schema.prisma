@@ -141,6 +141,7 @@ model OrderWindow {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   winnerUserId String?
   winnerUser   User?        @relation("OrderWindowWinner", fields: [winnerUserId], references: [id])
+  paid         Boolean      @default(false)
 
   @@index([organizationId])
   @@index([status])

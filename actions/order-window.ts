@@ -133,6 +133,22 @@ export async function closeWindowAction(
 
 export async function closeWindowInternal(windowId: string) {
   await prisma.$transaction(async (tx) => {
+    const orderCount = await tx.order.count({
+      where: {
+        windowId,
+      },
+    });
+
+    // no orders placed - delete window completely
+    if (orderCount === 0) {
+      await tx.orderWindow.delete({
+        where: {
+          id: windowId,
+        },
+      });
+
+      return;
+    }
     await tx.order.updateMany({
       where: {
         windowId,
