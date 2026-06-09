@@ -235,7 +235,7 @@ export function AdminWindowHistory({
                         )}
                       </span>
                       <span className='text-muted-foreground text-xs'>·</span>
-                      <span className='text-sm font-medium'>
+                      <span className='text-sm font-medium line-clamp-1'>
                         {window.label} Window
                       </span>
                       <span className='text-muted-foreground text-xs'>·</span>
@@ -262,7 +262,7 @@ export function AdminWindowHistory({
                     </button>
                   </div>
 
-                  <div className='flex items-center justify-end gap-3 w-xl'>
+                  <div className='flex items-center justify-end gap-2 w-xl'>
                     {window.winnerUserId && !window.paid && (
                       <Button
                         size='sm'

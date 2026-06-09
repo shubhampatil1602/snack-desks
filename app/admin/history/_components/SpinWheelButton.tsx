@@ -86,7 +86,7 @@ export function SpinWheelButton({ windowId, winnerName }: Props) {
           {winnerName ? (
             <>
               <Trophy className='size-4 mr-2' />
-              {winnerName}
+              {winnerName.split(" ")[0]} {winnerName.split(" ")?.[1][0]}.
             </>
           ) : (
             <>
