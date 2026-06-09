@@ -1,5 +1,8 @@
 # 🍱 SnackDesk
 
+[![Live](https://img.shields.io/badge/Live_Demo-Visit_App-green)](https://snackdesk.shubhamspatil.me/)
+[![Demo Video](https://img.shields.io/badge/YouTube-Watch_Demo-red)](https://www.youtube.com/watch?v=fp6EKVy0Zvc)
+
 SnackDesk is an internal office snack ordering platform built for organizations.
 
 Admins can create ordering windows, manage menus, approve orders, track spending, and view employee rankings. Employees can place, update, and cancel orders in real-time through a simple dashboard.
