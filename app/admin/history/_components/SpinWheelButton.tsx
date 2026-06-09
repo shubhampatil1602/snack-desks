@@ -27,6 +27,12 @@ type Props = {
   winnerName?: string | null;
 };
 
+function getShortName(name: string) {
+  const parts = name.trim().split(/\s+/);
+
+  return parts[1] ? `${parts[0]} ${parts[1][0]}.` : parts[0];
+}
+
 export function SpinWheelButton({ windowId, winnerName }: Props) {
   const router = useRouter();
 
@@ -86,7 +92,7 @@ export function SpinWheelButton({ windowId, winnerName }: Props) {
           {winnerName ? (
             <>
               <Trophy className='size-4 mr-2' />
-              {winnerName.split(" ")[0]} {winnerName.split(" ")?.[1][0]}.
+              {getShortName(winnerName)}
             </>
           ) : (
             <>
