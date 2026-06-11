@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCartSubtotal, useCartStore } from "@/store/cart-store";
 import { useRouter } from "next/navigation";
-import { useSSE } from "@/hooks/use-sse";
+import { OrderStatusChangedPayload } from "@/hooks/use-sse";
 import { sendNotification } from "@/hooks/use-notification-permission";
 import type {
   ActiveWindowWithMenu,
@@ -14,6 +14,7 @@ import type {
 } from "@/modules/orders/queries";
 import { toast } from "sonner";
 import { ORDER_STATUS } from "@/lib/constants";
+import { useSSEEvent } from "@/providers/sse-provider";
 
 type OrdersClientProps = {
   menuItems: NonNullable<ActiveWindowWithMenu>["menuItems"];
@@ -29,24 +30,18 @@ export function OrdersClient({
   const router = useRouter();
   const clearCart = useCartStore((state) => state.clearCart);
 
-  useSSE({
-    onWindowClosed: () => {
-      sendNotification(`🍱 Order window is closed!`, "Thanks.");
-      clearCart();
-      router.refresh();
-    },
+  useSSEEvent("window_closed", () => {
+    sendNotification(`🍱 Order window is closed!`, "Thanks.");
+    clearCart();
+    router.refresh();
+  });
 
-    onOrderStatusChanged: (payload) => {
-      if (payload.status === ORDER_STATUS.APPROVED) {
-        toast.success("Your order has been approved");
-      }
-
-      if (payload.status === ORDER_STATUS.REJECTED) {
-        toast.error("Your order has been rejected");
-      }
-
-      router.refresh();
-    },
+  useSSEEvent<OrderStatusChangedPayload>("order_status_changed", (payload) => {
+    if (payload.status === ORDER_STATUS.APPROVED)
+      toast.success("Your order has been approved");
+    if (payload.status === ORDER_STATUS.REJECTED)
+      toast.error("Your order has been rejected");
+    router.refresh();
   });
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");

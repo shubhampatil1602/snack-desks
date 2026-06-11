@@ -4,6 +4,7 @@ import { SiteHeader } from "./_components/site-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
+import { SSEProvider } from "@/providers/sse-provider";
 
 export default async function SuperAdminLayout({
   children,
@@ -22,7 +23,7 @@ export default async function SuperAdminLayout({
   });
 
   return (
-    <div>
+    <SSEProvider enabled={true}>
       <TooltipProvider>
         <SidebarProvider
           style={
@@ -45,6 +46,6 @@ export default async function SuperAdminLayout({
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
-    </div>
+    </SSEProvider>
   );
 }

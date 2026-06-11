@@ -4,6 +4,7 @@ import { SiteHeader } from "./_components/site-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
+import { SSEProvider } from "@/providers/sse-provider";
 
 export default async function UserLayout({
   children,
@@ -31,7 +32,7 @@ export default async function UserLayout({
   });
 
   return (
-    <div>
+    <SSEProvider enabled={true}>
       <TooltipProvider>
         <SidebarProvider
           style={
@@ -54,6 +55,6 @@ export default async function UserLayout({
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
-    </div>
+    </SSEProvider>
   );
 }

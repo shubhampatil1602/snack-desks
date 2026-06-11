@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Suspense } from "react";
 import { CartButton } from "./cart-button";
+
 import { LiveUserSSE } from "./live-user-sse";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -44,7 +45,6 @@ export function SiteHeader({ activeWindow }: SiteHeaderProps) {
               </span>
             </div>
           )}
-
           <LiveUserSSE />
           <CartButton />
         </div>

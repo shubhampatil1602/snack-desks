@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { sendNotification } from "@/hooks/use-notification-permission";
-import { useSSE } from "@/hooks/use-sse";
+import { WindowOpenedPayload } from "@/hooks/use-sse";
+import { useSSEEvent } from "@/providers/sse-provider";
 import { Bell, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,18 +25,14 @@ export function NoActiveWindow() {
       toast.success("Notifications enabled!");
     }
   }
-
-  useSSE({
-    onWindowOpened: (payload) => {
-      console.log("sending notification");
-      sendNotification(
-        `🍱 ${payload.label} order window is now open!`,
-        payload.endsAt
-          ? `Closes in ${Math.round((new Date(payload.endsAt).getTime() - Date.now()) / 60000)} mins`
-          : "Place your order now",
-      );
-      router.refresh();
-    },
+  useSSEEvent<WindowOpenedPayload>("window_opened", (payload) => {
+    sendNotification(
+      `🍱 ${payload.label} order window is now open!`,
+      payload.endsAt
+        ? `Closes in ${Math.round((new Date(payload.endsAt).getTime() - Date.now()) / 60000)} mins`
+        : "Place your order now",
+    );
+    router.refresh();
   });
   return (
     <div className='flex flex-col items-center justify-center min-h-full gap-3'>

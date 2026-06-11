@@ -1,23 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useSSE } from "@/hooks/use-sse";
+import { useSSEEvent } from "@/providers/sse-provider";
 import { useCartStore } from "@/store/cart-store";
+import { useRouter } from "next/navigation";
 
 export function LiveUserSSE() {
   const router = useRouter();
-
   const clearCart = useCartStore((state) => state.clearCart);
 
-  useSSE({
-    onWindowOpened: () => {
-      console.log("[SSE] window opened");
-      router.refresh();
-    },
-    onWindowClosed: () => {
-      clearCart();
-      router.refresh();
-    },
+  useSSEEvent("window_opened", () => router.refresh());
+  useSSEEvent("window_closed", () => {
+    clearCart();
+    router.refresh();
   });
 
   return null;

@@ -2,6 +2,7 @@ import { notifyPool } from "@/lib/sse/pg-notify";
 import { authSession } from "@/actions/user";
 import { prisma } from "@/lib/db";
 
+export const maxDuration = 300;
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -64,11 +65,30 @@ export async function GET(request: Request) {
           } catch {
             clearInterval(heartbeat);
           }
-        }, 30000);
+        }, 55000);
+
+        const gracefulClose = setTimeout(
+          () => {
+            try {
+              clearInterval(heartbeat);
+
+              pgClient
+                .query("UNLISTEN snackdesk_events")
+                .finally(() => pgClient.release());
+
+              controller.close();
+            } catch {
+              // ignore
+            }
+          },
+          4 * 60 * 1000,
+        ); // 4 minutes
 
         // cleanup on client disconnect
         request.signal.addEventListener("abort", () => {
           clearInterval(heartbeat);
+          clearTimeout(gracefulClose);
+
           pgClient
             .query("UNLISTEN snackdesk_events")
             .finally(() => pgClient.release());

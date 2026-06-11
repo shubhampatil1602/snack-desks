@@ -18,9 +18,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { closeWindowAction } from "@/actions/order-window";
-import { useSSE } from "@/hooks/use-sse";
+import { WindowClosedPayload } from "@/hooks/use-sse";
 import type { ActiveWindow } from "@/modules/order-window/queries";
 import { formatTime, urgencyClass, useCountdown } from "@/hooks/use-countdown";
+import { useSSEEvent } from "@/providers/sse-provider";
 
 interface ActiveWindowCardProps {
   window: NonNullable<ActiveWindow>;
@@ -45,15 +46,11 @@ export function ActiveWindowCard({ window, serverNow }: ActiveWindowCardProps) {
     }
   }, [remaining, window.id, router]);
 
-  // listen for SSE window_closed event
-  // (in case another admin closed it)
-  useSSE({
-    onWindowClosed: ({ windowId }) => {
-      if (windowId === window.id) {
-        setClosed(true);
-        router.refresh();
-      }
-    },
+  useSSEEvent<WindowClosedPayload>("window_closed", ({ windowId }) => {
+    if (windowId === window.id) {
+      setClosed(true);
+      router.refresh();
+    }
   });
 
   async function handleClose() {
