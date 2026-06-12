@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { sendNotification } from "@/hooks/use-notification-permission";
-import { WindowOpenedPayload } from "@/hooks/use-sse";
+import { WindowOpenedPayload } from "@/types/sse";
 import { useSSEEvent } from "@/providers/sse-provider";
 import { Bell, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";

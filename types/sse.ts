@@ -22,3 +22,33 @@ export type SnackDeskEvent =
       orgId: string;
       payload: { orderId: string; status: string };
     };
+
+export interface WindowOpenedPayload {
+  windowId: string;
+  label: string;
+  endsAt: string | null;
+  startsAt: string;
+}
+
+export interface WindowClosedPayload {
+  windowId: string;
+}
+
+export interface OrderPlacedPayload {
+  orderId: string;
+  userId: string;
+  userName: string;
+}
+
+export interface OrderUpdatedPayload {
+  orderId: string;
+}
+
+export interface OrderCancelledPayload {
+  orderId: string;
+}
+
+export interface OrderStatusChangedPayload {
+  orderId: string;
+  status: string;
+}

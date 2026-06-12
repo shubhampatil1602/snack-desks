@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCartSubtotal, useCartStore } from "@/store/cart-store";
 import { useRouter } from "next/navigation";
-import { OrderStatusChangedPayload } from "@/hooks/use-sse";
+import { OrderStatusChangedPayload } from "@/types/sse";
 import { sendNotification } from "@/hooks/use-notification-permission";
 import type {
   ActiveWindowWithMenu,

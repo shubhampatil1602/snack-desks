@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { closeWindowAction } from "@/actions/order-window";
-import { WindowClosedPayload } from "@/hooks/use-sse";
+import { WindowClosedPayload } from "@/types/sse";
 import type { ActiveWindow } from "@/modules/order-window/queries";
 import { formatTime, urgencyClass, useCountdown } from "@/hooks/use-countdown";
 import { useSSEEvent } from "@/providers/sse-provider";
