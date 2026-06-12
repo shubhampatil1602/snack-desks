@@ -31,8 +31,17 @@ export default async function UserLayout({
     },
   });
 
+  const organization = await prisma.organization.findUnique({
+    where: {
+      id: member.organizationId,
+    },
+    select: {
+      realtimeEnabled: true,
+    },
+  });
+
   return (
-    <SSEProvider enabled={true}>
+    <SSEProvider enabled={organization?.realtimeEnabled}>
       <TooltipProvider>
         <SidebarProvider
           style={

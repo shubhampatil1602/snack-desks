@@ -19,11 +19,12 @@ export default async function SuperAdminLayout({
     },
     select: {
       inviteCode: true,
+      realtimeEnabled: true,
     },
   });
 
   return (
-    <SSEProvider enabled={true}>
+    <SSEProvider enabled={organization?.realtimeEnabled}>
       <TooltipProvider>
         <SidebarProvider
           style={

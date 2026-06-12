@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { usePagination } from "@/hooks/use-pagination";
 import { DataPagination } from "@/components/ui/data-pagination";
 import {
@@ -18,13 +18,17 @@ import { DeleteOrgDialog } from "./DeleteOrgDialog";
 import type { OrganizationWithDetails } from "@/types/org";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Switch } from "@/components/ui/switch";
+import { toggleRealtime } from "@/actions/organization";
 interface OrgTableProps {
   data: OrganizationWithDetails[];
+  showPagination?: boolean;
 }
 
-export function OrgTable({ data }: OrgTableProps) {
+export function OrgTable({ data, showPagination = true }: OrgTableProps) {
   const [orgs, setOrgs] = useState(data);
   const [copied, setCopied] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const router = useRouter();
 
@@ -39,6 +43,14 @@ export function OrgTable({ data }: OrgTableProps) {
   function handleDeleted(orgId: string) {
     setOrgs((prev) => prev.filter((o) => o.id !== orgId));
     router.refresh();
+  }
+
+  function handleRealtimeChange(orgId: string, enabled: boolean) {
+    setOrgs((prev) =>
+      prev.map((org) =>
+        org.id === orgId ? { ...org, realtimeEnabled: enabled } : org,
+      ),
+    );
   }
 
   if (orgs.length === 0) {
@@ -68,7 +80,8 @@ export function OrgTable({ data }: OrgTableProps) {
             <TableHead>Admin</TableHead>
             <TableHead>Members</TableHead>
             <TableHead>Created</TableHead>
-            <TableHead className='w-[80px]' />
+            <TableHead>Realtime</TableHead>
+            <TableHead>Delete</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -139,6 +152,19 @@ export function OrgTable({ data }: OrgTableProps) {
                   })}
                 </TableCell>
                 <TableCell>
+                  <Switch
+                    checked={org.realtimeEnabled}
+                    disabled={isPending}
+                    onCheckedChange={(checked) => {
+                      handleRealtimeChange(org.id, checked);
+                      startTransition(async () => {
+                        await toggleRealtime(org.id, checked);
+                        router.refresh();
+                      });
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
                   <DeleteOrgDialog
                     orgId={org.id}
                     orgName={org.name}
@@ -152,7 +178,7 @@ export function OrgTable({ data }: OrgTableProps) {
         </TableBody>
       </Table>
 
-      <DataPagination {...pagination} />
+      {showPagination && <DataPagination {...pagination} />}
     </div>
   );
 }

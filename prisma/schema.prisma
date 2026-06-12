@@ -77,13 +77,14 @@ model Verification {
 }
 
 model Organization {
-  id         String   @id
-  name       String
-  slug       String   @unique
-  logo       String?
-  createdAt  DateTime
-  metadata   String?
-  inviteCode String   @unique
+  id              String   @id
+  name            String
+  slug            String   @unique
+  logo            String?
+  createdAt       DateTime
+  metadata        String?
+  inviteCode      String   @unique
+  realtimeEnabled Boolean  @default(true)
 
   members        Member[]
   invitations    Invitation[]

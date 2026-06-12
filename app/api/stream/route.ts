@@ -25,6 +25,8 @@ export async function GET(request: Request) {
   const orgId = member.organizationId;
   const encoder = new TextEncoder();
 
+  console.log(`[SSE CONNECTED] user=${session.user.id} org=${orgId}`);
+
   // set up SSE stream
   const stream = new ReadableStream({
     async start(controller) {
@@ -69,6 +71,10 @@ export async function GET(request: Request) {
 
         const gracefulClose = setTimeout(
           () => {
+            console.log(
+              `[SSE GRACEFUL CLOSE] user=${session.user.id} org=${orgId}`,
+            );
+
             try {
               clearInterval(heartbeat);
 
@@ -86,6 +92,10 @@ export async function GET(request: Request) {
 
         // cleanup on client disconnect
         request.signal.addEventListener("abort", () => {
+          console.log(
+            `[SSE DISCONNECTED] user=${session.user.id} org=${orgId}`,
+          );
+
           clearInterval(heartbeat);
           clearTimeout(gracefulClose);
 
