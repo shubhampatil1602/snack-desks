@@ -6,6 +6,7 @@ import { ExportOrdersDialog } from "./_components/ExportOrdersDialog";
 
 import { getOrganizationOrderHistoryGroupedByWindow } from "@/modules/orders/admin-history-queries";
 import { getMenuItems } from "@/modules/menu/queries";
+import { PaymentQR } from "@/components/payment-qr";
 
 export default async function AdminHistoryPage() {
   const { session } = await requireAdmin();
@@ -33,7 +34,10 @@ export default async function AdminHistoryPage() {
             View history of your organization orders
           </p>
         </div>
-        <ExportOrdersDialog />
+        <div className='space-x-3'>
+          <PaymentQR />
+          <ExportOrdersDialog />
+        </div>
       </div>
 
       <AdminWindowHistory windows={windows} menuItems={menuItems} />
