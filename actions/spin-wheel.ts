@@ -54,11 +54,14 @@ export async function spinWheelAction(windowId: string) {
       error: "No participants found",
     };
   }
-  console.log("participants", participants);
-  const filtered = participants.filter(
-    (p) => p.user.id !== "rfxrlBvbryRERoUnpgoy6dXx495yZbou",
-  );
-  console.log("filtered", filtered);
+
+  const excludedIds = [
+    // "rfxrlBvbryRERoUnpgoy6dXx495yZbou",
+    "hBnoaYLfQSivXVOcNY5Bj2JgbTWXR4po",
+    "ZnQ2LO4x1qu0rGOocGebxXvq0OdTNhqu",
+  ];
+
+  const filtered = participants.filter((p) => !excludedIds.includes(p.user.id));
 
   if (filtered.length === 0) {
     return {

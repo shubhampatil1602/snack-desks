@@ -23,7 +23,7 @@ Admins can create ordering windows, manage menus, approve orders, track spending
 
 ## Tech Stack
 
-- Next.js 15
+- Next.js 16
 - TypeScript
 - PostgreSQL
 - Prisma ORM
