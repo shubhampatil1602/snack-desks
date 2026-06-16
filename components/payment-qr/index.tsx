@@ -24,7 +24,7 @@ export const PaymentQR = () => {
       <DialogTrigger asChild>
         <Button>
           <QrCode className='mr-2 h-4 w-4' />
-          QR Code
+          Payment QR
         </Button>
       </DialogTrigger>
 
