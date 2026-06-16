@@ -46,6 +46,7 @@ export const PaymentQR = () => {
                 size={280}
                 bgColor='#FFFFFF'
                 fgColor='#000000'
+                className='p-8 bg-white'
               />
               <Badge
                 variant='secondary'
@@ -63,6 +64,7 @@ export const PaymentQR = () => {
                 size={280}
                 bgColor='#FFFFFF'
                 fgColor='#000000'
+                className='p-8 bg-white'
               />
               <Badge
                 variant='secondary'
