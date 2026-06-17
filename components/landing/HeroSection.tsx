@@ -26,7 +26,7 @@ export function HeroSection() {
 
           <div className='mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row'>
             <Button size='lg' asChild>
-              <Link href='mailto:your-email@gmail.com?subject=SnackDesk Organization Registration'>
+              <Link href='mailto:shubhamspatilnbr@gmail.com?subject=SnackDesk Organization Registration'>
                 Register Your Organization
               </Link>
             </Button>

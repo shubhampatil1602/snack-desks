@@ -24,13 +24,13 @@ export function CTASection() {
 
             <div className='mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row'>
               <Button size='lg' asChild>
-                <Link href='mailto:your-email@gmail.com?subject=SnackDesk Organization Registration'>
+                <Link href='mailto:shubhamspatilnbr@gmail.com?subject=SnackDesk Organization Registration'>
                   Register Your Organization
                 </Link>
               </Button>
 
               <Button variant='outline' size='lg' asChild>
-                <Link href='mailto:your-email@gmail.com?subject=SnackDesk Inquiry'>
+                <Link href='mailto:shubhamspatilnbr@gmail.com?subject=SnackDesk Inquiry'>
                   Contact Us
                   <ArrowRight className='ml-2 size-4' />
                 </Link>
