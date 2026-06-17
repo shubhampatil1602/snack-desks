@@ -6,7 +6,6 @@ import {
   IconMenuOrder,
   IconGraph,
   IconHelp,
-  IconInnerShadowTop,
   IconSettings,
   IconUsersGroup,
   IconChartBar,
@@ -28,6 +27,7 @@ import {
 
 import Link from "next/link";
 import { Session } from "@/lib/auth/auth";
+import { Logo } from "@/components/logo";
 
 const data = {
   navMain: [
@@ -91,8 +91,8 @@ export function AppSidebar({ session, ...props }: AppSidebarProps) {
               className='data-[slot=sidebar-menu-button]:p-1.5!'
             >
               <Link href='/'>
-                <IconInnerShadowTop className='size-5!' />
-                <span className='text-base font-semibold'>Snack Desk.</span>
+                <Logo />
+                <span className='text-base font-semibold'>SnackDesk.</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

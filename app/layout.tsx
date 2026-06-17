@@ -30,7 +30,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Snack Desk",
+  title: "SnackDesk",
   description: "Snack ordering platform for modern teams.",
 };
 

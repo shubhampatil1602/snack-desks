@@ -21,7 +21,7 @@ export function Footer() {
           <div>
             <div className='flex items-center gap-1'>
               <IconInnerShadowTop className='size-5!' />
-              <span className='text-base font-semibold'>Snack Desk.</span>
+              <span className='text-base font-semibold'>SnackDesk.</span>
             </div>
             <p className='mt-3 text-sm text-muted-foreground'>
               Office snack ordering platform for modern teams.

@@ -6,7 +6,6 @@ import {
   IconDashboard,
   IconGraph,
   IconHelp,
-  IconInnerShadowTop,
   IconSettings,
 } from "@tabler/icons-react";
 
@@ -22,9 +21,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth/auth-clients";
+
 import Link from "next/link";
 import { Session } from "@/lib/auth/auth";
+import { Logo } from "@/components/logo";
 
 const data = {
   navMain: [
@@ -73,8 +73,8 @@ export function AppSidebar({ session, ...props }: AppSidebarProps) {
               className='data-[slot=sidebar-menu-button]:p-1.5!'
             >
               <Link href='/super-admin/dashboard'>
-                <IconInnerShadowTop className='size-5!' />
-                <span className='text-base font-semibold'>Snack Desk.</span>
+                <Logo />
+                <span className='text-base font-semibold'>SnackDesk.</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -41,7 +41,7 @@ export function RegisterForm() {
       <div className='w-full max-w-md bg-background px-6 py-4 shadow'>
         <div className='my-4'>
           <Link href='/' className='text-base font-medium'>
-            Snack Desk
+            SnackDesk
           </Link>
           <p className='text-sm text-muted-foreground mt-0.5'>
             Office snack ordering, simplified

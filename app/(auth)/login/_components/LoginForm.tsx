@@ -45,7 +45,7 @@ export function LoginForm() {
       <div className='w-full max-w-md bg-background/60 px-6 py-7 shadow'>
         <div className='mb-4'>
           <Link href='/' className='text-base font-medium'>
-            Snack Desk
+            SnackDesk
           </Link>
           <p className='text-sm text-muted-foreground mt-0.5'>
             Office snack ordering, simplified

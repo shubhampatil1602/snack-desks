@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Session } from "@/lib/auth/auth";
 import { ModeToggle } from "../theme/theme-button";
-import { IconInnerShadowTop } from "@tabler/icons-react";
+import { Logo } from "../logo";
 
 type LandingNavbarProps = {
   session: Session | null;
@@ -14,9 +14,9 @@ export function LandingNavbar({ session }: LandingNavbarProps) {
       <div className='mx-auto flex h-14 max-w-7xl items-center justify-between px-6'>
         {/* Left */}
         <div className='flex items-center gap-8'>
-          <Link href='/' className='flex items-center gap-1'>
-            <IconInnerShadowTop className='size-5!' />
-            <span className='text-base font-semibold'>Snack Desk.</span>
+          <Link href='/' className='flex items-center gap-2'>
+            <Logo />
+            <span className='text-base font-semibold'>SnackDesk.</span>
           </Link>
 
           <nav className='hidden items-center gap-6 text-sm text-muted-foreground md:flex'>
