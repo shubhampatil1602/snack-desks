@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ import type {
   MenuItem,
   MenuItemFormValues,
   MenuItemInput,
+  ShopCategory,
 } from "@/types/menu";
 
 const UNITS = ["plate", "piece", "rs"];
@@ -39,15 +40,18 @@ interface MenuFormDialogProps {
   mode: "create" | "edit";
   item?: MenuItem;
   categories: MenuCategory[];
+  shops: ShopCategory[];
 }
 
 export function MenuFormDialog({
   mode,
   item,
   categories,
+  shops,
 }: MenuFormDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -55,60 +59,94 @@ export function MenuFormDialog({
     setValue,
     control,
     reset,
-    formState: { errors, isSubmitting, isDirty },
+    formState: { errors, dirtyFields },
   } = useForm<MenuItemFormValues>({
     resolver: zodResolver(schema) as Resolver<MenuItemFormValues>,
-    defaultValues:
-      mode === "edit" && item
-        ? {
-            name: item.name,
-            price: Number(item.price),
-            unit: item.unit,
-            categoryId: item.menuCategoryId ?? "",
-          }
-        : { name: "", price: 0, unit: "", categoryId: "" },
+    defaultValues: {
+      name: "",
+      price: 0,
+      unit: "",
+      categoryId: "",
+      shopId: "",
+    },
   });
 
   const unitValue = useWatch({ control, name: "unit" });
   const categoryValue = useWatch({ control, name: "categoryId" });
+  const shopValue = useWatch({ control, name: "shopId" });
 
-  async function onSubmit(values: MenuItemInput) {
-    if (mode === "edit" && !isDirty) {
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      if (mode === "edit" && item) {
+        reset({
+          name: item.name,
+          price: Number(item.price),
+          unit: item.unit,
+          categoryId: item.menuCategoryId ?? "",
+          shopId: item.shopId ?? "",
+        });
+      } else {
+        reset({
+          name: "",
+          price: 0,
+          unit: "",
+          categoryId: "",
+          shopId: "",
+        });
+      }
+    }
+    setOpen(open);
+  };
+
+  async function onSubmit(values: MenuItemFormValues) {
+    const isFormDirty = Object.keys(dirtyFields).length > 0;
+
+    if (mode === "edit" && !isFormDirty) {
       setOpen(false);
       return;
     }
-    const result =
-      mode === "create"
-        ? await createMenuItemAction(values)
-        : await updateMenuItemAction(item!.id, values);
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
+    setIsSubmitting(true);
+
+    try {
+      const submitData: MenuItemInput = {
+        name: values.name,
+        price: values.price,
+        unit: values.unit,
+        categoryId: values.categoryId,
+        shopId: values.shopId || null,
+      };
+
+      const result =
+        mode === "create"
+          ? await createMenuItemAction(submitData)
+          : await updateMenuItemAction(item!.id, submitData);
+
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success(
+        mode === "create" ? "Item added to menu" : "Menu item updated",
+      );
+
+      setOpen(false);
+      reset();
+      router.refresh();
+    } catch (error) {
+      toast.error("Something went wrong");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    toast.success(
-      mode === "create" ? "Item added to menu" : "Menu item updated",
-    );
-    setOpen(false);
-    reset();
-    router.refresh();
   }
 
-  function handleOpenChange(open: boolean) {
-    if (open && mode === "edit" && item) {
-      reset({
-        name: item.name,
-        price: Number(item.price),
-        unit: item.unit,
-        categoryId: item.menuCategoryId ?? "",
-      });
-    }
-    if (!open) {
-      reset({ name: "", price: 0, unit: "", categoryId: "" });
-    }
-    setOpen(open);
-  }
+  const handleClearShop = () => {
+    setValue("shopId", "", {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -134,7 +172,12 @@ export function MenuFormDialog({
         <form onSubmit={handleSubmit(onSubmit)} className='space-y-4 mt-2'>
           <Field>
             <FieldLabel htmlFor='name'>Item name</FieldLabel>
-            <Input id='name' placeholder='Vada Pav' {...register("name")} />
+            <Input
+              id='name'
+              placeholder='Vada Pav'
+              {...register("name")}
+              disabled={isSubmitting}
+            />
             <FieldError>{errors.name?.message}</FieldError>
           </Field>
 
@@ -146,6 +189,7 @@ export function MenuFormDialog({
                 type='number'
                 placeholder='20'
                 {...register("price")}
+                disabled={isSubmitting}
               />
               <FieldError>{errors.price?.message}</FieldError>
             </Field>
@@ -155,8 +199,12 @@ export function MenuFormDialog({
               <Select
                 value={unitValue}
                 onValueChange={(val) =>
-                  setValue("unit", val, { shouldValidate: true })
+                  setValue("unit", val, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
                 }
+                disabled={isSubmitting}
               >
                 <SelectTrigger id='unit'>
                   <SelectValue placeholder='Select unit' />
@@ -177,10 +225,12 @@ export function MenuFormDialog({
               <Select
                 value={categoryValue}
                 onValueChange={(val) =>
-                  setValue("categoryId", !val ? "" : val, {
+                  setValue("categoryId", val, {
                     shouldValidate: true,
+                    shouldDirty: true,
                   })
                 }
+                disabled={isSubmitting}
               >
                 <SelectTrigger id='category'>
                   <SelectValue placeholder='Select category' />
@@ -195,6 +245,46 @@ export function MenuFormDialog({
               </Select>
               <FieldError>{errors.categoryId?.message}</FieldError>
             </Field>
+
+            <Field>
+              <FieldLabel htmlFor='shop'>Shop</FieldLabel>
+              <div className='relative'>
+                <Select
+                  value={shopValue}
+                  onValueChange={(val) =>
+                    setValue("shopId", val, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger
+                    id='shop'
+                    className={shopValue ? "pr-31" : "pr-8"}
+                  >
+                    <SelectValue placeholder='Select shop (optional)' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {shops.map((shop) => (
+                      <SelectItem key={shop.id} value={shop.id}>
+                        {shop.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {shopValue && (
+                  <button
+                    type='button'
+                    onClick={handleClearShop}
+                    className='absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded-md'
+                  >
+                    <X className='h-4 w-4 text-muted-foreground' />
+                  </button>
+                )}
+              </div>
+              <FieldError>{errors.shopId?.message}</FieldError>
+            </Field>
           </div>
 
           <div className='flex justify-end gap-2 pt-2'>
@@ -202,12 +292,16 @@ export function MenuFormDialog({
               type='button'
               variant='outline'
               onClick={() => setOpen(false)}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               type='submit'
-              disabled={isSubmitting || (mode === "edit" && !isDirty)}
+              disabled={
+                isSubmitting ||
+                (mode === "edit" && Object.keys(dirtyFields).length === 0)
+              }
             >
               {isSubmitting ? <Spinner className='mr-2' /> : null}
               {mode === "create" ? "Add item" : "Save changes"}

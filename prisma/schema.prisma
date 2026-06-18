@@ -92,6 +92,7 @@ model Organization {
   menuItems      MenuItem[]
   orderWindows   OrderWindow[]
   menuCategories MenuCategory[]
+  shops          Shop[]
 
   @@map("organization")
 }
@@ -204,6 +205,8 @@ model MenuItem {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   menuCategory   MenuCategory @relation(fields: [menuCategoryId], references: [id])
   menuCategoryId String
+  shop           Shop?        @relation(fields: [shopId], references: [id])
+  shopId         String?
 
   @@unique([organizationId, name])
   @@index([organizationId])
@@ -223,4 +226,19 @@ model MenuCategory {
   @@unique([organizationId, name])
   @@index([organizationId])
   @@map("menu_category")
+}
+
+model Shop {
+  id             String @id
+  organizationId String
+
+  name      String
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  menuItems    MenuItem[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("shop")
 }

@@ -10,6 +10,8 @@ import {
   categorySchema,
   MenuItemInput,
   menuItemSchema,
+  ShopInput,
+  shopSchema,
 } from "@/types/menu";
 
 export async function createMenuItemAction(
@@ -56,6 +58,7 @@ export async function createMenuItemAction(
       unit: parsed.data.unit,
       menuCategoryId: parsed.data.categoryId,
       updatedAt: new Date(),
+      shopId: parsed.data.shopId || null,
     },
   });
   revalidatePath("/admin/menus");
@@ -102,6 +105,7 @@ export async function updateMenuItemAction(
       price: parsed.data.price,
       unit: parsed.data.unit,
       menuCategoryId: parsed.data.categoryId ?? null,
+      shopId: parsed.data.shopId || null,
     },
   });
   revalidatePath("/admin/menus");
@@ -269,6 +273,134 @@ export async function updateCategoryAction(
     return {
       success: false,
       error: "Category not found",
+    };
+  }
+
+  revalidatePath("/admin/menus");
+  return { success: true };
+}
+
+export async function createShopAction(
+  input: ShopInput,
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const parsed = shopSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.message };
+  }
+
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  const existingShop = await prisma.shop.findFirst({
+    where: {
+      organizationId: member.organizationId,
+      name: {
+        equals: parsed.data.name.trim(),
+        mode: "insensitive",
+      },
+    },
+  });
+
+  if (existingShop) {
+    return {
+      success: false,
+      error: "Shop already exists",
+    };
+  }
+
+  await prisma.shop.create({
+    data: {
+      id: nanoid(),
+      organizationId: member.organizationId,
+      name: parsed.data.name.trim(),
+    },
+  });
+
+  revalidatePath("/admin/menus");
+  return { success: true };
+}
+
+export async function deleteShopAction(id: string): Promise<ActionResult> {
+  await requireAdmin();
+
+  // check if shop has items
+  const itemCount = await prisma.menuItem.count({
+    where: { shopId: id },
+  });
+
+  if (itemCount > 0) {
+    return {
+      success: false,
+      error: `Cannot delete shop with ${itemCount} item${itemCount !== 1 ? "s" : ""}. Reassign or delete items first.`,
+    };
+  }
+
+  await prisma.shop.delete({ where: { id } });
+
+  revalidatePath("/admin/menus");
+  return { success: true };
+}
+
+export async function updateShopAction(
+  id: string,
+  input: ShopInput,
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const parsed = shopSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.message ?? "Invalid input" };
+  }
+
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  const existingShop = await prisma.shop.findFirst({
+    where: {
+      organizationId: member.organizationId,
+      id: {
+        not: id,
+      },
+      name: {
+        equals: parsed.data.name.trim(),
+        mode: "insensitive",
+      },
+    },
+  });
+
+  if (existingShop) {
+    return {
+      success: false,
+      error: "Shop already exists",
+    };
+  }
+
+  const result = await prisma.shop.updateMany({
+    where: {
+      id,
+      organizationId: member.organizationId,
+    },
+    data: {
+      name: parsed.data.name.trim(),
+    },
+  });
+
+  if (result.count === 0) {
+    return {
+      success: false,
+      error: "Shop not found",
     };
   }
 

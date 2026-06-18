@@ -13,6 +13,10 @@ type MenuItem = {
     id: string;
     name: string;
   };
+  shop?: {
+    id: string;
+    name: string;
+  } | null;
 };
 
 type MenuGridProps = {
@@ -34,7 +38,17 @@ export function MenuGrid({ items }: MenuGridProps) {
 
         const quantity = cartItem?.quantity ?? 0;
         return (
-          <div key={item.id} className='border p-4 flex flex-col gap-3 shadow'>
+          <div
+            key={item.id}
+            className='border p-4 flex flex-col gap-3 relative'
+          >
+            {item.shop && (
+              <div className='absolute -top-2 -right-2'>
+                <span className='text-xs bg-accent shadow text-primary font-bold px-2 py-1'>
+                  {item.shop.name}
+                </span>
+              </div>
+            )}
             <div>
               <h3 className='font-medium'>{item.name}</h3>
 

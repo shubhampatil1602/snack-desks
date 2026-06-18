@@ -1,9 +1,14 @@
 import { requireAdmin } from "@/actions/user";
-import { getMenuCategories, getMenuItems } from "@/modules/menu/queries";
+import {
+  getMenuCategories,
+  getMenuItems,
+  getShops,
+} from "@/modules/menu/queries";
 import { MenuTable } from "./_components/MenuTable";
 import { prisma } from "@/lib/db";
 import { CategoryManager } from "./_components/CategoryManager";
 import { MenuFormDialog } from "./_components/MenuFormDialog";
+import { ShopManager } from "./_components/ShopManager";
 
 export default async function MenusPage() {
   const { session } = await requireAdmin();
@@ -12,12 +17,13 @@ export default async function MenusPage() {
     where: { userId: session.user.id },
   });
 
-  const [items, categories] = member
+  const [items, categories, shops] = member
     ? await Promise.all([
         getMenuItems(member.organizationId),
         getMenuCategories(member.organizationId),
+        getShops(member.organizationId),
       ])
-    : [[], []];
+    : [[], [], []];
 
   return (
     <div className='px-4'>
@@ -29,11 +35,12 @@ export default async function MenusPage() {
           </p>
         </div>
         <div className='space-x-3'>
-          <MenuFormDialog mode='create' categories={categories} />
+          <MenuFormDialog mode='create' categories={categories} shops={shops} />
           <CategoryManager categories={categories} />
+          <ShopManager shops={shops} />
         </div>
       </div>
-      <MenuTable data={items} categories={categories} />
+      <MenuTable data={items} categories={categories} shops={shops} />
     </div>
   );
 }

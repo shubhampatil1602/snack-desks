@@ -24,7 +24,7 @@ export async function getActiveWindowWithMenu(organizationId: string) {
       organizationId,
       isAvailable: true,
     },
-    include: { menuCategory: true },
+    include: { menuCategory: true, shop: true },
     orderBy: { createdAt: "asc" },
   });
 

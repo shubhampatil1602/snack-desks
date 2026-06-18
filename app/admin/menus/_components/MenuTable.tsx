@@ -17,7 +17,7 @@ import { usePagination } from "@/hooks/use-pagination";
 import { MenuFormDialog } from "./MenuFormDialog";
 import { DeleteMenuDialog } from "./DeleteMenuDialog";
 import { toggleMenuItemAvailabilityAction } from "@/actions/menu";
-import type { MenuCategory, MenuItem } from "@/types/menu";
+import type { MenuCategory, MenuItem, ShopCategory } from "@/types/menu";
 import { cn } from "@/lib/utils";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -25,9 +25,10 @@ import { Input } from "@/components/ui/input";
 interface MenuTableProps {
   data: MenuItem[];
   categories: MenuCategory[];
+  shops: ShopCategory[];
 }
 
-export function MenuTable({ data, categories }: MenuTableProps) {
+export function MenuTable({ data, categories, shops }: MenuTableProps) {
   const [search, setSearch] = useState("");
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [toggledItems, setToggledItems] = useState<Record<string, boolean>>({});
@@ -134,6 +135,7 @@ export function MenuTable({ data, categories }: MenuTableProps) {
               <TableHead>Price</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Shop</TableHead>
               <TableHead>Available</TableHead>
               <TableHead className='w-[100px]' />
             </TableRow>
@@ -164,6 +166,13 @@ export function MenuTable({ data, categories }: MenuTableProps) {
                       <span className='text-xs text-muted-foreground'>—</span>
                     )}
                   </TableCell>
+                  <TableCell>
+                    {item.shop ? (
+                      <Badge variant='outline'>{item.shop.name}</Badge>
+                    ) : (
+                      <span className='text-xs text-muted-foreground'>—</span>
+                    )}
+                  </TableCell>
 
                   <TableCell>
                     <Switch
@@ -179,6 +188,7 @@ export function MenuTable({ data, categories }: MenuTableProps) {
                         mode='edit'
                         item={item}
                         categories={categories}
+                        shops={shops}
                       />
                       <DeleteMenuDialog
                         id={item.id}
