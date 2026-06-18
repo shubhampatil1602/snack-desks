@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Settings2, Trash2, Plus } from "lucide-react";
+import { Settings2, Trash2, Plus, Pencil, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -18,8 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
-import { createCategoryAction, deleteCategoryAction } from "@/actions/menu";
+import {
+  createCategoryAction,
+  deleteCategoryAction,
+  updateCategoryAction,
+} from "@/actions/menu";
 import type { MenuCategory } from "@/types/menu";
+import { IconCheck } from "@tabler/icons-react";
 
 const schema = z.object({
   name: z
@@ -36,7 +41,11 @@ interface CategoryManagerProps {
 export function CategoryManager({ categories: initial }: CategoryManagerProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [_, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -67,6 +76,28 @@ export function CategoryManager({ categories: initial }: CategoryManagerProps) {
     toast.success(`${name} deleted`);
     router.refresh();
   }
+
+  async function handleUpdate(id: string) {
+    setUpdatingId(id);
+    const result = await updateCategoryAction(id, {
+      name: editingName,
+    });
+    setUpdatingId(null);
+    if (!result.success) {
+      toast.error("Category name must be atleast of 2 characters!");
+      return;
+    }
+
+    toast.success("Category updated");
+    setEditingId(null);
+    router.refresh();
+  }
+
+  useEffect(() => {
+    if (editingId) {
+      inputRef.current?.focus();
+    }
+  }, [editingId]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -112,20 +143,66 @@ export function CategoryManager({ categories: initial }: CategoryManagerProps) {
                   key={cat.id}
                   className='flex items-center justify-between px-3 py-2 border'
                 >
-                  <span className='text-sm font-medium'>{cat.name}</span>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='h-7 w-7 text-muted-foreground hover:text-destructive'
-                    onClick={() => handleDelete(cat.id, cat.name)}
-                    disabled={deletingId === cat.id}
-                  >
-                    {deletingId === cat.id ? (
-                      <Spinner />
-                    ) : (
-                      <Trash2 className='h-3.5 w-3.5' />
-                    )}
-                  </Button>
+                  {editingId === cat.id ? (
+                    <Input
+                      className='h-4 border-none w-3/4'
+                      ref={inputRef}
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                    />
+                  ) : (
+                    <span className='text-sm font-medium'>{cat.name}</span>
+                  )}
+                  {editingId === cat.id ? (
+                    <div className='flex items-center gap-2'>
+                      <Button
+                        size='sm'
+                        onClick={() => handleUpdate(cat.id)}
+                        disabled={
+                          editingName.trim() === cat.name.trim() ||
+                          editingName.trim().length === 0
+                        }
+                      >
+                        {updatingId === cat.id ? (
+                          <Spinner />
+                        ) : (
+                          <IconCheck stroke={2} />
+                        )}
+                      </Button>
+
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditingName("");
+                        }}
+                      >
+                        <X className='h-3.5 w-3.5' />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className='flex items-center gap-1'>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        onClick={() => {
+                          setEditingId(cat.id);
+                          setEditingName(cat.name);
+                        }}
+                      >
+                        <Pencil className='h-3.5 w-3.5' />
+                      </Button>
+
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        onClick={() => handleDelete(cat.id, cat.name)}
+                      >
+                        <Trash2 className='h-3.5 w-3.5' />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))
             )}

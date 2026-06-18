@@ -215,3 +215,63 @@ export async function deleteCategoryAction(id: string): Promise<ActionResult> {
   revalidatePath("/admin/menus");
   return { success: true };
 }
+
+export async function updateCategoryAction(
+  id: string,
+  input: CategoryInput,
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const parsed = categorySchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.message ?? "Invalid input" };
+  }
+
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  const existingCategory = await prisma.menuCategory.findFirst({
+    where: {
+      organizationId: member.organizationId,
+      id: {
+        not: id,
+      },
+      name: {
+        equals: parsed.data.name.trim(),
+        mode: "insensitive",
+      },
+    },
+  });
+
+  if (existingCategory) {
+    return {
+      success: false,
+      error: "Category already exists",
+    };
+  }
+
+  const result = await prisma.menuCategory.updateMany({
+    where: {
+      id,
+      organizationId: member.organizationId,
+    },
+    data: {
+      name: parsed.data.name.trim(),
+    },
+  });
+
+  if (result.count === 0) {
+    return {
+      success: false,
+      error: "Category not found",
+    };
+  }
+
+  revalidatePath("/admin/menus");
+  return { success: true };
+}

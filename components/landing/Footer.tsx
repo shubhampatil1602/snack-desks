@@ -2,9 +2,9 @@ import {
   IconBrandGithub,
   IconBrandLinkedin,
   IconBrandX,
-  IconInnerShadowTop,
 } from "@tabler/icons-react";
 import Link from "next/link";
+import { Logo } from "../logo";
 
 export function Footer() {
   return (
@@ -20,7 +20,7 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className='flex items-center gap-1'>
-              <IconInnerShadowTop className='size-5!' />
+              <Logo />
               <span className='text-base font-semibold'>SnackDesk.</span>
             </div>
             <p className='mt-3 text-sm text-muted-foreground'>

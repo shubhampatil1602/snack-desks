@@ -18,7 +18,11 @@ export type MenuItemFormValues = {
 };
 
 export const categorySchema = z.object({
-  name: z.string().min(1, "Category name is required"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Category name is required")
+    .max(30, "Category name is too long"),
 });
 
 export type CategoryInput = z.infer<typeof categorySchema>;

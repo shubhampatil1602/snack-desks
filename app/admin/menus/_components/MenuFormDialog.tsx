@@ -183,7 +183,7 @@ export function MenuFormDialog({
                 }
               >
                 <SelectTrigger id='category'>
-                  <SelectValue placeholder='Select category (optional)' />
+                  <SelectValue placeholder='Select category' />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
