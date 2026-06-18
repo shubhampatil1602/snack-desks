@@ -20,7 +20,11 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
           user: true,
           items: {
             include: {
-              menuItem: true,
+              menuItem: {
+                include: {
+                  shop: true,
+                },
+              },
             },
           },
         },
@@ -40,6 +44,7 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
         menuItem: {
           ...item.menuItem,
           price: item.menuItem.price.toString(),
+          shop: item.menuItem.shop,
         },
       })),
     })),

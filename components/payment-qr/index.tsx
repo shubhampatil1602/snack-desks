@@ -14,8 +14,8 @@ import { QrCode } from "lucide-react";
 import { Button } from "../ui/button";
 
 const PAYMENT_QRS = {
-  dukaan: "q836375586@ybl",
-  vadapav: "9925997380@postbank",
+  Kirana: "q836375586@ybl",
+  Nashta: "9925997380@postbank",
 };
 
 export const PaymentQR = () => {
@@ -33,16 +33,16 @@ export const PaymentQR = () => {
           <DialogTitle>Payment Options</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue='dukaan' className='mt-4'>
+        <Tabs defaultValue='Kirana' className='mt-4'>
           <TabsList className='grid w-full grid-cols-2'>
-            <TabsTrigger value='dukaan'>Dukaan</TabsTrigger>
-            <TabsTrigger value='vadapav'>Vada Pav</TabsTrigger>
+            <TabsTrigger value='Kirana'>Kirana</TabsTrigger>
+            <TabsTrigger value='Nashta'>Nashta</TabsTrigger>
           </TabsList>
 
-          <TabsContent value='dukaan' className='mt-6'>
+          <TabsContent value='Kirana' className='mt-6'>
             <div className='flex flex-col items-center gap-4'>
               <QRCode
-                value={`upi://pay?pa=${PAYMENT_QRS["dukaan"]}`}
+                value={`upi://pay?pa=${PAYMENT_QRS["Kirana"]}`}
                 size={280}
                 bgColor='#FFFFFF'
                 fgColor='#000000'
@@ -52,15 +52,15 @@ export const PaymentQR = () => {
                 variant='secondary'
                 className='bg-blue-100 lowercase text-blue-800 hover:bg-blue-100 font-mono px-1 py-0.5'
               >
-                {PAYMENT_QRS["dukaan"]}
+                {PAYMENT_QRS["Kirana"]}
               </Badge>
             </div>
           </TabsContent>
 
-          <TabsContent value='vadapav' className='mt-6'>
+          <TabsContent value='Nashta' className='mt-6'>
             <div className='flex flex-col items-center gap-4'>
               <QRCode
-                value={`upi://pay?pa=${PAYMENT_QRS["vadapav"]}`}
+                value={`upi://pay?pa=${PAYMENT_QRS["Nashta"]}`}
                 size={280}
                 bgColor='#FFFFFF'
                 fgColor='#000000'
@@ -70,7 +70,7 @@ export const PaymentQR = () => {
                 variant='secondary'
                 className='bg-orange-100 lowercase text-orange-800 hover:bg-orange-100 font-mono px-1 py-0.5'
               >
-                {PAYMENT_QRS["vadapav"]}
+                {PAYMENT_QRS["Nashta"]}
               </Badge>
             </div>
           </TabsContent>
