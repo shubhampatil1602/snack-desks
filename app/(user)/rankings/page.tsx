@@ -2,6 +2,8 @@ import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { getEmployeeRankings } from "@/modules/rankings/queries";
 import { Rankings } from "@/components/rankings/Rankings";
+import { getActiveWindowWithMenu } from "@/modules/orders/queries";
+import { CartSync } from "../_components/cart-sync";
 
 export default async function RankingsPage() {
   const session = await authIsRequired();
@@ -16,8 +18,11 @@ export default async function RankingsPage() {
 
   const rankings = await getEmployeeRankings(member.organizationId);
 
+  const activeWindow = await getActiveWindowWithMenu(member.organizationId);
+
   return (
     <div className='space-y-6 px-4'>
+      <CartSync hasActiveWindow={!!activeWindow} />
       <div>
         <h1 className='text-2xl font-heading'>Rankings</h1>
 
@@ -25,7 +30,6 @@ export default async function RankingsPage() {
           See how you compare with your coworkers.
         </p>
       </div>
-
       <Rankings
         rankings={rankings}
         mode='user'

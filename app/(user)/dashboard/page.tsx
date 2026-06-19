@@ -8,6 +8,8 @@ import { RecentOrdersCard } from "./_components/RecentOrdersCard";
 import { FavoriteItemsCard } from "./_components/FavoriteItemsCard";
 import { DashboardSSE } from "@/app/admin/dashboard/_components/DashboardSSE";
 import { redirect } from "next/navigation";
+import { getActiveWindowWithMenu } from "@/modules/orders/queries";
+import { CartSync } from "../_components/cart-sync";
 
 export default async function UserDashboard() {
   const session = await authIsRequired();
@@ -33,8 +35,10 @@ export default async function UserDashboard() {
     session.user.id,
   );
 
+  const activeWindow = await getActiveWindowWithMenu(member.organizationId);
   return (
     <div className='space-y-6 px-4'>
+      <CartSync hasActiveWindow={!!activeWindow} />
       <div>
         <h1 className='text-2xl font-heading tracking-wide'>
           Hello, {session.user.name}
@@ -47,13 +51,11 @@ export default async function UserDashboard() {
       </div>
       <DashboardSSE />
       <UserStatsCards stats={data.stats} />
-
       <div className='grid gap-3 lg:grid-cols-2'>
         <UserRankCard rank={data.rank} />
 
         <RecentOrdersCard orders={data.recentOrders} />
       </div>
-
       <FavoriteItemsCard items={data.favoriteItems} />
     </div>
   );
