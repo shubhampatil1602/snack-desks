@@ -19,7 +19,15 @@ export default async function UsersPage() {
           role: "member",
         },
         include: {
-          user: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true,
+              passwordResetExpiry: true,
+            },
+          },
         },
         orderBy: {
           createdAt: "desc",

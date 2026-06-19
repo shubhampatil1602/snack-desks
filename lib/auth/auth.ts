@@ -3,6 +3,8 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { organization } from "better-auth/plugins";
 import { prisma } from "../db";
+import bcrypt from "bcryptjs";
+import { verifyPassword } from "better-auth/crypto";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -22,6 +24,17 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    password: {
+      hash: async (password) => bcrypt.hash(password, 10),
+      verify: async ({ hash, password }) => {
+        // Existing users have scrypt hashes (no $2 prefix)
+        if (hash.startsWith("$2")) {
+          return bcrypt.compare(password, hash);
+        }
+        // Better Auth native scrypt format
+        return verifyPassword({ hash, password });
+      },
+    },
   },
 
   databaseHooks: {

@@ -21,6 +21,9 @@ model User {
   members       Member[]
   orders        Order[]
 
+  passwordResetToken  String?
+  passwordResetExpiry DateTime?
+
   wonWindows OrderWindow[] @relation("OrderWindowWinner")
 
   @@unique([email])

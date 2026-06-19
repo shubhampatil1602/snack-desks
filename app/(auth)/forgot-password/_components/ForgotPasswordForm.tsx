@@ -10,35 +10,46 @@ import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { signInSchema, SignInSchema } from "@/types/auth";
-import { signInAction } from "@/actions/auth";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { authSession } from "@/actions/user";
 import { toast } from "sonner";
+import { resetPasswordAction } from "@/actions/reset-password";
+import { forgotPasswordSchema, ForgotPasswordSchema } from "@/types/auth";
 
-export function LoginForm() {
+export function ForgotPasswordForm() {
   const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | undefined | null>(
+    null,
+  );
   const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<SignInSchema>({
-    resolver: zodResolver(signInSchema),
+  } = useForm<ForgotPasswordSchema>({
+    resolver: zodResolver(forgotPasswordSchema),
   });
 
-  async function onSubmit(values: SignInSchema) {
+  async function onSubmit(values: ForgotPasswordSchema) {
     setServerError(null);
-    const result = await signInAction(values);
-    if (!result.success) return setServerError(result.error);
-    toast.success("Welcome back");
-    const session = await authSession();
-    if (session?.user.role === "super_admin")
-      router.push("/super-admin/dashboard");
-    else if (session?.user.role === "admin") router.push("/admin/dashboard");
-    else router.push("/dashboard");
+    try {
+      const result = await resetPasswordAction({
+        email: values.email,
+        token: values.token,
+        newPassword: values.newPassword,
+      });
+
+      if (!result.success) {
+        setServerError(result.error);
+        return;
+      }
+      toast.success(
+        "Password reset successfully! Please login with your new password.",
+      );
+      router.push("/login");
+    } catch {
+      setServerError("Something went wrong. Please try again.");
+    }
   }
 
   return (
@@ -49,20 +60,8 @@ export function LoginForm() {
             SnackDesk
           </Link>
           <p className='text-sm text-muted-foreground mt-0.5'>
-            Office snack ordering, simplified
+            Reset your password
           </p>
-        </div>
-
-        <div className='flex border-b mb-4'>
-          <span className='px-4 py-2 text-sm font-medium border-b-2 border-foreground -mb-px'>
-            Sign in
-          </span>
-          <Link
-            href='/register'
-            className='px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors'
-          >
-            Create account
-          </Link>
         </div>
 
         {serverError && (
@@ -85,23 +84,30 @@ export function LoginForm() {
           </Field>
 
           <Field className='flex flex-col gap-0'>
-            <div className='flex items-center justify-between'>
-              <FieldLabel htmlFor='password'>Password</FieldLabel>
-              <Link
-                href='/forgot-password'
-                className='text-xs text-muted-foreground hover:text-foreground transition-colors'
-              >
-                Forgot password?
-              </Link>
-            </div>
+            <FieldLabel htmlFor='token'>Reset Token</FieldLabel>
+            <Input
+              id='token'
+              placeholder='Enter the reset token'
+              autoComplete='off'
+              className='font-mono'
+              {...register("token")}
+            />
+            <p className='text-xs text-muted-foreground mt-1'>
+              Ask the admin for the token
+            </p>
+            <FieldError>{errors.token?.message}</FieldError>
+          </Field>
+
+          <Field className='flex flex-col gap-0'>
+            <FieldLabel htmlFor='newPassword'>New Password</FieldLabel>
             <div className='relative'>
               <Input
-                id='password'
+                id='newPassword'
                 type={showPassword ? "text" : "password"}
-                placeholder='••••••••'
-                autoComplete='current-password'
+                placeholder='Enter new password'
+                autoComplete='new-password'
                 className='pr-10'
-                {...register("password")}
+                {...register("newPassword")}
               />
               <button
                 type='button'
@@ -116,22 +122,22 @@ export function LoginForm() {
                 )}
               </button>
             </div>
-            <FieldError>{errors.password?.message}</FieldError>
+            <FieldError>{errors.newPassword?.message}</FieldError>
           </Field>
 
           <Button type='submit' className='w-full' disabled={isSubmitting}>
             {isSubmitting ? <Spinner className='mr-2' /> : null}
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? "Resetting..." : "Reset Password"}
           </Button>
         </form>
 
         <p className='text-center text-sm text-muted-foreground mt-6'>
-          New here?{" "}
+          Remember your password?{" "}
           <Link
-            href='/register'
+            href='/login'
             className='font-medium text-foreground underline underline-offset-2'
           >
-            Create an account
+            Sign in
           </Link>
         </p>
       </div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, EyeOff, Eye } from "lucide-react";
 
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 export function RegisterForm() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -59,10 +60,6 @@ export function RegisterForm() {
             Create account
           </span>
         </div>
-
-        {/* <h1 className='text-xl font-medium tracking-tight mb-3'>
-          Join your team
-        </h1> */}
 
         {serverError && (
           <div className='flex items-center gap-2 border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive mb-5'>
@@ -116,15 +113,31 @@ export function RegisterForm() {
           </Field>
 
           <Field className='flex flex-col gap-0'>
-            <FieldLabel htmlFor='password'>Password</FieldLabel>
-            <Input
-              id='password'
-              type='password'
-              placeholder='Min. 8 characters'
-              autoComplete='new-password'
-              {...register("password")}
-            />
-
+            <div className='flex items-center justify-between'>
+              <FieldLabel htmlFor='password'>Password</FieldLabel>
+            </div>
+            <div className='relative'>
+              <Input
+                id='password'
+                type={showPassword ? "text" : "password"}
+                placeholder='••••••••'
+                autoComplete='current-password'
+                className='pr-10'
+                {...register("password")}
+              />
+              <button
+                type='button'
+                onClick={() => setShowPassword(!showPassword)}
+                className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors'
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className='h-4 w-4' />
+                ) : (
+                  <Eye className='h-4 w-4' />
+                )}
+              </button>
+            </div>
             <FieldError>{errors.password?.message}</FieldError>
           </Field>
 

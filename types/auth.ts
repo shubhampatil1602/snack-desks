@@ -12,6 +12,14 @@ export const signInSchema = z.object({
   password: z.string().min(1, "Password is required").trim(),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.email("Invalid email address").trim(),
+  token: z.string().min(1, "Reset token is required"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
+
 export type SignUpSchema = z.infer<typeof signUpSchema>;
 export type SignInSchema = z.infer<typeof signInSchema>;
 

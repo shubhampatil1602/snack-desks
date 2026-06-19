@@ -16,6 +16,9 @@ import { OrganizationHeader } from "@/components/admins/OrganizationHeader";
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { RiTokenSwapFill } from "@remixicon/react";
+import { ResetTokenCountdown } from "@/components/admins/ResetTokenCountdown";
+import { GenerateResetTokenDialog } from "@/components/admins/GenerateResetTokenDialog";
 
 type UsersTableProps = {
   organization: {
@@ -32,6 +35,7 @@ type UsersTableProps = {
       id: string;
       name: string;
       email: string;
+      passwordResetExpiry: Date | null;
     };
   }[];
 };
@@ -79,6 +83,7 @@ export function UsersTable({ organization, members }: UsersTableProps) {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Joined</TableHead>
+              <TableHead>Reset Token</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -110,6 +115,17 @@ export function UsersTable({ organization, members }: UsersTableProps) {
                       month: "short",
                       year: "numeric",
                     })}
+                  </TableCell>
+
+                  <TableCell>
+                    {member.user.passwordResetExpiry &&
+                    new Date(member.user.passwordResetExpiry) > new Date() ? (
+                      <ResetTokenCountdown
+                        expiresAt={member.user.passwordResetExpiry}
+                      />
+                    ) : (
+                      <GenerateResetTokenDialog userId={member.user.id} />
+                    )}
                   </TableCell>
 
                   <TableCell>
