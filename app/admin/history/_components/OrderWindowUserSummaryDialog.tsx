@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Users } from "lucide-react";
+import { Copy, Users, Check } from "lucide-react";
 
 import {
   Dialog,
@@ -25,6 +25,7 @@ export function OrderWindowUserSummaryDialog({
   trigger,
 }: OrderWindowUserSummaryDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Only approved orders
   const approvedOrders = window.orders.filter((o) => o.status === "approved");
@@ -85,7 +86,10 @@ ${userBreakdown
 
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("User summary copied to clipboard!");
+      setCopied(true);
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
     } catch {
       toast.error("Failed to copy, Please try again");
     }
@@ -146,17 +150,29 @@ ${userBreakdown
             </div>
           </div>
 
-          {/* Copy Button */}
-          <div className='flex justify-end'>
-            <Button variant='ghost' size='sm' onClick={copySummary}>
-              <Copy className='mr-2 h-3.5 w-3.5' />
-              Copy Summary
-            </Button>
-          </div>
-
           {/* User Breakdown - Approved Orders Only */}
           <div className='space-y-3 border-t pt-4 max-h-120 overflow-y-auto'>
-            <h4 className='font-medium'>Amount Per User</h4>
+            <div className='flex justify-between items-center'>
+              <h4 className='font-medium'>Amount Per User</h4>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={copySummary}
+                className='gap-2'
+              >
+                {copied ? (
+                  <>
+                    <Check className='h-3.5 w-3.5 text-green-500' />
+                    <span className='text-green-500'>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className='h-3.5 w-3.5' />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </div>
 
             {userBreakdown.length > 0 ? (
               <div className='space-y-2'>

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 
 import { AdminWindowHistory as AdminWindowHistoryType } from "@/modules/orders/admin-history-queries";
+import { Badge } from "@/components/ui/badge";
 
 type OrderWindowSummaryDialogProps = {
   window: AdminWindowHistoryType[number];
@@ -137,6 +138,10 @@ export function OrderWindowSummaryDialog({
         total: combinedTotal,
         title: "Combined",
         shopName: undefined,
+        orderCount: window.orders.length,
+        approvedCount: approvedOrders.length,
+        rejectedCount: rejectedOrders.length,
+        cancelledCount: cancelledOrders.length,
       };
     }
     const shop = getShopBreakdown(selectedShop);
@@ -146,6 +151,10 @@ export function OrderWindowSummaryDialog({
         total: 0,
         title: selectedShop,
         shopName: selectedShop,
+        orderCount: 0,
+        approvedCount: 0,
+        rejectedCount: 0,
+        cancelledCount: 0,
       };
     }
     const sortedItems = Array.from(shop.items.entries()).sort(
@@ -157,6 +166,9 @@ export function OrderWindowSummaryDialog({
       title: shop.shopName,
       shopName: shop.shopName,
       orderCount: shop.orderCount,
+      approvedCount: shop.orderCount,
+      rejectedCount: 0,
+      cancelledCount: 0,
       itemCount: shop.items.size,
     };
   };
@@ -191,6 +203,30 @@ export function OrderWindowSummaryDialog({
     return `${header}\n\nTotal: ₹${total.toFixed(2)}\n\nItem Breakdown:\n${items}`;
   }
 
+  // Format combined summary with shop grouping and bold formatting
+  function formatCombinedSummary(
+    title: string,
+    date: string,
+    shops: ShopBreakdown[],
+    total: number,
+  ) {
+    let text = `${title} (${date})\n\n`;
+    text += `Total: ₹${total.toFixed(2)}\n\n`;
+    text += "Item Breakdown:\n";
+
+    for (const shop of shops) {
+      const sortedItems = Array.from(shop.items.entries()).sort(
+        (a, b) => b[1].quantity - a[1].quantity,
+      );
+      text += `\n*${shop.shopName}* (₹${shop.total.toFixed(2)})\n`;
+      text += sortedItems
+        .map(([name, value]) => `  ${name} × ${value.quantity}`)
+        .join("\n");
+    }
+
+    return text;
+  }
+
   async function copyCurrent() {
     const date = new Date(window.createdAt).toLocaleDateString("en-IN", {
       day: "numeric",
@@ -198,13 +234,25 @@ export function OrderWindowSummaryDialog({
       year: "numeric",
     });
 
-    const text = formatSummary(
-      `${window.label} Window`,
-      date,
-      currentData.breakdown,
-      currentData.total,
-      currentData.shopName,
-    );
+    let text;
+    if (selectedShop === "all") {
+      // Use grouped format for combined
+      text = formatCombinedSummary(
+        `${window.label} Window`,
+        date,
+        sortedShops,
+        combinedTotal,
+      );
+    } else {
+      // Use regular format for individual shop
+      text = formatSummary(
+        `${window.label} Window`,
+        date,
+        currentData.breakdown,
+        currentData.total,
+        currentData.shopName,
+      );
+    }
 
     await navigator.clipboard.writeText(text);
   }
@@ -266,30 +314,30 @@ export function OrderWindowSummaryDialog({
             </div>
             <div className='col-span-1 text-center'>
               <p className='text-xs text-muted-foreground'>Orders</p>
-              <p className='text-xl font-semibold'>{window.orders.length}</p>
+              <p className='text-xl font-semibold'>{currentData.orderCount}</p>
             </div>
             <div className='col-span-1 text-center'>
               <p className='text-xs text-muted-foreground'>Approved</p>
               <p className='text-xl font-semibold text-green-600'>
-                {approvedOrders.length}
+                {currentData.approvedCount}
               </p>
             </div>
             <div className='col-span-1 text-center'>
               <p className='text-xs text-muted-foreground'>Rejected</p>
               <p className='text-xl font-semibold text-red-600'>
-                {rejectedOrders.length}
+                {currentData.rejectedCount}
               </p>
             </div>
             <div className='col-span-1 text-center'>
               <p className='text-xs text-muted-foreground'>Cancelled</p>
               <p className='text-xl font-semibold text-yellow-600'>
-                {cancelledOrders.length}
+                {currentData.cancelledCount}
               </p>
             </div>
           </div>
 
           {/* Item Breakdown with Copy Button */}
-          <div className='space-y-2 border-t pt-4 max-h-120 overflow-y-auto'>
+          <div className='space-y-2 border-t pt-2 max-h-120 overflow-y-auto'>
             <div className='flex justify-between items-center'>
               <div className='flex items-center gap-3'>
                 <h4 className='font-medium'>Item Breakdown</h4>
@@ -298,23 +346,55 @@ export function OrderWindowSummaryDialog({
                 variant='ghost'
                 size='sm'
                 onClick={() => handleCopy(copyCurrent, "current")}
-                className='gap-2'
+                className='gap-2 text-xs px-1 py-0.5'
               >
                 {copiedTab === "current" ? (
                   <>
-                    <Check className='h-3.5 w-3.5 text-green-500' />
+                    <Check className='size-3 text-green-500' />
                     <span className='text-green-500'>Copied!</span>
                   </>
                 ) : (
                   <>
-                    <Copy className='h-3.5 w-3.5' />
+                    <Copy className='size-3' />
                     Copy
                   </>
                 )}
               </Button>
             </div>
 
-            {currentData.breakdown.length > 0 ? (
+            {selectedShop === "all" ? (
+              // Show grouped by shop in UI too
+              sortedShops.map((shop) => (
+                <div
+                  key={shop.shopName}
+                  className='space-y-1 border-t pt-2 first:border-t-0 first:pt-0'
+                >
+                  <div className='flex justify-between items-center'>
+                    <Badge className='bg-primary/10 text-primary border-0 px-1.5 py-0.5 text-xs font-medium'>
+                      {shop.shopName}
+                    </Badge>
+                    <Badge className='bg-primary/10 text-primary border-0 px-1.5 py-0.5 text-xs font-medium'>
+                      ₹{shop.total.toFixed(2)}
+                    </Badge>
+                  </div>
+                  {Array.from(shop.items.entries())
+                    .sort((a, b) => b[1].quantity - a[1].quantity)
+                    .map(([name, value]) => (
+                      <div
+                        key={name}
+                        className='flex justify-between text-sm items-center'
+                      >
+                        <span className='text-muted-foreground'>
+                          {name} × {value.quantity}
+                        </span>
+                        <span className='font-medium'>
+                          ₹{value.total.toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              ))
+            ) : currentData.breakdown.length > 0 ? (
               <>
                 {currentData.breakdown.map(([name, value]) => (
                   <div
@@ -329,7 +409,7 @@ export function OrderWindowSummaryDialog({
                     </span>
                   </div>
                 ))}
-                <div className='flex justify-between text-sm font-medium pt-2 border-t'>
+                <div className='flex justify-between text-sm font-semibold pt-2 border-t'>
                   <span>Total</span>
                   <span>₹{currentData.total.toFixed(2)}</span>
                 </div>
