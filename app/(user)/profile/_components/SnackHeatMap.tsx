@@ -20,6 +20,7 @@ import {
   PLATFORM_YEAR,
   STEP,
 } from "../_lib/get-heatmap-data";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function SnackHeatmap({ data, joinedAt }: SnackHeatmapProps) {
   const currentYear = new Date().getFullYear();
@@ -58,47 +59,48 @@ export function SnackHeatmap({ data, joinedAt }: SnackHeatmapProps) {
   };
 
   return (
-    <div className='border bg-card p-4 w-full'>
+    <Card size='sm'>
       {/* Header */}
-      <div className='mb-6 flex items-start justify-between'>
-        <div>
-          <h2 className='text-lg font-semibold'>Snack Streak</h2>
-          <p className='text-sm text-muted-foreground'>
-            Your spending activity over time
-          </p>
-        </div>
-
-        {/* Year dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger className='flex h-8 items-center gap-1.5 border bg-background px-3 text-sm text-foreground focus:outline-none data-[state=open]:bg-muted'>
-            {selectedYear}
-            <ChevronDown className='h-3.5 w-3.5 text-muted-foreground' />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end' className='min-w-[80px]'>
-            {yearOptions.map((y) => (
-              <DropdownMenuItem
-                key={y}
-                onSelect={() => {
-                  setHoveredDay(null);
-                  setSelectedYear(y);
-                }}
-                className={cn(
-                  "text-sm",
-                  y === selectedYear && "font-medium text-foreground",
-                )}
-              >
-                {y}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className=''>
+        <CardHeader className='mb-3 flex items-start justify-between'>
+          <div>
+            <CardTitle>Snack Streak</CardTitle>
+            <p className='text-sm text-muted-foreground'>
+              Your spending activity over time
+            </p>
+          </div>
+          {/* Year dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className='flex h-8 items-center gap-1.5 border bg-background px-3 text-sm text-foreground focus:outline-none data-[state=open]:bg-muted'>
+              {selectedYear}
+              <ChevronDown className='h-3.5 w-3.5 text-muted-foreground' />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end' className='min-w-[80px]'>
+              {yearOptions.map((y) => (
+                <DropdownMenuItem
+                  key={y}
+                  onSelect={() => {
+                    setHoveredDay(null);
+                    setSelectedYear(y);
+                  }}
+                  className={cn(
+                    "text-sm",
+                    y === selectedYear && "font-medium text-foreground",
+                  )}
+                >
+                  {y}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </CardHeader>
       </div>
 
-      <div className='overflow-x-scroll'>
+      <CardContent className='overflow-x-scroll'>
         <div className='w-fit mx-auto'>
           <div className='relative' ref={containerRef}>
             {/* Month labels */}
-            <div className='relative h-6 mb-1'>
+            <div className='relative h-9 mb-1'>
               {monthLabels.map(({ label, colIndex }) => (
                 <span
                   key={label + colIndex}
@@ -181,7 +183,7 @@ export function SnackHeatmap({ data, joinedAt }: SnackHeatmapProps) {
           <div className='h-3 w-3 rounded-sm bg-green-600' />
           <span>More</span>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
