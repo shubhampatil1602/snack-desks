@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  format,
-  startOfYear,
-  endOfYear,
-  eachWeekOfInterval,
-  addDays,
-  isAfter,
-  isBefore,
-} from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef } from "react";
@@ -19,88 +11,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-export interface HeatmapDay {
-  date: string; // "yyyy-MM-dd"
-  spent: number; // total ₹ spent that day
-}
-
-interface SnackHeatmapProps {
-  data: HeatmapDay[];
-  /** ISO date string or Date — the user's createdAt from the DB */
-  joinedAt: string | Date;
-}
-
-const CELL_SIZE = 12;
-const CELL_GAP = 4;
-const STEP = CELL_SIZE + CELL_GAP;
-
-const PLATFORM_YEAR = 2026;
-
-// Thresholds in ₹ — tweak if your avg order value differs
-// ₹1–99   → light
-// ₹100–299 → medium
-// ₹300+    → dark
-function getIntensity(spent: number) {
-  if (spent === 0) return "bg-muted";
-  if (spent < 100) return "bg-green-200 dark:bg-green-950";
-  if (spent < 300) return "bg-green-400 dark:bg-green-800";
-  return "bg-green-600 dark:bg-green-600";
-}
-
-type Cell = null | { date: string; spent: number; future: boolean };
-
-function buildWeeks(data: HeatmapDay[], year: number): Cell[][] {
-  const dataMap = new Map(data.map((d) => [d.date, d.spent]));
-  const today = new Date();
-  const yearStart = startOfYear(new Date(year, 0, 1));
-  const yearEnd = endOfYear(new Date(year, 0, 1));
-
-  const weeks = eachWeekOfInterval(
-    { start: yearStart, end: yearEnd },
-    { weekStartsOn: 0 },
-  );
-
-  return weeks.map((weekStart) =>
-    Array.from({ length: 7 }, (_, i): Cell => {
-      const date = addDays(weekStart, i);
-      if (isBefore(date, yearStart) || isAfter(date, yearEnd)) return null;
-      const key = format(date, "yyyy-MM-dd");
-      const future = isAfter(date, today);
-      return {
-        date: key,
-        spent: future ? 0 : (dataMap.get(key) ?? 0),
-        future,
-      };
-    }),
-  );
-}
-
-function getMonthLabels(weeks: Cell[][]) {
-  const seen = new Map<number, number>();
-
-  weeks.forEach((week, colIndex) => {
-    week.forEach((cell) => {
-      if (!cell) return;
-      const month = new Date(cell.date).getMonth();
-      if (!seen.has(month)) seen.set(month, colIndex);
-    });
-  });
-
-  return Array.from(seen.entries())
-    .sort((a, b) => a[0] - b[0])
-    .map(([month, colIndex]) => ({
-      label: format(new Date(2000, month, 1), "MMM"),
-      colIndex,
-    }));
-}
-
-function buildYearOptions(startYear: number): number[] {
-  const currentYear = new Date().getFullYear();
-  const years: number[] = [];
-  for (let y = startYear; y <= currentYear; y++) years.push(y);
-  return years;
-}
+import { HeatmapDay, SnackHeatmapProps } from "@/types/profile";
+import {
+  buildWeeks,
+  buildYearOptions,
+  getIntensity,
+  getMonthLabels,
+  PLATFORM_YEAR,
+  STEP,
+} from "../_lib/get-heatmap-data";
 
 export function SnackHeatmap({ data, joinedAt }: SnackHeatmapProps) {
   const currentYear = new Date().getFullYear();
@@ -139,7 +58,7 @@ export function SnackHeatmap({ data, joinedAt }: SnackHeatmapProps) {
   };
 
   return (
-    <div className='border bg-card p-6 w-full'>
+    <div className='border bg-card p-4 w-full'>
       {/* Header */}
       <div className='mb-6 flex items-start justify-between'>
         <div>

@@ -1,8 +1,12 @@
 export interface HeatmapDay {
   date: string;
-  orders: number;
+  spent: number;
 }
 
 export interface SnackHeatmapProps {
   data: HeatmapDay[];
+  /** ISO date string or Date — the user's createdAt from the DB */
+  joinedAt: string | Date;
 }
+
+export type Cell = null | { date: string; spent: number; future: boolean };
