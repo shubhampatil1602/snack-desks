@@ -4,10 +4,10 @@ import * as React from "react";
 import {
   IconMenuOrder,
   IconGraph,
-  IconHelp,
   IconSettings,
   IconChartBar,
   IconHistory,
+  IconUser,
 } from "@tabler/icons-react";
 
 import { NavMain } from "./nav-main";
@@ -40,14 +40,19 @@ const data = {
       icon: IconMenuOrder,
     },
     {
+      title: "Rankings",
+      url: "/rankings",
+      icon: IconChartBar,
+    },
+    {
       title: "History",
       url: "/history",
       icon: IconHistory,
     },
     {
-      title: "Rankings",
-      url: "/rankings",
-      icon: IconChartBar,
+      title: "Profile",
+      url: "/profile",
+      icon: IconUser,
     },
   ],
   navSecondary: [
@@ -55,11 +60,6 @@ const data = {
       title: "Settings",
       url: "#",
       icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
     },
   ],
 };
