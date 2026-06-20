@@ -42,12 +42,9 @@ export function OrderHistoryFilters({
       >
         <TabsList>
           <TabsTrigger value='all'>All</TabsTrigger>
-
           <TabsTrigger value='today'>Today</TabsTrigger>
-
-          <TabsTrigger value='week'>This Week</TabsTrigger>
-
-          <TabsTrigger value='month'>This Month</TabsTrigger>
+          <TabsTrigger value='week'>Last 7 days</TabsTrigger>
+          <TabsTrigger value='month'>Last 30 days</TabsTrigger>
         </TabsList>
       </Tabs>
 

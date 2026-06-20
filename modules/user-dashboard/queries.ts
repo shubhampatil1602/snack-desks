@@ -3,12 +3,49 @@ import { prisma } from "@/lib/db";
 export async function getUserDashboardData(
   organizationId: string,
   userId: string,
+  period: string, // Can be "all" or "YYYY" or "YYYY-MM"
 ) {
+  // Parse period - supports "all", "YYYY", and "YYYY-MM"
+  let startDate: Date | undefined;
+  let endDate: Date | undefined;
+
+  if (period === "all") {
+    // No date filters - get all time data
+    startDate = undefined;
+    endDate = undefined;
+  } else if (period.length === 4) {
+    // Year view: "2026"
+    const year = Number(period);
+    startDate = new Date(year, 0, 1);
+    endDate = new Date(year, 11, 31, 23, 59, 59);
+  } else {
+    // Month view: "2026-06"
+    const [year, month] = period.split("-");
+    startDate = new Date(Number(year), Number(month) - 1, 1);
+    endDate = new Date(Number(year), Number(month), 0, 23, 59, 59);
+  }
+
+  // Build where clause with optional date filter
+  const dateFilter =
+    startDate && endDate
+      ? {
+          createdAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        }
+      : {};
+
+  // =========================
+  // User Orders (filtered by period)
+  // =========================
+
   const orders = await prisma.order.findMany({
     where: {
       organizationId,
       userId,
       status: "approved",
+      ...dateFilter,
     },
     select: {
       id: true,
@@ -60,7 +97,7 @@ export async function getUserDashboardData(
   const averageOrderValue = totalOrders === 0 ? 0 : totalSpent / totalOrders;
 
   // =========================
-  // Favorite Items
+  // Favorite Items (filtered by period)
   // =========================
 
   const itemMap = new Map<
@@ -93,7 +130,7 @@ export async function getUserDashboardData(
     .slice(0, 5);
 
   // =========================
-  // Recent Orders
+  // Recent Orders (filtered by period)
   // =========================
 
   const recentOrders = orders.slice(0, 5).map((order) => {
@@ -112,15 +149,15 @@ export async function getUserDashboardData(
   });
 
   // =========================
-  // Rankings
+  // Rankings (filtered by period)
   // =========================
 
   const allApprovedOrders = await prisma.order.findMany({
     where: {
       organizationId,
       status: "approved",
+      ...dateFilter,
     },
-
     select: {
       userId: true,
 
@@ -185,6 +222,10 @@ export async function getUserDashboardData(
 
   const currentUserRank =
     rankings.find((user) => user.userId === userId) ?? null;
+
+  // =========================
+  // Return
+  // =========================
 
   return {
     stats: {

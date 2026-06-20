@@ -1,10 +1,45 @@
 import { prisma } from "@/lib/db";
 
-export async function getEmployeeRankings(organizationId: string) {
+export async function getEmployeeRankings(
+  organizationId: string,
+  period: string,
+) {
+  // Parse period - supports "all", "YYYY", and "YYYY-MM"
+  let startDate: Date | undefined;
+  let endDate: Date | undefined;
+
+  if (period === "all") {
+    // No date filters - get all time data
+    startDate = undefined;
+    endDate = undefined;
+  } else if (period.length === 4) {
+    // Year view: "2026"
+    const year = Number(period);
+    startDate = new Date(year, 0, 1);
+    endDate = new Date(year, 11, 31, 23, 59, 59);
+  } else {
+    // Month view: "2026-06"
+    const [year, month] = period.split("-");
+    startDate = new Date(Number(year), Number(month) - 1, 1);
+    endDate = new Date(Number(year), Number(month), 0, 23, 59, 59);
+  }
+
+  // Build where clause with optional date filter
+  const dateFilter =
+    startDate && endDate
+      ? {
+          createdAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        }
+      : {};
+
   const orders = await prisma.order.findMany({
     where: {
       organizationId,
       status: "approved",
+      ...dateFilter,
     },
     include: {
       user: {

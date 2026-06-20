@@ -1,7 +1,38 @@
 import { prisma } from "@/lib/db";
 import { getEmployeeRankings } from "@/modules/rankings/queries";
 
-export async function getDashboardData(organizationId: string) {
+export async function getDashboardData(organizationId: string, period: string) {
+  // Parse period - supports "all", "YYYY", and "YYYY-MM"
+  let startDate: Date | undefined;
+  let endDate: Date | undefined;
+
+  if (period === "all") {
+    // No date filters - get all time data
+    startDate = undefined;
+    endDate = undefined;
+  } else if (period.length === 4) {
+    // Year view: "2026"
+    const year = Number(period);
+    startDate = new Date(year, 0, 1);
+    endDate = new Date(year, 11, 31, 23, 59, 59);
+  } else {
+    // Month view: "2026-06"
+    const [year, month] = period.split("-");
+    startDate = new Date(Number(year), Number(month) - 1, 1);
+    endDate = new Date(Number(year), Number(month), 0, 23, 59, 59);
+  }
+
+  // Build where clause with optional date filter
+  const dateFilter =
+    startDate && endDate
+      ? {
+          createdAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        }
+      : {};
+
   const [
     activeWindow,
     allOrders,
@@ -15,13 +46,11 @@ export async function getDashboardData(organizationId: string) {
         organizationId,
         status: "active",
       },
-
       select: {
         id: true,
         label: true,
         startsAt: true,
         endsAt: true,
-
         orders: {
           select: {
             status: true,
@@ -33,6 +62,7 @@ export async function getDashboardData(organizationId: string) {
     prisma.order.findMany({
       where: {
         organizationId,
+        ...dateFilter,
       },
       include: {
         user: true,
@@ -47,7 +77,7 @@ export async function getDashboardData(organizationId: string) {
     prisma.orderWindow.findMany({
       where: {
         organizationId,
-        // status: "closed",
+        ...dateFilter,
       },
       include: {
         orders: {
@@ -68,36 +98,32 @@ export async function getDashboardData(organizationId: string) {
 
     prisma.orderItem.groupBy({
       by: ["menuItemId"],
-
       where: {
         order: {
           organizationId,
           status: "approved",
+          ...dateFilter,
         },
       },
-
       _sum: {
         quantity: true,
       },
-
       orderBy: {
         _sum: {
           quantity: "desc",
         },
       },
-
       take: 5,
     }),
 
-    getEmployeeRankings(organizationId),
+    getEmployeeRankings(organizationId, period),
 
     prisma.order.groupBy({
       by: ["status"],
-
       where: {
         organizationId,
+        ...dateFilter,
       },
-
       _count: {
         id: true,
       },
@@ -162,11 +188,9 @@ export async function getDashboardData(organizationId: string) {
     approved:
       statusDistributionRaw.find((s) => s.status === "approved")?._count.id ??
       0,
-
     rejected:
       statusDistributionRaw.find((s) => s.status === "rejected")?._count.id ??
       0,
-
     cancelled:
       statusDistributionRaw.find((s) => s.status === "cancelled")?._count.id ??
       0,
@@ -174,18 +198,14 @@ export async function getDashboardData(organizationId: string) {
 
   return {
     activeWindow,
-
     stats: {
       totalRevenue,
       totalOrders: allOrders.length,
       approvedOrders: approvedOrders.length,
       avgOrderValue,
     },
-
     topSellingItems,
-
     topEmployees,
-
     recentWindows: recentWindows.map((window) => {
       const revenue = window.orders
         .filter((order) => order.status === "approved")
@@ -209,7 +229,6 @@ export async function getDashboardData(organizationId: string) {
         revenue,
       };
     }),
-
     statusDistribution,
   };
 }
