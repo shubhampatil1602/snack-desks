@@ -2,6 +2,7 @@ import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { getUserDashboardData } from "@/modules/user-dashboard/queries";
 import { format } from "date-fns";
+import { PeriodPicker } from "@/components/period-picker";
 
 import { UserStatsCards } from "./_components/UserStatsCards";
 import { UserRankCard } from "./_components/UserRankCard";
@@ -11,7 +12,6 @@ import { DashboardSSE } from "@/app/admin/dashboard/_components/DashboardSSE";
 import { redirect } from "next/navigation";
 import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { CartSync } from "../_components/cart-sync";
-import { DashboardPeriodPicker } from "./_components/DashboardPeriodPicker";
 
 interface UserDashboardProps {
   searchParams: Promise<{
@@ -44,11 +44,7 @@ export default async function UserDashboard({
   if (!member) return null;
 
   const params = await searchParams;
-  // period can be undefined for "All Time"
   const period = params.period ?? format(new Date(), "yyyy-MM");
-
-  // Get user's joined date (when they became a member)
-  const userJoinedAt = member.createdAt;
 
   const data = await getUserDashboardData(
     member.organizationId,
@@ -67,16 +63,16 @@ export default async function UserDashboard({
           <h1 className='text-2xl font-heading tracking-wide'>
             Hello, {session.user.name}
           </h1>
-
           <p className='text-sm text-muted-foreground mt-1'>
             You&apos;ve placed {data.stats.totalOrders} orders and spent ₹
             {data.stats.totalSpent.toFixed(2)} during this period.
           </p>
         </div>
 
-        <DashboardPeriodPicker
-          period={params.period} // Pass undefined for "All Time"
-          userJoinedAt={userJoinedAt}
+        <PeriodPicker
+          period={params.period}
+          startDate={member.createdAt}
+          basePath='/dashboard'
         />
       </div>
 

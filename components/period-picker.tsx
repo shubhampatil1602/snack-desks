@@ -26,18 +26,15 @@ import {
 
 interface Props {
   period: string | undefined;
-  organizationCreatedAt: Date;
+  startDate: Date;
+  basePath: string;
 }
 
-export function AdminDashboardPeriodPicker({
-  period,
-  organizationCreatedAt,
-}: Props) {
+export function PeriodPicker({ period, startDate, basePath }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Generate months from organization creation date to now
-  const months = generateMonthsFromDate(organizationCreatedAt);
+  const months = generateMonthsFromDate(startDate);
   const years = getYearsFromMonths(months);
   const monthsByYear = groupMonthsByYear(months, years);
 
@@ -51,7 +48,7 @@ export function AdminDashboardPeriodPicker({
       params.set("period", value);
     }
     const queryString = params.toString();
-    router.push(`/admin/dashboard${queryString ? `?${queryString}` : ""}`);
+    router.push(`${basePath}${queryString ? `?${queryString}` : ""}`);
   };
 
   return (
@@ -68,7 +65,6 @@ export function AdminDashboardPeriodPicker({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align='end' className='w-[220px]'>
-        {/* All Time Option */}
         <DropdownMenuItem
           onSelect={() => handlePeriodChange("all")}
           className={isAllTimeView(period) ? "bg-accent" : ""}
@@ -82,7 +78,6 @@ export function AdminDashboardPeriodPicker({
 
         <DropdownMenuSeparator />
 
-        {/* Year options - direct click for full year view */}
         <div className='px-2 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-2'>
           <span>Years</span>
           <span className='text-[10px] text-muted-foreground/60'>
@@ -104,12 +99,10 @@ export function AdminDashboardPeriodPicker({
 
         <DropdownMenuSeparator />
 
-        {/* Month options with year grouping */}
         <div className='px-2 py-1.5 text-xs font-medium text-muted-foreground'>
           Months
         </div>
 
-        {/* Show months grouped by year in submenus */}
         {years.map((year) => {
           const yearMonths = monthsByYear[year] || [];
           if (yearMonths.length === 0) return null;
@@ -124,7 +117,6 @@ export function AdminDashboardPeriodPicker({
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent className='w-[200px]'>
-                  {/* Option to view entire year */}
                   <DropdownMenuItem
                     onSelect={() => handlePeriodChange(year)}
                     className={

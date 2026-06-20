@@ -1,6 +1,8 @@
 import { requireAdmin } from "@/actions/user";
 import { getDashboardData } from "@/modules/admin-dashboard/queries";
 import { format } from "date-fns";
+import { prisma } from "@/lib/db";
+import { PeriodPicker } from "@/components/period-picker";
 
 import { DashboardStats } from "./_components/DashboardStats";
 import { ActiveWindowCard } from "./_components/ActiveWindowCard";
@@ -8,8 +10,6 @@ import { TopSellingItemsCard } from "./_components/TopSellingItemsCard";
 import { TopEmployeesCard } from "./_components/TopEmployeesCard";
 import { RecentWindowsCard } from "./_components/RecentWindowsCard";
 import { DashboardSSE } from "./_components/DashboardSSE";
-import { AdminDashboardPeriodPicker } from "./_components/AdminDashboardPeriodPicker";
-import { prisma } from "@/lib/db";
 
 interface AdminDashboardProps {
   searchParams: Promise<{
@@ -22,7 +22,6 @@ export default async function AdminDashboard({
 }: AdminDashboardProps) {
   const { member } = await requireAdmin();
 
-  // Get organization creation date
   const organization = await prisma.organization.findUnique({
     where: {
       id: member.organizationId,
@@ -37,7 +36,6 @@ export default async function AdminDashboard({
   }
 
   const params = await searchParams;
-  // period can be undefined for "All Time"
   const period = params.period ?? format(new Date(), "yyyy-MM");
 
   const dashboardData = await getDashboardData(member.organizationId, period);
@@ -55,9 +53,10 @@ export default async function AdminDashboard({
           </p>
         </div>
 
-        <AdminDashboardPeriodPicker
+        <PeriodPicker
           period={params.period}
-          organizationCreatedAt={organization.createdAt}
+          startDate={organization.createdAt}
+          basePath='/admin/dashboard'
         />
       </div>
 
