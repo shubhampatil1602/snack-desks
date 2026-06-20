@@ -6,11 +6,13 @@ export function getHeatmapData(orders: UserOrderHistory) {
   const startDate = subYears(endDate, 1);
 
   const orderMap = new Map<string, number>();
-
   for (const order of orders) {
     const date = format(order.createdAt, "yyyy-MM-dd");
-
-    orderMap.set(date, (orderMap.get(date) ?? 0) + 1);
+    const orderTotal = order.items.reduce(
+      (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
+      0,
+    );
+    orderMap.set(date, (orderMap.get(date) ?? 0) + orderTotal);
   }
 
   const data = [];
@@ -20,7 +22,7 @@ export function getHeatmapData(orders: UserOrderHistory) {
 
     data.push({
       date: key,
-      orders: orderMap.get(key) ?? 0,
+      spent: orderMap.get(key) ?? 0, // renamed from orders
     });
   }
 

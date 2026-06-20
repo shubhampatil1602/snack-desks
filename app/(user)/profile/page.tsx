@@ -18,7 +18,7 @@ export default async function UserProfilePage() {
 
   return (
     <div className='px-4 space-y-6'>
-      <SnackHeatmap data={heatmapData} />
+      <SnackHeatmap data={heatmapData} joinedAt={session.user.createdAt} />
     </div>
   );
 }
