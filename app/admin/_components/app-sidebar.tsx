@@ -32,11 +32,11 @@ import { Logo } from "@/components/logo";
 
 const data = {
   navMain: [
-    {
-      title: "Ask SnackDesk",
-      url: "/admin/ask-snackdesk",
-      icon: IconBrain,
-    },
+    // {
+    //   title: "Ask SnackDesk",
+    //   url: "/admin/ask-snackdesk",
+    //   icon: IconBrain,
+    // },
     {
       title: "Dashboard",
       url: "/admin/dashboard",
