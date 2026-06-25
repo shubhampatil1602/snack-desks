@@ -10,6 +10,14 @@ import { revalidatePath } from "next/cache";
 const orderItemSchema = z.object({
   menuItemId: z.string().min(1),
   quantity: z.number().min(1),
+  replacements: z
+    .array(
+      z.object({
+        menuItemId: z.string().min(1),
+        quantity: z.number().min(1),
+      }),
+    )
+    .optional(),
 });
 
 const placeOrderSchema = z.object({
@@ -89,14 +97,28 @@ export async function placeOrderAction(
       },
     });
 
-    await tx.orderItem.createMany({
-      data: items.map((item) => ({
-        id: nanoid(),
-        orderId: newOrder.id,
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-      })),
-    });
+    for (const item of items) {
+      const orderItemId = nanoid();
+      await tx.orderItem.create({
+        data: {
+          id: orderItemId,
+          orderId: newOrder.id,
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+        },
+      });
+
+      if (item.replacements && item.replacements.length > 0) {
+        await tx.orderItemReplacement.createMany({
+          data: item.replacements.map((rep) => ({
+            id: nanoid(),
+            orderItemId,
+            menuItemId: rep.menuItemId,
+            quantity: rep.quantity,
+          })),
+        });
+      }
+    }
 
     return newOrder;
   });
@@ -124,7 +146,7 @@ export async function updateOrderAction(
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { orderWindow: true },
+    include: { orderWindow: true, items: true },
   });
 
   if (!order) {
@@ -158,6 +180,15 @@ export async function updateOrderAction(
     };
   }
 
+  // Check if any items in the order have replacements applied
+  const hasReplacedItems = order.items.some((item) => item.replacementApplied);
+  if (hasReplacedItems) {
+    return {
+      success: false,
+      error: "Order has already been processed with replacements and cannot be modified",
+    };
+  }
+
   const member = await prisma.member.findFirst({
     where: { userId: session.user.id },
   });
@@ -168,15 +199,32 @@ export async function updateOrderAction(
 
   // replace all items in a transaction
   await prisma.$transaction(async (tx) => {
+    // Delete many cascades and automatically deletes orderItemReplacements
     await tx.orderItem.deleteMany({ where: { orderId } });
-    await tx.orderItem.createMany({
-      data: items.map((item) => ({
-        id: nanoid(),
-        orderId,
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-      })),
-    });
+
+    for (const item of items) {
+      const orderItemId = nanoid();
+      await tx.orderItem.create({
+        data: {
+          id: orderItemId,
+          orderId,
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+        },
+      });
+
+      if (item.replacements && item.replacements.length > 0) {
+        await tx.orderItemReplacement.createMany({
+          data: item.replacements.map((rep) => ({
+            id: nanoid(),
+            orderItemId,
+            menuItemId: rep.menuItemId,
+            quantity: rep.quantity,
+          })),
+        });
+      }
+    }
+
     await tx.order.update({
       where: { id: orderId },
       data: { updatedAt: new Date() },
@@ -374,17 +422,20 @@ export async function updateAdminOrderAction(
     await tx.orderItem.deleteMany({
       where: {
         orderId,
+        replacementApplied: false,
       },
     });
 
-    await tx.orderItem.createMany({
-      data: items.map((item) => ({
-        id: nanoid(),
-        orderId,
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-      })),
-    });
+    for (const item of items) {
+      await tx.orderItem.create({
+        data: {
+          id: nanoid(),
+          orderId,
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+        },
+      });
+    }
 
     await tx.order.update({
       where: {
@@ -410,5 +461,149 @@ export async function updateAdminOrderAction(
   return {
     success: true,
     orderId,
+  };
+}
+
+export async function applyReplacementAction(
+  orderItemId: string,
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const member = await prisma.member.findFirst({
+    where: {
+      userId: session.user.id,
+    },
+  });
+
+  if (!member) {
+    return {
+      success: false,
+      error: "Organization not found",
+    };
+  }
+
+  const orderItem = await prisma.orderItem.findUnique({
+    where: {
+      id: orderItemId,
+    },
+    include: {
+      order: true,
+      replacementPreferences: {
+        include: {
+          menuItem: true,
+        },
+      },
+    },
+  });
+
+  if (!orderItem) {
+    return {
+      success: false,
+      error: "Order item not found",
+    };
+  }
+
+  if (orderItem.replacementApplied) {
+    return {
+      success: false,
+      error: "Replacement has already been applied",
+    };
+  }
+
+  if (
+    !orderItem.replacementPreferences ||
+    orderItem.replacementPreferences.length === 0
+  ) {
+    return {
+      success: false,
+      error: "No replacements configured for this item",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Mark original item as replaced
+    await tx.orderItem.update({
+      where: {
+        id: orderItemId,
+      },
+      data: {
+        replacementApplied: true,
+        replacementAppliedAt: new Date(),
+        replacementAppliedById: session.user.id,
+      },
+    });
+
+    // 2. Create the replacement order items
+    for (const pref of orderItem.replacementPreferences) {
+      await tx.orderItem.create({
+        data: {
+          id: nanoid(),
+          orderId: orderItem.orderId,
+          menuItemId: pref.menuItemId,
+          quantity: pref.quantity,
+          originalOrderItemId: orderItemId,
+        },
+      });
+    }
+
+    // 3. Update order timestamp
+    await tx.order.update({
+      where: {
+        id: orderItem.orderId,
+      },
+      data: {
+        updatedAt: new Date(),
+      },
+    });
+  });
+
+  await notify({
+    type: "order_updated",
+    orgId: member.organizationId,
+    payload: {
+      orderId: orderItem.orderId,
+    },
+  });
+
+  revalidatePath("/admin/order-window");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/order-window");
+  revalidatePath("/history");
+
+  return {
+    success: true,
+    orderId: orderItem.orderId,
+  };
+}
+
+export async function getActiveMenuItemsAction() {
+  const session = await authIsRequired();
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+  if (!member) {
+    return { success: false, error: "Member not found" };
+  }
+  const items = await prisma.menuItem.findMany({
+    where: {
+      organizationId: member.organizationId,
+      isAvailable: true,
+    },
+    include: {
+      menuCategory: true,
+      shop: true,
+    },
+    orderBy: { name: "asc" },
+  });
+  return {
+    success: true,
+    items: items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price.toString(),
+      unit: item.unit,
+      menuCategoryName: item.menuCategory.name,
+      shopName: item.shop?.name || null,
+    })),
   };
 }

@@ -19,7 +19,8 @@ model User {
   accounts      Account[]
   role          String    @default("user")
   members       Member[]
-  orders        Order[]
+  orders              Order[]
+  appliedReplacements OrderItem[] @relation("ReplacementAppliedBy")
 
   passwordResetToken  String?
   passwordResetExpiry DateTime?
@@ -188,9 +189,38 @@ model OrderItem {
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem  MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
 
+  // Replacement metadata
+  replacementApplied      Boolean                 @default(false)
+  replacementAppliedAt    DateTime?
+  replacementAppliedById  String?
+  replacementAppliedBy    User?                   @relation("ReplacementAppliedBy", fields: [replacementAppliedById], references: [id])
+
+  // Self-relations for replacements
+  originalOrderItemId     String?
+  originalOrderItem       OrderItem?              @relation("ReplacementItems", fields: [originalOrderItemId], references: [id], onDelete: Cascade)
+  replacementItems        OrderItem[]             @relation("ReplacementItems")
+
+  // Configured preferences
+  replacementPreferences  OrderItemReplacement[]
+
   @@index([orderId])
   @@index([menuItemId])
   @@map("order_item")
+}
+
+model OrderItemReplacement {
+  id          String    @id
+  orderItemId String
+  menuItemId  String
+  quantity    Int
+  createdAt   DateTime  @default(now())
+
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+
+  @@index([orderItemId])
+  @@index([menuItemId])
+  @@map("order_item_replacement")
 }
 
 model MenuItem {
@@ -204,7 +234,8 @@ model MenuItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  orderItems     OrderItem[]
+  orderItems             OrderItem[]
+  replacementPreferences OrderItemReplacement[]
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   menuCategory   MenuCategory @relation(fields: [menuCategoryId], references: [id])
   menuCategoryId String

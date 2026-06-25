@@ -45,11 +45,28 @@ export async function getUserOrderHistory(
     },
     include: {
       items: {
-        include: {
+        select: {
+          id: true,
+          quantity: true,
+          menuItemId: true,
+          replacementApplied: true,
+          originalOrderItemId: true,
           menuItem: {
             select: {
               name: true,
               price: true,
+            },
+          },
+          replacementPreferences: {
+            select: {
+              id: true,
+              quantity: true,
+              menuItem: {
+                select: {
+                  name: true,
+                  price: true,
+                },
+              },
             },
           },
         },
@@ -79,6 +96,13 @@ export async function getUserOrderHistory(
         ...item.menuItem,
         price: item.menuItem.price.toString(),
       },
+      replacementPreferences: item.replacementPreferences.map((rep) => ({
+        ...rep,
+        menuItem: {
+          ...rep.menuItem,
+          price: rep.menuItem.price.toString(),
+        },
+      })),
     })),
   }));
 }

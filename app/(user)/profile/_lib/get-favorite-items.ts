@@ -18,6 +18,7 @@ export function getFavoriteItems(orders: UserOrderHistory): FavoriteItem[] {
 
   for (const order of orders) {
     for (const item of order.items) {
+      if (item.replacementApplied) continue;
       const existing = itemMap.get(item.menuItemId);
       if (existing) {
         existing.quantity += item.quantity;

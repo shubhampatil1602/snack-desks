@@ -21,7 +21,9 @@ export async function getEmployeeRankings(
         },
       },
       items: {
-        include: {
+        select: {
+          quantity: true,
+          replacementApplied: true,
           menuItem: {
             select: {
               price: true,
@@ -43,10 +45,12 @@ export async function getEmployeeRankings(
   >();
 
   for (const order of orders) {
-    const orderTotal = order.items.reduce(
-      (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-      0,
-    );
+    const orderTotal = order.items
+      .filter((item) => !item.replacementApplied)
+      .reduce(
+        (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
+        0,
+      );
 
     const existing = rankingsMap.get(order.userId);
 

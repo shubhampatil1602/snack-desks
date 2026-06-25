@@ -48,6 +48,11 @@ export async function getUserActiveOrder(windowId: string, userId: string) {
       items: {
         include: {
           menuItem: true,
+          replacementPreferences: {
+            include: {
+              menuItem: true,
+            },
+          },
         },
       },
     },
@@ -63,6 +68,13 @@ export async function getUserActiveOrder(windowId: string, userId: string) {
         ...item.menuItem,
         price: item.menuItem.price.toString(),
       },
+      replacementPreferences: item.replacementPreferences.map((rep) => ({
+        ...rep,
+        menuItem: {
+          ...rep.menuItem,
+          price: rep.menuItem.price.toString(),
+        },
+      })),
     })),
   };
 }

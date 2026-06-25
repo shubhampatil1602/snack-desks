@@ -25,6 +25,11 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
                   shop: true,
                 },
               },
+              replacementPreferences: {
+                include: {
+                  menuItem: true,
+                },
+              },
             },
           },
         },
@@ -46,6 +51,13 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
           price: item.menuItem.price.toString(),
           shop: item.menuItem.shop,
         },
+        replacementPreferences: item.replacementPreferences.map((rep) => ({
+          ...rep,
+          menuItem: {
+            ...rep.menuItem,
+            price: rep.menuItem.price.toString(),
+          },
+        })),
       })),
     })),
   }));

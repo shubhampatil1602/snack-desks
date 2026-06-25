@@ -104,6 +104,7 @@ export async function getDashboardData(organizationId: string, period: string) {
           status: "approved",
           ...dateFilter,
         },
+        replacementApplied: false,
       },
       _sum: {
         quantity: true,
@@ -153,11 +154,13 @@ export async function getDashboardData(organizationId: string, period: string) {
   const totalRevenue = approvedOrders.reduce(
     (sum, order) =>
       sum +
-      order.items.reduce(
-        (itemSum, item) =>
-          itemSum + Number(item.menuItem.price) * item.quantity,
-        0,
-      ),
+      order.items
+        .filter((item) => !item.replacementApplied)
+        .reduce(
+          (itemSum, item) =>
+            itemSum + Number(item.menuItem.price) * item.quantity,
+          0,
+        ),
     0,
   );
 
@@ -212,11 +215,13 @@ export async function getDashboardData(organizationId: string, period: string) {
         .reduce(
           (sum, order) =>
             sum +
-            order.items.reduce(
-              (itemSum, item) =>
-                itemSum + Number(item.menuItem.price) * item.quantity,
-              0,
-            ),
+            order.items
+              .filter((item) => !item.replacementApplied)
+              .reduce(
+                (itemSum, item) =>
+                  itemSum + Number(item.menuItem.price) * item.quantity,
+                0,
+              ),
           0,
         );
 

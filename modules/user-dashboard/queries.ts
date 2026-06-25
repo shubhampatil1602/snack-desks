@@ -62,6 +62,7 @@ export async function getUserDashboardData(
         select: {
           quantity: true,
           menuItemId: true,
+          replacementApplied: true,
 
           menuItem: {
             select: {
@@ -84,11 +85,13 @@ export async function getUserDashboardData(
   const totalSpent = orders.reduce(
     (sum, order) =>
       sum +
-      order.items.reduce(
-        (itemSum, item) =>
-          itemSum + Number(item.menuItem.price) * item.quantity,
-        0,
-      ),
+      order.items
+        .filter((item) => !item.replacementApplied)
+        .reduce(
+          (itemSum, item) =>
+            itemSum + Number(item.menuItem.price) * item.quantity,
+          0,
+        ),
     0,
   );
 
@@ -111,6 +114,7 @@ export async function getUserDashboardData(
 
   for (const order of orders) {
     for (const item of order.items) {
+      if (item.replacementApplied) continue;
       const existing = itemMap.get(item.menuItemId);
 
       if (existing) {
@@ -134,10 +138,12 @@ export async function getUserDashboardData(
   // =========================
 
   const recentOrders = orders.slice(0, 5).map((order) => {
-    const total = order.items.reduce(
-      (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-      0,
-    );
+    const total = order.items
+      .filter((item) => !item.replacementApplied)
+      .reduce(
+        (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
+        0,
+      );
 
     return {
       id: order.id,
@@ -171,6 +177,7 @@ export async function getUserDashboardData(
       items: {
         select: {
           quantity: true,
+          replacementApplied: true,
 
           menuItem: {
             select: {
@@ -193,10 +200,12 @@ export async function getUserDashboardData(
   >();
 
   for (const order of allApprovedOrders) {
-    const total = order.items.reduce(
-      (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-      0,
-    );
+    const total = order.items
+      .filter((item) => !item.replacementApplied)
+      .reduce(
+        (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
+        0,
+      );
 
     const existing = rankingsMap.get(order.userId);
 

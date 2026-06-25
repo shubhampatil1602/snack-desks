@@ -56,8 +56,17 @@ export function AdminWindowHistory({
   >(() => ({
     [windows[0]?.id]: true,
   }));
-  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>(
+    {},
+  );
   const [search, setSearch] = useState("");
+
+  function toggleOrder(orderId: string) {
+    setExpandedOrders((prev) => ({
+      ...prev,
+      [orderId]: !prev[orderId],
+    }));
+  }
   const [period, setPeriod] = useState<HistoryPeriod>("all");
   const [statusFilter, setStatusFilter] = useState<HistoryStatus>("all");
   const [sortBy, setSortBy] = useState<
@@ -195,13 +204,28 @@ export function AdminWindowHistory({
             .reduce(
               (sum, order) =>
                 sum +
-                order.items.reduce(
-                  (itemSum, item) =>
-                    itemSum + Number(item.menuItem.price) * item.quantity,
-                  0,
-                ),
+                order.items
+                  .filter((item) => !item.replacementApplied)
+                  .reduce(
+                    (itemSum, item) =>
+                      itemSum + Number(item.menuItem.price) * item.quantity,
+                    0,
+                  ),
               0,
             );
+
+          const allOrdersExpanded =
+            window.orders.length > 0 &&
+            window.orders.every((o) => expandedOrders[o.id]);
+          const toggleAllOrders = () => {
+            setExpandedOrders((prev) => {
+              const next = { ...prev };
+              window.orders.forEach((o) => {
+                next[o.id] = !allOrdersExpanded;
+              });
+              return next;
+            });
+          };
 
           return (
             <Fragment key={window.id}>
@@ -310,20 +334,42 @@ export function AdminWindowHistory({
                             Status
                           </TableHead>
                           <TableHead className='py-2 text-center'>
-                            Actions
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='xs'
+                              className='text-[10px] h-6 px-1.5 font-bold cursor-pointer hover:bg-muted border border-muted-foreground/10'
+                              onClick={toggleAllOrders}
+                            >
+                              {allOrdersExpanded
+                                ? "Collapse All"
+                                : "Expand All"}
+                            </Button>
                           </TableHead>
                         </TableRow>
                       </TableHeader>
 
                       <TableBody>
                         {window.orders.map((order) => {
-                          const total = order.items.reduce(
+                          const activeItems = order.items.filter(
+                            (item) => !item.replacementApplied,
+                          );
+                          const hasReplacements = order.items.some(
+                            (item) => item.replacementApplied,
+                          );
+                          const hasAlternativePreferences = order.items.some(
+                            (item) =>
+                              !item.replacementApplied &&
+                              item.replacementPreferences &&
+                              item.replacementPreferences.length > 0,
+                          );
+                          const total = activeItems.reduce(
                             (sum, item) =>
                               sum + Number(item.menuItem.price) * item.quantity,
                             0,
                           );
-                          const isExpandedOrder = expandedOrderId === order.id;
-                          const totalItems = order.items.reduce(
+                          const isExpandedOrder = !!expandedOrders[order.id];
+                          const totalItems = activeItems.reduce(
                             (sum, item) => sum + item.quantity,
                             0,
                           );
@@ -341,22 +387,29 @@ export function AdminWindowHistory({
 
                                 <TableCell
                                   className='py-2 text-sm font-medium hover:underline'
-                                  onClick={() =>
-                                    setExpandedOrderId(
-                                      isExpandedOrder ? null : order.id,
-                                    )
-                                  }
+                                  onClick={() => toggleOrder(order.id)}
                                 >
-                                  {order.user.name}
+                                  <div className='flex items-center gap-2'>
+                                    <span>{order.user.name}</span>
+                                    {hasReplacements ? (
+                                      <Badge
+                                        variant='outline'
+                                        className='text-[10px] border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20 rounded-full py-0 px-1.5'
+                                      >
+                                        Alternative Used
+                                      </Badge>
+                                    ) : hasAlternativePreferences ? (
+                                      <span
+                                        className='w-1.5 h-1.5 rounded-full bg-amber-500 inline-block shrink-0 animate-pulse'
+                                        title='Alternative preferences available'
+                                      />
+                                    ) : null}
+                                  </div>
                                 </TableCell>
 
                                 <TableCell
                                   className='py-2 text-xs text-muted-foreground'
-                                  onClick={() =>
-                                    setExpandedOrderId(
-                                      isExpandedOrder ? null : order.id,
-                                    )
-                                  }
+                                  onClick={() => toggleOrder(order.id)}
                                 >
                                   {totalItems} item{totalItems !== 1 ? "s" : ""}
                                 </TableCell>
@@ -375,7 +428,9 @@ export function AdminWindowHistory({
                                       <AdminEditOrderDialog
                                         orderId={order.id}
                                         userName={order.user.name}
-                                        items={order.items}
+                                        items={order.items.filter(
+                                          (item) => !item.replacementApplied,
+                                        )}
                                         menuItems={menuItems}
                                       />
                                     )}
@@ -394,7 +449,10 @@ export function AdminWindowHistory({
                                 <TableRow className='hover:bg-transparent'>
                                   <TableCell className='py-0' />
                                   <TableCell colSpan={5} className='pb-3 pt-0'>
-                                    <OrderHistoryDetails items={order.items} />
+                                    <OrderHistoryDetails
+                                      items={order.items}
+                                      isAdmin={true}
+                                    />
                                   </TableCell>
                                 </TableRow>
                               )}

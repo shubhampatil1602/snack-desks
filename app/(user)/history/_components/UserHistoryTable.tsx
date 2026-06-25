@@ -102,11 +102,16 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
 
           <TableBody>
             {pagination.paginatedData.map((order) => {
-              const total = order.items.reduce(
-                (sum, item) =>
-                  sum + Number(item.menuItem.price) * item.quantity,
-                0,
+              const hasReplacements = order.items.some(
+                (item) => item.replacementApplied,
               );
+              const total = order.items
+                .filter((item) => !item.replacementApplied)
+                .reduce(
+                  (sum, item) =>
+                    sum + Number(item.menuItem.price) * item.quantity,
+                  0,
+                );
 
               const expanded = expandedOrderId === order.id;
 
@@ -123,6 +128,14 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
 
                     <TableCell className='px-3 py-0.5'>
                       <span className='mr-3'>{order.orderWindow.label}</span>
+                      {hasReplacements && (
+                        <Badge
+                          variant='outline'
+                          className='mr-2 text-xs border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20 rounded-full'
+                        >
+                          Alternative Used
+                        </Badge>
+                      )}
                       {order.orderWindow.winnerUserId && (
                         <span className='bg-linear-to-r from-amber-400 via-yellow-500 to-amber-500 text-white hover:from-amber-500 hover:via-yellow-600 hover:to-amber-600 border border-amber-600 shadow-md dark:from-amber-600 dark:via-yellow-600 dark:to-amber-700 dark:border-amber-500 p-0.5 px-2 text-xs font-bold rounded-3xl'>
                           SPLIT MASTER:{" "}

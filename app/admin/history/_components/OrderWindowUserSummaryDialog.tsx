@@ -36,11 +36,13 @@ export function OrderWindowUserSummaryDialog({
   const total = approvedOrders.reduce(
     (sum, order) =>
       sum +
-      order.items.reduce(
-        (itemSum, item) =>
-          itemSum + Number(item.menuItem.price) * item.quantity,
-        0,
-      ),
+      order.items
+        .filter((item) => !item.replacementApplied)
+        .reduce(
+          (itemSum, item) =>
+            itemSum + Number(item.menuItem.price) * item.quantity,
+          0,
+        ),
     0,
   );
 
@@ -49,10 +51,12 @@ export function OrderWindowUserSummaryDialog({
     .map((order) => ({
       id: order.user.id,
       name: order.user.name,
-      total: order.items.reduce(
-        (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-        0,
-      ),
+      total: order.items
+        .filter((item) => !item.replacementApplied)
+        .reduce(
+          (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
+          0,
+        ),
     }))
     // Group by user (if same user has multiple approved orders)
     .reduce(

@@ -13,6 +13,11 @@ export async function getLiveOrders(windowId: string) {
       items: {
         include: {
           menuItem: true,
+          replacementPreferences: {
+            include: {
+              menuItem: true,
+            },
+          },
         },
       },
     },
@@ -21,22 +26,33 @@ export async function getLiveOrders(windowId: string) {
     },
   });
 
-  return orders.map((order) => ({
-    ...order,
+  return orders.map((order) => {
+    const activeItems = order.items.filter((item) => !item.replacementApplied);
 
-    items: order.items.map((item) => ({
-      ...item,
-      menuItem: {
-        ...item.menuItem,
-        price: item.menuItem.price.toString(),
-      },
-    })),
+    return {
+      ...order,
 
-    total: order.items.reduce(
-      (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-      0,
-    ),
-  }));
+      items: order.items.map((item) => ({
+        ...item,
+        menuItem: {
+          ...item.menuItem,
+          price: item.menuItem.price.toString(),
+        },
+        replacementPreferences: item.replacementPreferences.map((rep) => ({
+          ...rep,
+          menuItem: {
+            ...rep.menuItem,
+            price: rep.menuItem.price.toString(),
+          },
+        })),
+      })),
+
+      total: activeItems.reduce(
+        (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
+        0,
+      ),
+    };
+  });
 }
 
 export type LiveOrder = Awaited<ReturnType<typeof getLiveOrders>>[number];

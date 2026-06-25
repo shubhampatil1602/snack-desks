@@ -109,6 +109,13 @@ export function OrdersClient({
         name: item.menuItem.name,
         price: item.menuItem.price.toString(),
         quantity: item.quantity,
+        replacements:
+          item.replacementPreferences?.map((rep) => ({
+            menuItemId: rep.menuItemId,
+            name: rep.menuItem.name,
+            price: rep.menuItem.price.toString(),
+            quantity: rep.quantity,
+          })) || [],
       })),
     });
   }, [existingOrder, loadExistingOrder, clearCart]);
@@ -153,6 +160,7 @@ export function OrdersClient({
             className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground'
           >
             <X className='h-4 w-4' />
+            <span className='hidden'>clear</span>
           </button>
         )}
       </div>

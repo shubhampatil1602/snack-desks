@@ -1,11 +1,19 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export type CartReplacementItem = {
+  menuItemId: string;
+  name: string;
+  price: string;
+  quantity: number;
+};
+
 export type CartItem = {
   menuItemId: string;
   name: string;
   price: string;
   quantity: number;
+  replacements?: CartReplacementItem[];
 };
 
 type CartStore = {
@@ -16,11 +24,15 @@ type CartStore = {
   savedItems: CartItem[];
   orderStatus: string | null;
 
-  addItem: (item: Omit<CartItem, "quantity">) => void;
+  addItem: (item: Omit<CartItem, "quantity" | "replacements">) => void;
   removeItem: (menuItemId: string) => void;
 
   increment: (menuItemId: string) => void;
   decrement: (menuItemId: string) => void;
+
+  addReplacementItem: (originalMenuItemId: string, replacement: CartReplacementItem) => void;
+  removeReplacementItem: (originalMenuItemId: string, replacementMenuItemId: string) => void;
+  updateReplacementItemQuantity: (originalMenuItemId: string, replacementMenuItemId: string, quantity: number) => void;
 
   clearCart: () => void;
 
@@ -107,6 +119,60 @@ export const useCartStore = create<CartStore>()(
             };
           }),
         })),
+
+      addReplacementItem: (originalMenuItemId, replacement) =>
+        set((state) => ({
+          items: state.items.map((item) => {
+            if (item.menuItemId !== originalMenuItemId) return item;
+            const currentReps = item.replacements || [];
+            const existingRep = currentReps.find(
+              (r) => r.menuItemId === replacement.menuItemId,
+            );
+            if (existingRep) {
+              return {
+                ...item,
+                replacements: currentReps.map((r) =>
+                  r.menuItemId === replacement.menuItemId
+                    ? { ...r, quantity: r.quantity + replacement.quantity }
+                    : r,
+                ),
+              };
+            }
+            return {
+              ...item,
+              replacements: [...currentReps, replacement],
+            };
+          }),
+        })),
+
+      removeReplacementItem: (originalMenuItemId, replacementMenuItemId) =>
+        set((state) => ({
+          items: state.items.map((item) => {
+            if (item.menuItemId !== originalMenuItemId) return item;
+            return {
+              ...item,
+              replacements: (item.replacements || []).filter(
+                (r) => r.menuItemId !== replacementMenuItemId,
+              ),
+            };
+          }),
+        })),
+
+      updateReplacementItemQuantity: (originalMenuItemId, replacementMenuItemId, quantity) =>
+        set((state) => ({
+          items: state.items.map((item) => {
+            if (item.menuItemId !== originalMenuItemId) return item;
+            return {
+              ...item,
+              replacements: (item.replacements || []).map((r) =>
+                r.menuItemId === replacementMenuItemId
+                  ? { ...r, quantity }
+                  : r,
+              ),
+            };
+          }),
+        })),
+
       clearCart: () =>
         set({
           items: [],

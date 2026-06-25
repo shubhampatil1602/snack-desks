@@ -1,3 +1,5 @@
+"use client";
+
 import type { LiveOrder } from "@/modules/orders/admin-queries";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,6 +11,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OrderActions } from "./OrderActions";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+import { applyReplacementAction } from "@/actions/orders";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type LiveOrdersTableProps = {
   orders: LiveOrder[];
@@ -68,13 +85,61 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
               <TableCell className='font-medium'>{order.user.name}</TableCell>
 
               <TableCell>
-                <div className='space-y-1'>
-                  {order.items.map((item) => (
-                    <div key={item.id}>
-                      {item.menuItem.name} × {item.quantity}
-                      <Badge className='ml-1'>(₹{item.menuItem.price})</Badge>
-                    </div>
-                  ))}
+                <div className='space-y-2'>
+                  {order.items.map((item) => {
+                    const hasReplacements =
+                      item.replacementPreferences &&
+                      item.replacementPreferences.length > 0;
+                    const isReplaced = item.replacementApplied;
+
+                    return (
+                      <div key={item.id} className='flex flex-col gap-1'>
+                        <div className='flex items-center flex-wrap gap-2'>
+                          <span
+                            className={
+                              isReplaced
+                                ? "line-through text-muted-foreground"
+                                : ""
+                            }
+                          >
+                            {item.menuItem.name} × {item.quantity}
+                          </span>
+                          <Badge variant='secondary' className='text-xs'>
+                            ₹{item.menuItem.price}
+                          </Badge>
+
+                          {hasReplacements && !isReplaced && (
+                            <UseAlternativeButton
+                              orderItemId={item.id}
+                              item={item}
+                            />
+                          )}
+
+                          {isReplaced && (
+                            <Badge
+                              variant='outline'
+                              className='text-[10px] bg-muted'
+                            >
+                              Alternative Used
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Display what it was replaced with, or its preference */}
+                        {hasReplacements && !isReplaced && (
+                          <div className='text-[10px] text-muted-foreground ml-2 border-l pl-2 border-muted'>
+                            Alternative Pref:{" "}
+                            {item.replacementPreferences
+                              .map(
+                                (r) =>
+                                  `${r.menuItem.name} × ${r.quantity}`,
+                              )
+                              .join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </TableCell>
 
@@ -94,5 +159,75 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function UseAlternativeButton({
+  orderItemId,
+  item,
+}: {
+  orderItemId: string;
+  item: LiveOrder["items"][number];
+}) {
+  const [pending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
+
+  function handleConfirm() {
+    startTransition(async () => {
+      const result = await applyReplacementAction(orderItemId);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Alternative applied");
+      setOpen(false);
+    });
+  }
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button
+          size='xs'
+          variant='outline'
+          className='h-5 py-0 px-1.5 text-[10px] cursor-pointer'
+          disabled={pending}
+        >
+          Use Alternative
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Apply Alternative Preference?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Replace{" "}
+            <strong>
+              {item.menuItem.name} × {item.quantity}
+            </strong>{" "}
+            with:
+            <ul className='list-disc pl-5 mt-2 space-y-1 text-sm'>
+              {item.replacementPreferences.map((rep) => (
+                <li key={rep.id}>
+                  {rep.menuItem.name} × {rep.quantity} (₹{(Number(rep.menuItem.price) * rep.quantity).toFixed(2)})
+                </li>
+              ))}
+            </ul>
+            <p className='mt-4 text-sm font-medium'>
+              This action will update the user&apos;s order total.
+            </p>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirm}
+            disabled={pending}
+            className='bg-primary text-primary-foreground hover:bg-primary/95'
+          >
+            {pending ? "Applying..." : "Confirm"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

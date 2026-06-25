@@ -9,14 +9,33 @@ export function hasCartChanged(
   }
 
   const savedMap = new Map(
-    savedItems.map((item) => [item.menuItemId, item.quantity]),
+    savedItems.map((item) => [item.menuItemId, item]),
   );
 
   for (const item of currentItems) {
-    const savedQuantity = savedMap.get(item.menuItemId);
+    const savedItem = savedMap.get(item.menuItemId);
 
-    if (savedQuantity !== item.quantity) {
+    if (!savedItem || savedItem.quantity !== item.quantity) {
       return true;
+    }
+
+    // Compare replacements
+    const currentReps = item.replacements || [];
+    const savedReps = savedItem.replacements || [];
+
+    if (currentReps.length !== savedReps.length) {
+      return true;
+    }
+
+    const savedRepMap = new Map(
+      savedReps.map((r) => [r.menuItemId, r.quantity]),
+    );
+
+    for (const rep of currentReps) {
+      const savedRepQty = savedRepMap.get(rep.menuItemId);
+      if (savedRepQty !== rep.quantity) {
+        return true;
+      }
     }
   }
 
