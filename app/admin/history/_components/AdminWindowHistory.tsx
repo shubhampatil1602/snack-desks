@@ -125,21 +125,25 @@ export function AdminWindowHistory({
     const revenueA = a.orders.reduce(
       (sum, order) =>
         sum +
-        order.items.reduce(
-          (itemSum, item) =>
-            itemSum + Number(item.menuItem.price) * item.quantity,
-          0,
-        ),
+        order.items
+          .filter((item) => !item.replacementApplied)
+          .reduce(
+            (itemSum, item) =>
+              itemSum + Number(item.menuItem.price) * item.quantity,
+            0,
+          ),
       0,
     );
     const revenueB = b.orders.reduce(
       (sum, order) =>
         sum +
-        order.items.reduce(
-          (itemSum, item) =>
-            itemSum + Number(item.menuItem.price) * item.quantity,
-          0,
-        ),
+        order.items
+          .filter((item) => !item.replacementApplied)
+          .reduce(
+            (itemSum, item) =>
+              itemSum + Number(item.menuItem.price) * item.quantity,
+            0,
+          ),
       0,
     );
     return revenueB - revenueA;

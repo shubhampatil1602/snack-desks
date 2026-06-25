@@ -59,6 +59,7 @@ export function OrderWindowSummaryDialog({
 
   for (const order of approvedOrders) {
     for (const item of order.items) {
+      if (item.replacementApplied) continue;
       const itemName = item.menuItem.name;
       const itemPrice = Number(item.menuItem.price);
       const itemTotal = itemPrice * item.quantity;
@@ -106,7 +107,9 @@ export function OrderWindowSummaryDialog({
   // Count orders per shop
   for (const order of approvedOrders) {
     const shopNames = new Set(
-      order.items.map((item) => item.menuItem.shop?.name || "Unassigned"),
+      order.items
+        .filter((item) => !item.replacementApplied)
+        .map((item) => item.menuItem.shop?.name || "Unassigned"),
     );
     for (const shopName of shopNames) {
       const shop = shopsMap.get(shopName);
