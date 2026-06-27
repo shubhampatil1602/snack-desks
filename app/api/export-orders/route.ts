@@ -68,11 +68,12 @@ export async function GET(request: Request) {
     });
 
     const rows = orders.map((order) => {
-      const items = order.items
+      const activeItems = order.items.filter((item) => !item.replacementApplied);
+      const items = activeItems
         .map((item) => `${item.menuItem.name} × ${item.quantity}`)
         .join(" | ");
 
-      const total = order.items.reduce(
+      const total = activeItems.reduce(
         (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
         0,
       );

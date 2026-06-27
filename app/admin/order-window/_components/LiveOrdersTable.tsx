@@ -104,8 +104,9 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
                           >
                             {item.menuItem.name} × {item.quantity}
                           </span>
-                          <Badge variant='secondary' className='text-xs'>
-                            ₹{item.menuItem.price}
+
+                          <Badge variant='secondary' className='text-[10px]'>
+                            (₹{item.menuItem.price} each)
                           </Badge>
 
                           {hasReplacements && !isReplaced && (
@@ -130,10 +131,7 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
                           <div className='text-[10px] text-muted-foreground ml-2 border-l pl-2 border-muted'>
                             Alternative Pref:{" "}
                             {item.replacementPreferences
-                              .map(
-                                (r) =>
-                                  `${r.menuItem.name} × ${r.quantity}`,
-                              )
+                              .map((r) => `${r.menuItem.name} × ${r.quantity}`)
                               .join(", ")}
                           </div>
                         )}
@@ -208,7 +206,8 @@ function UseAlternativeButton({
             <ul className='list-disc pl-5 mt-2 space-y-1 text-sm'>
               {item.replacementPreferences.map((rep) => (
                 <li key={rep.id}>
-                  {rep.menuItem.name} × {rep.quantity} (₹{(Number(rep.menuItem.price) * rep.quantity).toFixed(2)})
+                  {rep.menuItem.name} × {rep.quantity} (₹
+                  {(Number(rep.menuItem.price) * rep.quantity).toFixed(2)})
                 </li>
               ))}
             </ul>

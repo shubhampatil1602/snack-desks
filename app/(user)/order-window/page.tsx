@@ -28,7 +28,7 @@ export default async function OrderWindowPage() {
     return (
       <>
         <ClearCartOnMount />
-        <NoActiveWindow />;
+        <NoActiveWindow />
       </>
     );
   }

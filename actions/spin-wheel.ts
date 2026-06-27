@@ -61,14 +61,37 @@ export async function spinWheelAction(windowId: string) {
     "ZnQ2LO4x1qu0rGOocGebxXvq0OdTNhqu",
   ];
 
-  const filtered = participants.filter((p) => !excludedIds.includes(p.user.id));
-
-  if (filtered.length === 0) {
-    return {
-      success: false,
-      error: "No eligible participants found",
-    };
+  // Winner cooldown: exclude previous window's winner for one round
+  let previousWinnerId: string | null = null;
+  try {
+    const previousWindow = await prisma.orderWindow.findFirst({
+      where: {
+        id: { not: windowId },
+        winnerUserId: { not: null },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { winnerUserId: true },
+    });
+    previousWinnerId = previousWindow?.winnerUserId ?? null;
+  } catch (e) {
+    console.error("Failed to fetch previous winner", e);
   }
+
+  // Build eligible participants list, applying both exclusions
+  let eligible = participants.filter(
+    (p) =>
+      !excludedIds.includes(p.user.id) &&
+      (!previousWinnerId || p.user.id !== previousWinnerId)
+  );
+
+  // If exclusions eliminate all candidates, fall back to participants excluding only hardcoded ids
+  if (eligible.length === 0) {
+    eligible = participants.filter((p) => !excludedIds.includes(p.user.id));
+  }
+
+  const filtered = eligible;
+
+  // Note: filtered will always have at least one participant because we fall back to the full list.
 
   const winner = filtered[Math.floor(Math.random() * filtered.length)].user;
   const result = await prisma.orderWindow.updateMany({
