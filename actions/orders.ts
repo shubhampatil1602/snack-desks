@@ -60,7 +60,6 @@ export async function placeOrderAction(
     return { success: false, error: "Order window has expired" };
   }
 
-
   // check if user already has an order in this window
   const existingOrder = await prisma.order.findFirst({
     where: {
@@ -726,4 +725,3 @@ async function createOrderItems(
     }
   }
 }
-

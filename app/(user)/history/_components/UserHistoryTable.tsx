@@ -128,10 +128,18 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
 
                     <TableCell className='px-3 py-0.5'>
                       <span className='mr-3'>{order.orderWindow.label}</span>
+                      {order.createdByAdmin && (
+                        <Badge
+                          variant='outline'
+                          className='text-[10px] border-cyan-500 text-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 rounded-full py-0 px-1.5'
+                        >
+                          Late Order
+                        </Badge>
+                      )}
                       {hasReplacements && (
                         <Badge
                           variant='outline'
-                          className='mr-2 text-xs border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20 rounded-full'
+                          className='mr-2 text-[10px] border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/20 rounded-full'
                         >
                           Alternative Used
                         </Badge>
