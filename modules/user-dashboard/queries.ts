@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { startOfMonth, startOfDay, endOfDay } from "date-fns";
 
 export async function getUserDashboardData(
   organizationId: string,
@@ -233,6 +234,100 @@ export async function getUserDashboardData(
     rankings.find((user) => user.userId === userId) ?? null;
 
   // =========================
+  // Time-based Spent
+  // =========================
+
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const dayStart = startOfDay(now);
+  const dayEnd = endOfDay(now);
+
+  const currentMonthOrders = await prisma.order.findMany({
+    where: {
+      organizationId,
+      userId,
+      status: "approved",
+      createdAt: {
+        gte: monthStart,
+      },
+    },
+    select: {
+      createdAt: true,
+      items: {
+        select: {
+          quantity: true,
+          replacementApplied: true,
+          menuItem: {
+            select: {
+              price: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  let includesToday = false;
+  if (period === "all") {
+    includesToday = true;
+  } else if (period.length === 4) {
+    includesToday = Number(period) === now.getFullYear();
+  } else if (period.length === 7) {
+    const [year, month] = period.split("-");
+    includesToday = Number(year) === now.getFullYear() && Number(month) === now.getMonth() + 1;
+  }
+
+  const allTimeOrders = await prisma.order.findMany({
+    where: {
+      organizationId,
+      userId,
+      status: "approved",
+    },
+    select: {
+      items: {
+        select: {
+          quantity: true,
+          replacementApplied: true,
+          menuItem: {
+            select: { price: true },
+          },
+        },
+      },
+    },
+  });
+
+  const allTimeSpent = allTimeOrders.reduce(
+    (sum, order) =>
+      sum +
+      order.items
+        .filter((item) => !item.replacementApplied)
+        .reduce(
+          (itemSum, item) =>
+            itemSum + Number(item.menuItem.price) * item.quantity,
+          0,
+        ),
+    0,
+  );
+
+  const todaySpent = includesToday ? currentMonthOrders
+    .filter((order) => {
+      const orderDate = new Date(order.createdAt);
+      return orderDate >= dayStart && orderDate <= dayEnd;
+    })
+    .reduce(
+      (sum, order) =>
+        sum +
+        order.items
+          .filter((item) => !item.replacementApplied)
+          .reduce(
+            (itemSum, item) =>
+              itemSum + Number(item.menuItem.price) * item.quantity,
+            0,
+          ),
+      0,
+    ) : null;
+
+  // =========================
   // Return
   // =========================
 
@@ -242,6 +337,8 @@ export async function getUserDashboardData(
       totalSpent,
       averageOrderValue,
       currentRank: currentUserRank?.rank ?? null,
+      allTimeSpent,
+      todaySpent,
     },
 
     rank: currentUserRank,

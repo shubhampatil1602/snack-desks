@@ -22,9 +22,8 @@ export async function getUserOrderHistory(
   } else {
     const now = new Date();
     const year = now.getFullYear();
-    const month = now.getMonth();
-    startDate = new Date(year, month, 1);
-    endDate = new Date(year, month + 1, 0, 23, 59, 59);
+    startDate = new Date(year, 0, 1);
+    endDate = new Date(year, 11, 31, 23, 59, 59);
   }
 
   const dateFilter =

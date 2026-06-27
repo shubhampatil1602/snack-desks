@@ -2,6 +2,7 @@ import { requireAdmin } from "@/actions/user";
 import { getDashboardData } from "@/modules/admin-dashboard/queries";
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
+import { getPeriodLabel, generateMonthsFromDate } from "@/lib/period-utils";
 import { PeriodPicker } from "@/components/period-picker";
 
 import { DashboardStats } from "./_components/DashboardStats";
@@ -41,6 +42,9 @@ export default async function AdminDashboard({
   const dashboardData = await getDashboardData(member.organizationId, period);
   const serverNow = new Date().getTime();
 
+  const months = generateMonthsFromDate(organization.createdAt);
+  const periodLabel = getPeriodLabel(period, months);
+
   return (
     <div className='space-y-6 px-4'>
       <div className='flex items-start justify-between gap-4 flex-wrap'>
@@ -66,7 +70,7 @@ export default async function AdminDashboard({
         serverNow={serverNow}
       />
 
-      <DashboardStats stats={dashboardData.stats} />
+      <DashboardStats stats={dashboardData.stats} periodLabel={periodLabel} />
 
       <div className='grid gap-3 lg:grid-cols-2'>
         <TopSellingItemsCard items={dashboardData.topSellingItems} />

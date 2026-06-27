@@ -6,6 +6,7 @@ import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { CartSync } from "../_components/cart-sync";
 import { prisma } from "@/lib/db";
 import { format } from "date-fns";
+import { PeriodPicker } from "@/components/period-picker";
 
 interface OrderHistoryPageProps {
   searchParams: Promise<{
@@ -24,6 +25,13 @@ export default async function OrderHistoryPage({
   const member = await prisma.member.findFirst({
     where: {
       userId: session.user.id,
+    },
+    include: {
+      organization: {
+        select: {
+          createdAt: true,
+        },
+      },
     },
   });
 
@@ -46,7 +54,14 @@ export default async function OrderHistoryPage({
           </p>
         </div>
 
-        <PaymentQR />
+        <div className='flex items-center gap-3'>
+          <PaymentQR />
+          <PeriodPicker
+            period={params.period}
+            startDate={member.organization.createdAt}
+            basePath='/history'
+          />
+        </div>
       </div>
 
       <UserHistoryTable orders={orders} />

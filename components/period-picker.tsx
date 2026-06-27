@@ -22,6 +22,7 @@ import {
   isAllTimeView,
   isYearView,
   isMonthView,
+  getActivePeriod,
 } from "@/lib/period-utils";
 
 interface Props {
@@ -39,6 +40,7 @@ export function PeriodPicker({ period, startDate, basePath }: Props) {
   const monthsByYear = groupMonthsByYear(months, years);
 
   const currentLabel = getPeriodLabel(period, months);
+  const activePeriod = getActivePeriod(period);
 
   const handlePeriodChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -88,10 +90,10 @@ export function PeriodPicker({ period, startDate, basePath }: Props) {
           <DropdownMenuItem
             key={year}
             onSelect={() => handlePeriodChange(year)}
-            className={isYearView(period) && period === year ? "bg-accent" : ""}
+            className={isYearView(period) && activePeriod === year ? "bg-accent" : ""}
           >
             <span>{year}</span>
-            {isYearView(period) && period === year && (
+            {isYearView(period) && activePeriod === year && (
               <span className='ml-auto text-xs text-muted-foreground'>✓</span>
             )}
           </DropdownMenuItem>
@@ -120,11 +122,11 @@ export function PeriodPicker({ period, startDate, basePath }: Props) {
                   <DropdownMenuItem
                     onSelect={() => handlePeriodChange(year)}
                     className={
-                      isYearView(period) && period === year ? "bg-accent" : ""
+                      isYearView(period) && activePeriod === year ? "bg-accent" : ""
                     }
                   >
                     <span className='font-medium'>Full Year</span>
-                    {isYearView(period) && period === year && (
+                    {isYearView(period) && activePeriod === year && (
                       <span className='ml-auto text-xs text-muted-foreground'>
                         ✓
                       </span>
@@ -138,13 +140,13 @@ export function PeriodPicker({ period, startDate, basePath }: Props) {
                       key={m.value}
                       onSelect={() => handlePeriodChange(m.value)}
                       className={
-                        isMonthView(period) && period === m.value
+                        isMonthView(period) && activePeriod === m.value
                           ? "bg-accent"
                           : ""
                       }
                     >
                       <span>{m.label}</span>
-                      {isMonthView(period) && period === m.value && (
+                      {isMonthView(period) && activePeriod === m.value && (
                         <span className='ml-auto text-xs text-muted-foreground'>
                           ✓
                         </span>

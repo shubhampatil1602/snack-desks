@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getEmployeeRankings } from "@/modules/rankings/queries";
+import { startOfMonth, startOfDay, endOfDay } from "date-fns";
 
 export async function getDashboardData(organizationId: string, period: string) {
   // Parse period - supports "all", "YYYY", and "YYYY-MM"
@@ -33,9 +34,15 @@ export async function getDashboardData(organizationId: string, period: string) {
         }
       : {};
 
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const dayStart = startOfDay(now);
+  const dayEnd = endOfDay(now);
+
   const [
     activeWindow,
     allOrders,
+    currentMonthOrders,
     recentWindows,
     topSellingRaw,
     rankings,
@@ -66,6 +73,23 @@ export async function getDashboardData(organizationId: string, period: string) {
       },
       include: {
         user: true,
+        items: {
+          include: {
+            menuItem: true,
+          },
+        },
+      },
+    }),
+
+    prisma.order.findMany({
+      where: {
+        organizationId,
+        status: "approved",
+        createdAt: {
+          gte: monthStart,
+        },
+      },
+      include: {
         items: {
           include: {
             menuItem: true,
@@ -184,8 +208,68 @@ export async function getDashboardData(organizationId: string, period: string) {
   const topEmployees = rankings.slice(0, 3);
 
   // =========================
-  // Status Distribution
+  // Time-based Revenue
   // =========================
+
+  let includesToday = false;
+  
+  if (period === "all") {
+    includesToday = true;
+  } else if (period.length === 4) {
+    includesToday = Number(period) === now.getFullYear();
+  } else if (period.length === 7) {
+    const [year, month] = period.split("-");
+    includesToday = Number(year) === now.getFullYear() && Number(month) === now.getMonth() + 1;
+  }
+
+  const allTimeOrders = await prisma.order.findMany({
+    where: {
+      organizationId,
+      status: "approved",
+    },
+    select: {
+      items: {
+        select: {
+          quantity: true,
+          replacementApplied: true,
+          menuItem: {
+            select: { price: true },
+          },
+        },
+      },
+    },
+  });
+
+  const allTimeRevenue = allTimeOrders.reduce(
+    (sum, order) =>
+      sum +
+      order.items
+        .filter((item) => !item.replacementApplied)
+        .reduce(
+          (itemSum, item) =>
+            itemSum + Number(item.menuItem.price) * item.quantity,
+          0,
+        ),
+    0,
+  );
+
+  const todayRevenue = includesToday ? currentMonthOrders
+    .filter((order) => {
+      const orderDate = new Date(order.createdAt);
+      return orderDate >= dayStart && orderDate <= dayEnd;
+    })
+    .reduce(
+      (sum, order) =>
+        sum +
+        order.items
+          .filter((item) => !item.replacementApplied)
+          .reduce(
+            (itemSum, item) =>
+              itemSum + Number(item.menuItem.price) * item.quantity,
+            0,
+          ),
+      0,
+    ) : null;
 
   const statusDistribution = {
     approved:
@@ -206,6 +290,8 @@ export async function getDashboardData(organizationId: string, period: string) {
       totalOrders: allOrders.length,
       approvedOrders: approvedOrders.length,
       avgOrderValue,
+      allTimeRevenue,
+      todayRevenue,
     },
     topSellingItems,
     topEmployees,

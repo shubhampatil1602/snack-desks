@@ -2,6 +2,7 @@ import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { getUserDashboardData } from "@/modules/user-dashboard/queries";
 import { format } from "date-fns";
+import { getPeriodLabel, generateMonthsFromDate } from "@/lib/period-utils";
 import { PeriodPicker } from "@/components/period-picker";
 
 import { UserStatsCards } from "./_components/UserStatsCards";
@@ -38,6 +39,11 @@ export default async function UserDashboard({
     },
     include: {
       user: true,
+      organization: {
+        select: {
+          createdAt: true,
+        },
+      },
     },
   });
 
@@ -53,6 +59,9 @@ export default async function UserDashboard({
   );
 
   const activeWindow = await getActiveWindowWithMenu(member.organizationId);
+
+  const months = generateMonthsFromDate(member.organization.createdAt);
+  const periodLabel = getPeriodLabel(period, months);
 
   return (
     <div className='space-y-6 px-4'>
@@ -71,13 +80,13 @@ export default async function UserDashboard({
 
         <PeriodPicker
           period={params.period}
-          startDate={member.createdAt}
+          startDate={member.organization.createdAt}
           basePath='/dashboard'
         />
       </div>
 
       <DashboardSSE />
-      <UserStatsCards stats={data.stats} />
+      <UserStatsCards stats={data.stats} periodLabel={periodLabel} />
       <div className='grid gap-3 lg:grid-cols-2'>
         <UserRankCard rank={data.rank} />
         <RecentOrdersCard orders={data.recentOrders} />

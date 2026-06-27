@@ -6,19 +6,35 @@ type DashboardStatsProps = {
     totalOrders: number;
     approvedOrders: number;
     avgOrderValue: number;
+    allTimeRevenue: number;
+    todayRevenue: number | null;
   };
+  periodLabel: string;
 };
 
-export function DashboardStats({ stats }: DashboardStatsProps) {
+export function DashboardStats({ stats, periodLabel }: DashboardStatsProps) {
   const statsConfig = [
     {
-      title: "Total Revenue",
+      title: "Today's Revenue",
+      value: stats.todayRevenue !== null ? `₹${stats.todayRevenue.toFixed(2)}` : "₹0.00",
+      color: "from-amber-500 to-amber-600",
+      gradient: "via-amber-400",
+    },
+    {
+      title: `${periodLabel} Revenue`,
       value: `₹${stats.totalRevenue.toFixed(2)}`,
       color: "from-emerald-500 to-emerald-600",
       gradient: "via-emerald-400",
     },
     {
-      title: "Total Orders",
+      title: "All Time Revenue",
+      value: `₹${stats.allTimeRevenue.toFixed(2)}`,
+      color: "from-orange-500 to-orange-600",
+      gradient: "via-orange-400",
+    },
+
+    {
+      title: `${periodLabel} Orders`,
       value: stats.totalOrders,
       color: "from-blue-500 to-blue-600",
       gradient: "via-blue-400",
@@ -38,7 +54,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
   ];
 
   return (
-    <div className='grid gap-2 md:grid-cols-2 lg:grid-cols-4'>
+    <div className='grid gap-2 md:grid-cols-2 lg:grid-cols-3'>
       {statsConfig.map((stat, idx) => {
         return (
           <Card

@@ -46,37 +46,45 @@ export function groupMonthsByYear(
   );
 }
 
+export function getActivePeriod(period: string | undefined): string {
+  return period || format(new Date(), "yyyy-MM");
+}
+
 export function getPeriodLabel(
   period: string | undefined,
   months: MonthOption[],
 ): string {
-  if (!period || period === "all") {
+  if (period === "all") {
     return "All Time";
   }
 
-  if (period.length === 4 && /^\d{4}$/.test(period)) {
-    return period;
+  const activePeriod = getActivePeriod(period);
+
+  if (activePeriod.length === 4 && /^\d{4}$/.test(activePeriod)) {
+    return activePeriod;
   }
 
-  if (period.length === 7 && /^\d{4}-\d{2}$/.test(period)) {
-    const month = months.find((m) => m.value === period);
+  if (activePeriod.length === 7 && /^\d{4}-\d{2}$/.test(activePeriod)) {
+    const month = months.find((m) => m.value === activePeriod);
     if (month) {
-      return `${month.label} ${period.split("-")[0]}`;
+      return `${month.label} ${activePeriod.split("-")[0]}`;
     }
-    return period;
+    return activePeriod;
   }
 
   return "Select period";
 }
 
 export function isAllTimeView(period: string | undefined): boolean {
-  return !period || period === "all";
+  return period === "all";
 }
 
 export function isYearView(period: string | undefined): boolean {
-  return period ? period.length === 4 && /^\d{4}$/.test(period) : false;
+  const activePeriod = getActivePeriod(period);
+  return activePeriod.length === 4 && /^\d{4}$/.test(activePeriod);
 }
 
 export function isMonthView(period: string | undefined): boolean {
-  return period ? period.length === 7 && /^\d{4}-\d{2}$/.test(period) : false;
+  const activePeriod = getActivePeriod(period);
+  return activePeriod.length === 7 && /^\d{4}-\d{2}$/.test(activePeriod);
 }

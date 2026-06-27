@@ -6,20 +6,34 @@ type UserStatsCardsProps = {
     totalSpent: number;
     averageOrderValue: number;
     currentRank: number | null;
+    allTimeSpent: number;
+    todaySpent: number | null;
   };
+  periodLabel: string;
 };
 
-export function UserStatsCards({ stats }: UserStatsCardsProps) {
+export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
   const statsConfig = [
     {
-      title: "Total Orders",
-      value: stats.totalOrders,
-      color: "from-blue-500 to-blue-600",
+      title: "Today's Spent",
+      value: stats.todaySpent !== null ? `₹${stats.todaySpent.toFixed(2)}` : "₹0.00",
+      color: "from-amber-500 to-amber-600",
     },
+
     {
-      title: "Total Spent",
+      title: `${periodLabel} Spent`,
       value: `₹${stats.totalSpent.toFixed(2)}`,
       color: "from-emerald-500 to-emerald-600",
+    },
+    {
+      title: "All Time Spent",
+      value: `₹${stats.allTimeSpent.toFixed(2)}`,
+      color: "from-orange-500 to-orange-600",
+    },
+    {
+      title: `${periodLabel} Orders`,
+      value: stats.totalOrders,
+      color: "from-blue-500 to-blue-600",
     },
     {
       title: "Average Order Value",
@@ -29,12 +43,12 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
     {
       title: "Current Rank In Your Org.",
       value: stats.currentRank ? `#${stats.currentRank}` : "-",
-      color: "from-amber-500 to-amber-600",
+      color: "from-red-500 to-red-600",
     },
   ];
 
   return (
-    <div className='grid gap-2 md:grid-cols-2 lg:grid-cols-4'>
+    <div className='grid gap-2 md:grid-cols-2 lg:grid-cols-3'>
       {statsConfig.map((stat, idx) => (
         <Card
           key={idx}

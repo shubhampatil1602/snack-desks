@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
-import { Plus, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,19 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -52,12 +40,12 @@ export function AddLateOrderDialog({
   menuItems,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [comboboxOpen, setComboboxOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [eligibleUsers, setEligibleUsers] = useState<EligibleUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
 
   const router = useRouter();
 
@@ -83,7 +71,7 @@ export function AddLateOrderDialog({
       setIsLoadingUsers(true);
     } else {
       setSelectedUserId("");
-      setComboboxOpen(false);
+      setUserSearch("");
     }
   }
 
@@ -106,7 +94,13 @@ export function AddLateOrderDialog({
     });
   }
 
+  const filteredUsers = eligibleUsers.filter(
+    (u) =>
+      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.email.toLowerCase().includes(userSearch.toLowerCase())
+  );
   const selectedUser = eligibleUsers.find((u) => u.id === selectedUserId);
+
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -142,52 +136,68 @@ export function AddLateOrderDialog({
                   All users have placed an order for this window.
                 </div>
               ) : (
-                <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant='outline'
-                      role='combobox'
-                      aria-expanded={comboboxOpen}
-                      className='w-full justify-between font-normal'
-                      disabled={pending}
-                    >
-                      {selectedUser
-                        ? `${selectedUser.name} (${selectedUser.email})`
-                        : "Search for a user..."}
-                      <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className='w-[400px] p-0' align='start'>
-                    <Command>
-                      <CommandInput placeholder='Search users...' />
-                      <CommandList>
-                        <CommandEmpty>No users found.</CommandEmpty>
-                        <CommandGroup>
-                          {eligibleUsers.map((user) => (
-                            <CommandItem
-                              key={user.id}
-                              value={`${user.name} ${user.email}`}
-                              onSelect={() => {
-                                setSelectedUserId(user.id);
-                                setComboboxOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedUserId === user.id
-                                    ? "opacity-100"
-                                    : "opacity-0",
-                                )}
-                              />
-                              {user.name} ({user.email})
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Search for a user by name or email..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    disabled={pending}
+                  />
+
+                  {selectedUser && !userSearch.trim() && (
+                    <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                      <div className="text-sm truncate mr-4">
+                        <span className="font-medium text-foreground">{selectedUser.name}</span>{" "}
+                        <span className="text-muted-foreground">({selectedUser.email})</span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground" 
+                        onClick={() => setSelectedUserId("")}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {userSearch.trim() && (
+                    <div className="border divide-y max-h-48 overflow-y-auto mt-2">
+                      {filteredUsers.length === 0 ? (
+                        <div className="p-3 text-sm text-muted-foreground text-center">
+                          No users found.
+                        </div>
+                      ) : (
+                        filteredUsers.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            className={cn(
+                              "w-full flex items-center justify-between p-3 text-left hover:bg-muted text-sm",
+                              selectedUserId === user.id
+                                ? "bg-muted font-medium"
+                                : ""
+                            )}
+                            onClick={() => {
+                              setSelectedUserId(user.id);
+                              setUserSearch("");
+                            }}
+                          >
+                            <div className="flex-1 truncate">
+                              <span>{user.name}</span>{" "}
+                              <span className="text-muted-foreground text-xs font-normal">
+                                ({user.email})
+                              </span>
+                            </div>
+                            {selectedUserId === user.id && (
+                              <Check className="h-4 w-4 text-primary shrink-0 ml-2" />
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </OrderItemsForm>
