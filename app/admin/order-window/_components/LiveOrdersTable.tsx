@@ -82,7 +82,19 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
         <TableBody>
           {orders.map((order) => (
             <TableRow key={order.id}>
-              <TableCell className='font-medium'>{order.user.name}</TableCell>
+              <TableCell className='font-medium'>
+                <div className='flex items-center gap-2'>
+                  <span>{order.user.name}</span>
+                  {order.createdByAdmin && (
+                    <Badge
+                      variant='outline'
+                      className='text-[10px] border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-950/20 rounded-full py-0 px-1.5'
+                    >
+                      Late Order
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
 
               <TableCell>
                 <div className='space-y-2'>

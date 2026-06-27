@@ -41,6 +41,7 @@ import { SpinWheelButton } from "./SpinWheelButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { markAsPaidAction } from "@/actions/spin-wheel";
+import { AddLateOrderDialog } from "./AddLateOrderDialog";
 
 type AdminWindowHistoryProps = {
   windows: AdminWindowHistoryType;
@@ -252,30 +253,31 @@ export function AdminWindowHistory({
                       className='flex items-center gap-2 cursor-pointer'
                       onClick={() => toggleWindow(window.id)}
                     >
-                      <span className='text-sm font-medium'>
-                        {new Date(window.createdAt).toLocaleDateString(
-                          "en-IN",
-                          {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          },
-                        )}
-                      </span>
+                      <div className='ml-3 flex flex-col'>
+                        <span className='text-sm font-medium'>
+                          {new Date(window.createdAt).toLocaleDateString(
+                            "en-IN",
+                            {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            },
+                          )}
+                        </span>
+                        <Badge className='text-[10px] text-muted-foreground text-left'>
+                          {new Date(window.createdAt).toLocaleTimeString(
+                            "en-IN",
+                            {
+                              hour: "numeric",
+                              minute: "numeric",
+                              hour12: true,
+                            },
+                          )}
+                        </Badge>
+                      </div>
                       <span className='text-muted-foreground text-xs'>·</span>
                       <span className='text-sm font-medium line-clamp-1'>
-                        {window.label} Window
-                      </span>
-                      <span className='text-muted-foreground text-xs'>·</span>
-                      <span className='text-xs text-muted-foreground'>
-                        {new Date(window.createdAt).toLocaleTimeString(
-                          "en-IN",
-                          {
-                            hour: "numeric",
-                            minute: "numeric",
-                            hour12: true,
-                          },
-                        )}
+                        {window.label}
                       </span>
                       <span className='text-muted-foreground text-xs'>·</span>
                       {window.paid ? (
@@ -305,6 +307,11 @@ export function AdminWindowHistory({
                     />
                     <OrderWindowSummaryDialog window={window} />
                     <OrderWindowUserSummaryDialog window={window} />
+                    <AddLateOrderDialog
+                      windowId={window.id}
+                      windowLabel={window.label}
+                      menuItems={menuItems}
+                    />
                     <DeleteOrderWindowButton
                       windowId={window.id}
                       windowLabel={window.label}
@@ -395,6 +402,14 @@ export function AdminWindowHistory({
                                 >
                                   <div className='flex items-center gap-2'>
                                     <span>{order.user.name}</span>
+                                    {order.createdByAdmin && (
+                                      <Badge
+                                        variant='outline'
+                                        className='text-[10px] border-cyan-500 text-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 rounded-full py-0 px-1.5'
+                                      >
+                                        Late Order
+                                      </Badge>
+                                    )}
                                     {hasReplacements ? (
                                       <Badge
                                         variant='outline'

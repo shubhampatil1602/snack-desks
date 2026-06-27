@@ -8,17 +8,17 @@ datasource db {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  role          String    @default("user")
-  members       Member[]
+  id                  String      @id
+  name                String
+  email               String
+  emailVerified       Boolean     @default(false)
+  image               String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  sessions            Session[]
+  accounts            Account[]
+  role                String      @default("user")
+  members             Member[]
   orders              Order[]
   appliedReplacements OrderItem[] @relation("ReplacementAppliedBy")
 
@@ -26,6 +26,7 @@ model User {
   passwordResetExpiry DateTime?
 
   wonWindows OrderWindow[] @relation("OrderWindowWinner")
+  adminCreatedOrders Order[] @relation("AdminCreatedOrders")
 
   @@unique([email])
   @@map("user")
@@ -164,10 +165,13 @@ model Order {
   status       String // "pending" | "approved" | "rejected" | "cancelled"
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+  createdByAdmin  Boolean   @default(false)
+  createdByUserId String?
   items        OrderItem[]
   orderWindow  OrderWindow  @relation(fields: [windowId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  adminUser    User?        @relation("AdminCreatedOrders", fields: [createdByUserId], references: [id])
 
   @@index([userId])
   @@index([windowId])
@@ -190,18 +194,18 @@ model OrderItem {
   menuItem  MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
 
   // Replacement metadata
-  replacementApplied      Boolean                 @default(false)
-  replacementAppliedAt    DateTime?
-  replacementAppliedById  String?
-  replacementAppliedBy    User?                   @relation("ReplacementAppliedBy", fields: [replacementAppliedById], references: [id])
+  replacementApplied     Boolean   @default(false)
+  replacementAppliedAt   DateTime?
+  replacementAppliedById String?
+  replacementAppliedBy   User?     @relation("ReplacementAppliedBy", fields: [replacementAppliedById], references: [id])
 
   // Self-relations for replacements
-  originalOrderItemId     String?
-  originalOrderItem       OrderItem?              @relation("ReplacementItems", fields: [originalOrderItemId], references: [id], onDelete: Cascade)
-  replacementItems        OrderItem[]             @relation("ReplacementItems")
+  originalOrderItemId String?
+  originalOrderItem   OrderItem?  @relation("ReplacementItems", fields: [originalOrderItemId], references: [id], onDelete: Cascade)
+  replacementItems    OrderItem[] @relation("ReplacementItems")
 
   // Configured preferences
-  replacementPreferences  OrderItemReplacement[]
+  replacementPreferences OrderItemReplacement[]
 
   @@index([orderId])
   @@index([menuItemId])
@@ -209,14 +213,14 @@ model OrderItem {
 }
 
 model OrderItemReplacement {
-  id          String    @id
+  id          String   @id
   orderItemId String
   menuItemId  String
   quantity    Int
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
-  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  menuItem  MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
 
   @@index([orderItemId])
   @@index([menuItemId])
@@ -236,11 +240,11 @@ model MenuItem {
 
   orderItems             OrderItem[]
   replacementPreferences OrderItemReplacement[]
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  menuCategory   MenuCategory @relation(fields: [menuCategoryId], references: [id])
-  menuCategoryId String
-  shop           Shop?        @relation(fields: [shopId], references: [id])
-  shopId         String?
+  organization           Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  menuCategory           MenuCategory           @relation(fields: [menuCategoryId], references: [id])
+  menuCategoryId         String
+  shop                   Shop?                  @relation(fields: [shopId], references: [id])
+  shopId                 String?
 
   @@unique([organizationId, name])
   @@index([organizationId])

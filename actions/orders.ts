@@ -60,6 +60,7 @@ export async function placeOrderAction(
     return { success: false, error: "Order window has expired" };
   }
 
+
   // check if user already has an order in this window
   const existingOrder = await prisma.order.findFirst({
     where: {
@@ -97,28 +98,7 @@ export async function placeOrderAction(
       },
     });
 
-    for (const item of items) {
-      const orderItemId = nanoid();
-      await tx.orderItem.create({
-        data: {
-          id: orderItemId,
-          orderId: newOrder.id,
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-        },
-      });
-
-      if (item.replacements && item.replacements.length > 0) {
-        await tx.orderItemReplacement.createMany({
-          data: item.replacements.map((rep) => ({
-            id: nanoid(),
-            orderItemId,
-            menuItemId: rep.menuItemId,
-            quantity: rep.quantity,
-          })),
-        });
-      }
-    }
+    await createOrderItems(tx, newOrder.id, items);
 
     return newOrder;
   });
@@ -185,7 +165,8 @@ export async function updateOrderAction(
   if (hasReplacedItems) {
     return {
       success: false,
-      error: "Order has already been processed with replacements and cannot be modified",
+      error:
+        "Order has already been processed with replacements and cannot be modified",
     };
   }
 
@@ -202,28 +183,7 @@ export async function updateOrderAction(
     // Delete many cascades and automatically deletes orderItemReplacements
     await tx.orderItem.deleteMany({ where: { orderId } });
 
-    for (const item of items) {
-      const orderItemId = nanoid();
-      await tx.orderItem.create({
-        data: {
-          id: orderItemId,
-          orderId,
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-        },
-      });
-
-      if (item.replacements && item.replacements.length > 0) {
-        await tx.orderItemReplacement.createMany({
-          data: item.replacements.map((rep) => ({
-            id: nanoid(),
-            orderItemId,
-            menuItemId: rep.menuItemId,
-            quantity: rep.quantity,
-          })),
-        });
-      }
-    }
+    await createOrderItems(tx, orderId, items);
 
     await tx.order.update({
       where: { id: orderId },
@@ -607,3 +567,163 @@ export async function getActiveMenuItemsAction() {
     })),
   };
 }
+
+const createLateOrderSchema = z.object({
+  windowId: z.string().min(1),
+  userId: z.string().min(1),
+  items: z.array(orderItemSchema).min(1, "Add at least one item"),
+});
+
+export type CreateLateOrderInput = z.infer<typeof createLateOrderSchema>;
+
+export async function createLateOrderAction(
+  input: CreateLateOrderInput,
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const parsed = createLateOrderSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.message };
+  }
+
+  const { windowId, userId, items } = parsed.data;
+
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  // check if user already has an order in this window
+  const existingOrder = await prisma.order.findFirst({
+    where: {
+      windowId,
+      userId: userId,
+      status: { not: "cancelled" },
+    },
+  });
+
+  if (existingOrder) {
+    return {
+      success: false,
+      error: "User already has an order for this window.",
+    };
+  }
+
+  // create order + items in a transaction
+  const order = await prisma.$transaction(async (tx) => {
+    const newOrder = await tx.order.create({
+      data: {
+        id: nanoid(),
+        organizationId: member.organizationId,
+        userId: userId,
+        windowId,
+        status: "approved", // auto-approve late orders by admin
+        updatedAt: new Date(),
+        createdByAdmin: true,
+        createdByUserId: session.user.id,
+      },
+    });
+
+    await createOrderItems(tx, newOrder.id, items);
+
+    return newOrder;
+  });
+
+  await notify({
+    type: "order_placed",
+    orgId: member.organizationId,
+    payload: {
+      orderId: order.id,
+      userId: userId,
+      userName: "Late Order (Admin)",
+    },
+  });
+
+  revalidatePath("/admin/order-window");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/history");
+  return { success: true, orderId: order.id };
+}
+
+export async function getEligibleUsersForLateOrderAction(windowId: string) {
+  const { session } = await requireAdmin();
+
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  const members = await prisma.member.findMany({
+    where: {
+      organizationId: member.organizationId,
+      role: "member", // exclude admins and owners
+      user: {
+        orders: {
+          none: {
+            windowId,
+            status: {
+              not: "cancelled",
+            },
+          },
+        },
+      },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      user: {
+        name: "asc",
+      },
+    },
+  });
+
+  return { success: true, users: members.map((m) => m.user) };
+}
+
+// Helper to DRY order item creation
+async function createOrderItems(
+  tx: any,
+  orderId: string,
+  items: {
+    menuItemId: string;
+    quantity: number;
+    replacements?: { menuItemId: string; quantity: number }[];
+  }[],
+) {
+  for (const item of items) {
+    const orderItemId = nanoid();
+    await tx.orderItem.create({
+      data: {
+        id: orderItemId,
+        orderId,
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+      },
+    });
+
+    if (item.replacements && item.replacements.length > 0) {
+      await tx.orderItemReplacement.createMany({
+        data: item.replacements.map((rep) => ({
+          id: nanoid(),
+          orderItemId,
+          menuItemId: rep.menuItemId,
+          quantity: rep.quantity,
+        })),
+      });
+    }
+  }
+}
+
