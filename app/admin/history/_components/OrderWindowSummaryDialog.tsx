@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatCurrency } from "@/lib/utils";
 import { Copy, FileText, Check } from "lucide-react";
 
 import {
@@ -203,7 +204,7 @@ export function OrderWindowSummaryDialog({
       .map(([name, value]) => `  ${name} × ${value.quantity}`)
       .join("\n");
 
-    return `${header}\n\nTotal: ₹${total.toFixed(2)}\n\nItem Breakdown:\n${items}`;
+    return `${header}\n\nTotal: ${formatCurrency(total)}\n\nItem Breakdown:\n${items}`;
   }
 
   // Format combined summary with shop grouping and bold formatting
@@ -214,14 +215,14 @@ export function OrderWindowSummaryDialog({
     total: number,
   ) {
     let text = `${title} (${date})\n\n`;
-    text += `Total: ₹${total.toFixed(2)}\n\n`;
+    text += `Total: ${formatCurrency(total)}\n\n`;
     text += "Item Breakdown:\n";
 
     for (const shop of shops) {
       const sortedItems = Array.from(shop.items.entries()).sort(
         (a, b) => b[1].quantity - a[1].quantity,
       );
-      text += `\n*${shop.shopName}* (₹${shop.total.toFixed(2)})\n`;
+      text += `\n*${shop.shopName}* (${formatCurrency(shop.total)})\n`;
       text += sortedItems
         .map(([name, value]) => `  ${name} × ${value.quantity}`)
         .join("\n");
@@ -312,7 +313,7 @@ export function OrderWindowSummaryDialog({
             <div className='col-span-2'>
               <p className='text-xs text-muted-foreground'>Total</p>
               <p className='text-xl font-semibold'>
-                ₹{currentData.total.toFixed(2)}
+                {formatCurrency(currentData.total)}
               </p>
             </div>
             <div className='col-span-1 text-center'>
@@ -377,7 +378,7 @@ export function OrderWindowSummaryDialog({
                       {shop.shopName}
                     </Badge>
                     <Badge className='bg-primary/10 text-primary border-0 px-1.5 py-0.5 text-xs font-medium'>
-                      ₹{shop.total.toFixed(2)}
+                      {formatCurrency(shop.total)}
                     </Badge>
                   </div>
                   {Array.from(shop.items.entries())
@@ -391,7 +392,7 @@ export function OrderWindowSummaryDialog({
                           {name} × {value.quantity}
                         </span>
                         <span className='font-medium'>
-                          ₹{value.total.toFixed(2)}
+                          {formatCurrency(value.total)}
                         </span>
                       </div>
                     ))}
@@ -408,13 +409,13 @@ export function OrderWindowSummaryDialog({
                       {name} × {value.quantity}
                     </span>
                     <span className='font-medium'>
-                      ₹{value.total.toFixed(2)}
+                      {formatCurrency(value.total)}
                     </span>
                   </div>
                 ))}
                 <div className='flex justify-between text-sm font-semibold pt-2 border-t'>
                   <span>Total</span>
-                  <span>₹{currentData.total.toFixed(2)}</span>
+                  <span>{formatCurrency(currentData.total)}</span>
                 </div>
               </>
             ) : (

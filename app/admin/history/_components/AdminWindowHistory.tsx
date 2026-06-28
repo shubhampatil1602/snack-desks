@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { formatCurrency } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Dot, Search } from "lucide-react";
 
 import {
@@ -334,7 +335,7 @@ export function AdminWindowHistory({
                           </TableHead>
                           <TableHead className='py-2 text-xs font-medium text-center'>
                             <div className='space-x-2'>
-                              <span> ₹{windowRevenue.toFixed(2)}</span>
+                              <span> {formatCurrency(windowRevenue)}</span>
                               <span className='text-muted-foreground text-xs'>
                                 ·
                               </span>
@@ -434,7 +435,7 @@ export function AdminWindowHistory({
                                 </TableCell>
 
                                 <TableCell className='py-2 text-sm text-center font-medium'>
-                                  ₹{total.toFixed(2)}
+                                  {formatCurrency(total)}
                                 </TableCell>
 
                                 <TableCell className='py-2'>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { formatCurrency } from "@/lib/utils";
 import { MenuGrid } from "./MenuGrid";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,8 @@ export function OrdersClient({
 
   const loadExistingOrder = useCartStore((state) => state.loadExistingOrder);
   const setWindowId = useCartStore((state) => state.setWindowId);
+  const hasPlacedOrder = useCartStore((state) => state.hasPlacedOrder);
+  const currentWindowId = useCartStore((state) => state.windowId);
 
   // Get unique shops from menu items (excluding null/undefined)
   const shops = useMemo(() => {
@@ -92,12 +95,18 @@ export function OrdersClient({
   const subtotal = useCartSubtotal();
 
   useEffect(() => {
+    if (currentWindowId !== null && currentWindowId !== windowId) {
+      clearCart();
+    }
     setWindowId(windowId);
-  }, [windowId, setWindowId]);
+  }, [windowId, currentWindowId, setWindowId, clearCart]);
 
   useEffect(() => {
     if (!existingOrder) {
-      clearCart();
+      // If local storage thinks we have an order but the server says no, clear it (e.g., admin deleted it)
+      if (hasPlacedOrder) {
+        clearCart();
+      }
       return;
     }
 
@@ -118,7 +127,7 @@ export function OrdersClient({
           })) || [],
       })),
     });
-  }, [existingOrder, loadExistingOrder, clearCart]);
+  }, [existingOrder, loadExistingOrder, clearCart, hasPlacedOrder]);
 
   // Clear all filters
   const clearFilters = () => {
@@ -143,7 +152,7 @@ export function OrdersClient({
           <span className='text-xs text-muted-foreground mr-2'>
             Current Total
           </span>
-          <span className='font-medium'>₹{subtotal}</span>
+          <span className='font-medium'>{formatCurrency(subtotal)}</span>
         </div>
       </div>
       {/* Search Bar */}

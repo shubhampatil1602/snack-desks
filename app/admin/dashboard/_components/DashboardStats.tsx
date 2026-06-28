@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 
 type DashboardStatsProps = {
   stats: {
@@ -18,20 +19,20 @@ export function DashboardStats({ stats, periodLabel }: DashboardStatsProps) {
       title: "Today's Revenue",
       value:
         stats.todayRevenue !== null
-          ? `₹${stats.todayRevenue.toFixed(2)}`
-          : "₹0.00",
+          ? `${formatCurrency(stats.todayRevenue)}`
+          : formatCurrency(0),
       color: "from-chart-1 to-chart-1/80",
       gradient: "via-chart-1/50",
     },
     {
       title: `${periodLabel} Revenue`,
-      value: `₹${stats.totalRevenue.toFixed(2)}`,
+      value: `${formatCurrency(stats.totalRevenue)}`,
       color: "from-chart-2 to-chart-2/80",
       gradient: "via-chart-2/50",
     },
     {
       title: "All Time Revenue",
-      value: `₹${stats.allTimeRevenue.toFixed(2)}`,
+      value: `${formatCurrency(stats.allTimeRevenue)}`,
       color: "from-chart-3 to-chart-3/80",
       gradient: "via-chart-3/50",
     },
@@ -50,7 +51,7 @@ export function DashboardStats({ stats, periodLabel }: DashboardStatsProps) {
     },
     {
       title: "Average Order Value",
-      value: `₹${stats.avgOrderValue.toFixed(2)}`,
+      value: `${formatCurrency(stats.avgOrderValue)}`,
       color: "from-primary to-primary/80",
       gradient: "via-primary/50",
     },

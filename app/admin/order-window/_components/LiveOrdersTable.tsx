@@ -1,6 +1,7 @@
 "use client";
 
 import type { LiveOrder } from "@/modules/orders/admin-queries";
+import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -65,7 +66,7 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
 
         <div>
           <p className='text-xs text-muted-foreground'>Bill</p>
-          <p className='text-xl font-semibold'>₹{bill}</p>
+          <p className='text-xl font-semibold'>{formatCurrency(bill)}</p>
         </div>
       </div>
       <Table>
@@ -118,7 +119,7 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
                           </span>
 
                           <Badge variant='secondary' className='text-[10px]'>
-                            (₹{item.menuItem.price} each)
+                            ({formatCurrency(item.menuItem.price)} each)
                           </Badge>
 
                           {hasReplacements && !isReplaced && (
@@ -153,7 +154,7 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
                 </div>
               </TableCell>
 
-              <TableCell>₹{order.total}</TableCell>
+              <TableCell>{formatCurrency(order.total)}</TableCell>
 
               <TableCell>
                 <Badge variant={getStatusVariant(order.status)}>

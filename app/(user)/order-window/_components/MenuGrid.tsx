@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 import { useCartStore } from "@/store/cart-store";
 import Image from "next/image";
 import {
@@ -125,7 +126,7 @@ export function MenuGrid({ items }: MenuGridProps) {
             {/* Bottom Action Strip */}
             <div className='p-2 shrink-0 border-t bg-card flex items-center justify-between gap-2'>
               <div className='font-semibold text-sm'>
-                ₹{item.price}
+                {formatCurrency(item.price)}
                 {item.unit && (
                   <span className='text-muted-foreground font-normal text-xs ml-0.5'>
                     / {item.unit}

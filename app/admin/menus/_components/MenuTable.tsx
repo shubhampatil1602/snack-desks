@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatCurrency } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -155,7 +156,7 @@ export function MenuTable({ data, categories, shops }: MenuTableProps) {
               pagination.paginatedData.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className='font-medium'>{item.name}</TableCell>
-                  <TableCell>₹{Number(item.price).toFixed(2)}</TableCell>
+                  <TableCell>{formatCurrency(item.price)}</TableCell>
                   <TableCell>
                     <Badge variant='secondary'>{item.unit}</Badge>
                   </TableCell>

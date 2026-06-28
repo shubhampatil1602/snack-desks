@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Package, IndianRupee } from "lucide-react";
 import Link from "next/link";
@@ -103,7 +104,7 @@ export function RecentWindowsCard({ windows }: RecentWindowsCardProps) {
                   <div className='flex items-center gap-1 justify-end'>
                     <IndianRupee className='h-3 w-3 text-muted-foreground' />
                     <p className='font-semibold'>
-                      ₹{window.revenue.toFixed(2)}
+                      {formatCurrency(window.revenue)}
                     </p>
                   </div>
 

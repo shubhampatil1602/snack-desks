@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 
 type UserStatsCardsProps = {
   stats: {
@@ -17,18 +18,18 @@ export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
     {
       title: "Today's Spent",
       value:
-        stats.todaySpent !== null ? `₹${stats.todaySpent.toFixed(2)}` : "₹0.00",
+        stats.todaySpent !== null ? `${formatCurrency(stats.todaySpent)}` : formatCurrency(0),
       color: "from-amber-500 to-amber-600",
     },
 
     {
       title: `${periodLabel} Spent`,
-      value: `₹${stats.totalSpent.toFixed(2)}`,
+      value: `${formatCurrency(stats.totalSpent)}`,
       color: "from-chart-2 to-chart-2/80",
     },
     {
       title: "All Time Spent",
-      value: `₹${stats.allTimeSpent.toFixed(2)}`,
+      value: `${formatCurrency(stats.allTimeSpent)}`,
       color: "from-orange-500 to-orange-600",
     },
     {
@@ -38,7 +39,7 @@ export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
     },
     {
       title: "Average Order Value",
-      value: `₹${stats.averageOrderValue.toFixed(2)}`,
+      value: `${formatCurrency(stats.averageOrderValue)}`,
       color: "from-chart-3 to-chart-3/80",
     },
     {

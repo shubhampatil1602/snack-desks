@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 
 type TopEmployee = {
   userId: string;
@@ -100,7 +101,7 @@ export function TopEmployeesCard({ employees }: TopEmployeesCardProps) {
                       <p className='text-xs'>
                         All time:{" "}
                         <span className='font-semibold pl-1'>
-                          ₹{emp.spent.toFixed(0)}
+                          {formatCurrency(emp.spent)}
                         </span>
                       </p>
                     </div>

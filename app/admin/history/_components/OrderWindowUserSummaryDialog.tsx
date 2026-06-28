@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatCurrency } from "@/lib/utils";
 import { Copy, Users, Check } from "lucide-react";
 
 import {
@@ -83,9 +84,9 @@ export function OrderWindowUserSummaryDialog({
 
     const text = `${window.label} Window (${date})
 
-Total Bill: ₹${total.toFixed(2)}
+Total Bill: ${formatCurrency(total)}
 ${userBreakdown
-  .map((user) => `  ${user.name} - ₹${user.total.toFixed(2)}`)
+  .map((user) => `  ${user.name} - ${formatCurrency(user.total)}`)
   .join("\n")}`;
 
     try {
@@ -129,7 +130,7 @@ ${userBreakdown
               <p className='text-xs text-muted-foreground'>
                 Total bill to split
               </p>
-              <p className='text-xl font-semibold'>₹{total.toFixed(2)}</p>
+              <p className='text-xl font-semibold'>{formatCurrency(total)}</p>
             </div>
 
             <div className='col-span-1 text-center'>
@@ -189,7 +190,7 @@ ${userBreakdown
                       {user.name}
                     </span>
                     <span className='font-medium'>
-                      ₹{user.total.toFixed(2)}
+                      {formatCurrency(user.total)}
                     </span>
                   </div>
                 ))}
@@ -204,7 +205,7 @@ ${userBreakdown
             {userBreakdown.length > 0 && (
               <div className='flex justify-between text-sm font-medium pt-2 border-t'>
                 <span>Total Bill</span>
-                <span>₹{total.toFixed(2)}</span>
+                <span>{formatCurrency(total)}</span>
               </div>
             )}
           </div>

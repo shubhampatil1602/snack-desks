@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatCurrency } from "@/lib/utils";
 import { Trophy, ArrowRight } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,7 +76,7 @@ export function UserRankCard({ rank }: UserRankCardProps) {
                   <div>
                     <p className='text-sm text-muted-foreground'>Total Spent</p>
                     <p className='text-xl font-bold'>
-                      ₹{rank.spent.toFixed(2)}
+                      {formatCurrency(rank.spent)}
                     </p>
                   </div>
 

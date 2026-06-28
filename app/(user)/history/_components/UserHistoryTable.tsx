@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { formatCurrency } from "@/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import {
@@ -165,7 +166,7 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                     </TableCell>
 
                     <TableCell className='px-3 py-0.5'>
-                      ₹{total.toFixed(2)}
+                      {formatCurrency(total)}
                     </TableCell>
 
                     <TableCell className='px-3 py-0.5'>

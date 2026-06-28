@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatCurrency } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MenuItem } from "@/types/menu";
@@ -114,7 +115,7 @@ export function OrderItemsForm({
                   type="button"
                 >
                   <span>{item.name}</span>
-                  <span>₹{item.price.toString()}</span>
+                  <span>{formatCurrency(item.price)}</span>
                 </button>
               ))}
             </div>
@@ -129,7 +130,7 @@ export function OrderItemsForm({
             >
               <div>
                 <p className="font-medium text-sm">{item.name}</p>
-                <p className="text-xs text-muted-foreground">₹{item.price}</p>
+                <p className="text-xs text-muted-foreground">{formatCurrency(item.price)}</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -171,7 +172,7 @@ export function OrderItemsForm({
       <div className="p-6 border-t bg-card mt-auto space-y-4">
         <div className="flex items-center justify-between">
           <span className="font-medium">Total</span>
-          <span className="font-semibold text-lg">₹{total.toFixed(2)}</span>
+          <span className="font-semibold text-lg">{formatCurrency(total)}</span>
         </div>
 
         <div className="flex justify-end gap-2">

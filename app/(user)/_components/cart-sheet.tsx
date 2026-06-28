@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -267,7 +268,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                         </div>
                       </TableCell>
                       <TableCell className='text-right font-medium'>
-                        ₹{(Number(item.price) * item.quantity).toFixed(2)}
+                        {formatCurrency((Number(item.price) * item.quantity))}
                       </TableCell>
                       <TableCell className='text-center'>
                         <Button
@@ -291,7 +292,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           <div className='shrink-0 border-t'>
             <div className='flex items-center justify-between px-6 py-4'>
               <span className='text-lg font-semibold'>Subtotal</span>
-              <span className='text-lg font-semibold'>₹{subtotal}</span>
+              <span className='text-lg font-semibold'>{formatCurrency(subtotal)}</span>
             </div>
             <div className='px-3 pb-4'>
               {!hasPlacedOrder ? (
@@ -482,7 +483,7 @@ function ManageAlternativesDialog({
                   >
                     <span className='font-medium'>{menuItem.name}</span>
                     <span className='text-muted-foreground text-[10px]'>
-                      ₹{menuItem.price}
+                      {formatCurrency(menuItem.price)}
                     </span>
                   </button>
                 ))}
@@ -505,7 +506,7 @@ function ManageAlternativesDialog({
                     <div className='space-y-0.5'>
                       <span className='font-medium text-xs'>{rep.name}</span>
                       <span className='block text-muted-foreground text-[10px]'>
-                        ₹{rep.price} each
+                        {formatCurrency(rep.price)} each
                       </span>
                     </div>
 
@@ -556,7 +557,7 @@ function ManageAlternativesDialog({
                       </div>
 
                       <span className='font-semibold text-xs w-12 text-right'>
-                        ₹{(Number(rep.price) * rep.quantity).toFixed(2)}
+                        {formatCurrency((Number(rep.price) * rep.quantity))}
                       </span>
 
                       <Button

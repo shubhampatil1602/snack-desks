@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays } from "lucide-react";
 import Link from "next/link";
@@ -89,7 +90,7 @@ export function RecentOrdersCard({ orders }: RecentOrdersCardProps) {
                   </p>
                 </div>
 
-                <p className='font-semibold'>₹{order.total.toFixed(2)}</p>
+                <p className='font-semibold'>{formatCurrency(order.total)}</p>
               </div>
             </Link>
           ))}
