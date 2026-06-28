@@ -25,12 +25,12 @@ export function DummyDashboard() {
     },
     {
       title: "This Month Revenue",
-      value: "₹5231.89",
+      value: "₹5,231.89",
       color: "from-chart-2 to-chart-2/80",
     },
     {
       title: "All Time Revenue",
-      value: "₹12500.00",
+      value: "₹12,500.00",
       color: "from-chart-3 to-chart-3/80",
     },
     {
