@@ -19,10 +19,15 @@ import {
   getMonthLabels,
   PLATFORM_YEAR,
   STEP,
-} from "../_lib/get-heatmap-data";
+} from "@/lib/get-heatmap-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function SnackHeatmap({ data, joinedAt }: SnackHeatmapProps) {
+export function SnackHeatmap({
+  data,
+  joinedAt,
+  title = "Snack Streak",
+  description = "Your spending activity over time",
+}: SnackHeatmapProps) {
   const currentYear = new Date().getFullYear();
   const joinedYear = new Date(joinedAt).getFullYear();
   const startYear = Math.max(PLATFORM_YEAR, joinedYear);
@@ -64,9 +69,9 @@ export function SnackHeatmap({ data, joinedAt }: SnackHeatmapProps) {
       <div className=''>
         <CardHeader className='mb-3 flex items-start justify-between'>
           <div>
-            <CardTitle>Snack Streak</CardTitle>
+            <CardTitle>{title}</CardTitle>
             <p className='text-sm text-muted-foreground'>
-              Your spending activity over time
+              {description}
             </p>
           </div>
           {/* Year dropdown */}

@@ -17,6 +17,8 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.83",
+    "@ai-sdk/react": "^3.0.210",
     "@base-ui/react": "^1.5.0",
     "@hookform/resolvers": "^5.4.0",
     "@prisma/adapter-pg": "^7.8.0",
@@ -26,6 +28,7 @@
     "@tabler/icons-react": "^3.44.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "ai": "^6.0.208",
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.6.11",
     "canvas-confetti": "^1.9.4",
@@ -33,6 +36,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.2.1",
+    "date-fns-tz": "^3.2.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.16.0",

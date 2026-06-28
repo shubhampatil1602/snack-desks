@@ -16,7 +16,8 @@ export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
   const statsConfig = [
     {
       title: "Today's Spent",
-      value: stats.todaySpent !== null ? `₹${stats.todaySpent.toFixed(2)}` : "₹0.00",
+      value:
+        stats.todaySpent !== null ? `₹${stats.todaySpent.toFixed(2)}` : "₹0.00",
       color: "from-amber-500 to-amber-600",
     },
 
@@ -48,7 +49,7 @@ export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
   ];
 
   return (
-    <div className='grid gap-2 md:grid-cols-2 lg:grid-cols-3'>
+    <div className='grid gap-3 md:grid-cols-2 lg:grid-cols-3'>
       {statsConfig.map((stat, idx) => (
         <Card
           key={idx}

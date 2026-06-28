@@ -91,12 +91,7 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <Link href={"/profile"}>
-                <DropdownMenuItem>
-                  <IconUserCircle />
-                  Profile
-                </DropdownMenuItem>
-              </Link>
+
               <DropdownMenuItem>
                 <IconNotification />
                 Notifications

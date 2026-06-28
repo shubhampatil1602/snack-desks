@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/db";
-import { startOfMonth, startOfDay, endOfDay } from "date-fns";
+import {
+  parsePeriod,
+  getISTDateParts,
+  getISTDayBoundaries,
+  getISTMonthBoundaries,
+} from "@/lib/date-utils";
+import { getHeatmapData } from "@/lib/get-heatmap-data";
 
 export async function getUserDashboardData(
   organizationId: string,
@@ -7,24 +13,7 @@ export async function getUserDashboardData(
   period: string, // Can be "all" or "YYYY" or "YYYY-MM"
 ) {
   // Parse period - supports "all", "YYYY", and "YYYY-MM"
-  let startDate: Date | undefined;
-  let endDate: Date | undefined;
-
-  if (period === "all") {
-    // No date filters - get all time data
-    startDate = undefined;
-    endDate = undefined;
-  } else if (period.length === 4) {
-    // Year view: "2026"
-    const year = Number(period);
-    startDate = new Date(year, 0, 1);
-    endDate = new Date(year, 11, 31, 23, 59, 59);
-  } else {
-    // Month view: "2026-06"
-    const [year, month] = period.split("-");
-    startDate = new Date(Number(year), Number(month) - 1, 1);
-    endDate = new Date(Number(year), Number(month), 0, 23, 59, 59);
-  }
+  const { startDate, endDate } = parsePeriod(period);
 
   // Build where clause with optional date filter
   const dateFilter =
@@ -237,10 +226,8 @@ export async function getUserDashboardData(
   // Time-based Spent
   // =========================
 
-  const now = new Date();
-  const monthStart = startOfMonth(now);
-  const dayStart = startOfDay(now);
-  const dayEnd = endOfDay(now);
+  const { dayStart, dayEnd } = getISTDayBoundaries();
+  const { monthStart } = getISTMonthBoundaries();
 
   const currentMonthOrders = await prisma.order.findMany({
     where: {
@@ -268,13 +255,15 @@ export async function getUserDashboardData(
   });
 
   let includesToday = false;
+  const { year: currentYear, month: currentMonth } = getISTDateParts();
+  
   if (period === "all") {
     includesToday = true;
   } else if (period.length === 4) {
-    includesToday = Number(period) === now.getFullYear();
+    includesToday = Number(period) === currentYear;
   } else if (period.length === 7) {
     const [year, month] = period.split("-");
-    includesToday = Number(year) === now.getFullYear() && Number(month) === now.getMonth() + 1;
+    includesToday = Number(year) === currentYear && Number(month) === currentMonth + 1;
   }
 
   const allTimeOrders = await prisma.order.findMany({
@@ -284,6 +273,7 @@ export async function getUserDashboardData(
       status: "approved",
     },
     select: {
+      createdAt: true,
       items: {
         select: {
           quantity: true,
@@ -293,6 +283,15 @@ export async function getUserDashboardData(
           },
         },
       },
+    },
+  });
+
+  const heatmapData = getHeatmapData(allTimeOrders as any);
+
+  const splitMasterWins = await prisma.orderWindow.count({
+    where: {
+      organizationId,
+      winnerUserId: userId,
     },
   });
 
@@ -346,6 +345,9 @@ export async function getUserDashboardData(
     recentOrders,
 
     favoriteItems,
+
+    heatmapData,
+    splitMasterWins,
   };
 }
 

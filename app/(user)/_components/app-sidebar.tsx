@@ -7,7 +7,6 @@ import {
   IconSettings,
   IconChartBar,
   IconHistory,
-  IconUser,
 } from "@tabler/icons-react";
 
 import { NavMain } from "./nav-main";
@@ -48,11 +47,6 @@ const data = {
       title: "History",
       url: "/history",
       icon: IconHistory,
-    },
-    {
-      title: "Profile",
-      url: "/profile",
-      icon: IconUser,
     },
   ],
   navSecondary: [

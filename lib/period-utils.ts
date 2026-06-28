@@ -1,4 +1,5 @@
-import { format, subMonths, startOfMonth } from "date-fns";
+import { format, subMonths } from "date-fns";
+import { getISTDateParts } from "./date-utils";
 
 export interface MonthOption {
   value: string;
@@ -9,9 +10,11 @@ export interface MonthOption {
 
 export function generateMonthsFromDate(startDate: Date): MonthOption[] {
   const months: MonthOption[] = [];
-  const now = new Date();
-  const start = startOfMonth(startDate);
-  const current = startOfMonth(now);
+  
+  const { year, month } = getISTDateParts();
+  const current = new Date(year, month, 1);
+  const { year: startY, month: startM } = getISTDateParts(startDate);
+  const start = new Date(startY, startM, 1);
 
   let date = current;
   while (date >= start) {
@@ -47,7 +50,9 @@ export function groupMonthsByYear(
 }
 
 export function getActivePeriod(period: string | undefined): string {
-  return period || format(new Date(), "yyyy-MM");
+  if (period) return period;
+  const { year, month } = getISTDateParts();
+  return `${year}-${String(month + 1).padStart(2, "0")}`;
 }
 
 export function getPeriodLabel(

@@ -1,5 +1,6 @@
 import { closeWindowInternal } from "@/actions/order-window";
 import { prisma } from "@/lib/db";
+import { getISTDayBoundaries } from "@/lib/date-utils";
 
 export async function getActiveWindow(organizationId: string) {
   const window = await prisma.orderWindow.findFirst({
@@ -19,13 +20,12 @@ export async function getActiveWindow(organizationId: string) {
 }
 
 export async function getTodaysWindows(organizationId: string) {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  const { dayStart } = getISTDayBoundaries();
 
   return await prisma.orderWindow.findMany({
     where: {
       organizationId,
-      createdAt: { gte: startOfDay },
+      createdAt: { gte: dayStart },
     },
     include: {
       _count: { select: { orders: true } },

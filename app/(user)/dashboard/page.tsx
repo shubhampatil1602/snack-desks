@@ -1,14 +1,19 @@
 import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { getUserDashboardData } from "@/modules/user-dashboard/queries";
-import { format } from "date-fns";
-import { getPeriodLabel, generateMonthsFromDate } from "@/lib/period-utils";
+import {
+  getPeriodLabel,
+  generateMonthsFromDate,
+  getActivePeriod,
+} from "@/lib/period-utils";
 import { PeriodPicker } from "@/components/period-picker";
 
 import { UserStatsCards } from "./_components/UserStatsCards";
 import { UserRankCard } from "./_components/UserRankCard";
 import { RecentOrdersCard } from "./_components/RecentOrdersCard";
 import { FavoriteItemsCard } from "./_components/FavoriteItemsCard";
+import { ProfileHeader } from "./_components/ProfileHeader";
+import { SnackHeatmap } from "@/components/SnackHeatMap";
 import { DashboardSSE } from "@/app/admin/dashboard/_components/DashboardSSE";
 import { redirect } from "next/navigation";
 import { getActiveWindowWithMenu } from "@/modules/orders/queries";
@@ -41,6 +46,7 @@ export default async function UserDashboard({
       user: true,
       organization: {
         select: {
+          name: true,
           createdAt: true,
         },
       },
@@ -50,7 +56,7 @@ export default async function UserDashboard({
   if (!member) return null;
 
   const params = await searchParams;
-  const period = params.period ?? format(new Date(), "yyyy-MM");
+  const period = getActivePeriod(params.period);
 
   const data = await getUserDashboardData(
     member.organizationId,
@@ -64,17 +70,16 @@ export default async function UserDashboard({
   const periodLabel = getPeriodLabel(period, months);
 
   return (
-    <div className='space-y-6 px-4'>
+    <div className='space-y-3 px-4'>
       <CartSync hasActiveWindow={!!activeWindow} />
 
       <div className='flex items-start justify-between gap-4 flex-wrap'>
-        <div>
+        <div className='mb-3'>
           <h1 className='text-2xl font-heading tracking-wide'>
-            Hello, {session.user.name}
+            Dashboard
           </h1>
           <p className='text-sm text-muted-foreground mt-1'>
-            You&apos;ve placed {data.stats.totalOrders} orders and spent ₹
-            {data.stats.totalSpent.toFixed(2)} during this period.
+            Your personal activity and statistics
           </p>
         </div>
 
@@ -85,12 +90,19 @@ export default async function UserDashboard({
         />
       </div>
 
+      <ProfileHeader 
+        user={session.user} 
+        member={member} 
+        splitMasterWins={data.splitMasterWins} 
+      />
+
       <DashboardSSE />
       <UserStatsCards stats={data.stats} periodLabel={periodLabel} />
       <div className='grid gap-3 lg:grid-cols-2'>
         <UserRankCard rank={data.rank} />
         <RecentOrdersCard orders={data.recentOrders} />
       </div>
+      <SnackHeatmap data={data.heatmapData} joinedAt={member.organization.createdAt} />
       <FavoriteItemsCard items={data.favoriteItems} />
     </div>
   );

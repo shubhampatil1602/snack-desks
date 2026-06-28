@@ -16,7 +16,10 @@ export function DashboardStats({ stats, periodLabel }: DashboardStatsProps) {
   const statsConfig = [
     {
       title: "Today's Revenue",
-      value: stats.todayRevenue !== null ? `₹${stats.todayRevenue.toFixed(2)}` : "₹0.00",
+      value:
+        stats.todayRevenue !== null
+          ? `₹${stats.todayRevenue.toFixed(2)}`
+          : "₹0.00",
       color: "from-amber-500 to-amber-600",
       gradient: "via-amber-400",
     },
@@ -54,7 +57,7 @@ export function DashboardStats({ stats, periodLabel }: DashboardStatsProps) {
   ];
 
   return (
-    <div className='grid gap-2 md:grid-cols-2 lg:grid-cols-3'>
+    <div className='grid gap-3 md:grid-cols-2 lg:grid-cols-3'>
       {statsConfig.map((stat, idx) => {
         return (
           <Card
