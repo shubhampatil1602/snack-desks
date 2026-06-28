@@ -101,7 +101,7 @@ export function SnackHeatmap({
         </CardHeader>
       </div>
 
-      <CardContent className='overflow-x-scroll'>
+      <CardContent className='overflow-x-scroll [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]'>
         <div className='w-fit mx-auto'>
           <div className='relative' ref={containerRef}>
             {/* Month labels */}
