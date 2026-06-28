@@ -42,7 +42,7 @@ export function BenefitsSection() {
             <div className='mt-10 space-y-6'>
               {benefits.map((benefit) => (
                 <div key={benefit.title} className='flex gap-4'>
-                  <CheckCircle2 className='mt-1 h-5 w-5 text-emerald-600' />
+                  <CheckCircle2 className='mt-1 h-5 w-5 text-primary' />
 
                   <div>
                     <Heading as='h3' className='font-semibold'>
@@ -110,7 +110,7 @@ export function BenefitsSection() {
                 </div>
 
                 <div className='mt-4 h-3 overflow-hidden rounded-full bg-muted'>
-                  <div className='h-full w-[78%] rounded-full bg-emerald-500' />
+                  <div className='h-full w-[78%] rounded-full bg-primary' />
                 </div>
 
                 <p className='mt-2 text-xs text-muted-foreground'>

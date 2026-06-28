@@ -9,7 +9,7 @@ export function CTASection() {
       <div className='mx-auto max-w-7xl px-6'>
         <div className='relative overflow-hidden border bg-linear-to-br from-background via-background to-muted/40 px-8 py-16 text-center'>
           {/* subtle glow */}
-          <div className='absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.08),transparent_60%)]' />
+          <div className='absolute inset-0 bg-[radial-gradient(circle_at_center,var(--color-primary),transparent_60%)] opacity-[0.08]' />
 
           <div className='relative mx-auto max-w-3xl'>
             <Heading className='text-4xl font-heading md:text-5xl'>

@@ -10,10 +10,10 @@ export function Footer() {
   return (
     <footer className='border-t relative overflow-hidden' id='footer'>
       {/* Balanced bottom gradient */}
-      <div className='absolute bottom-0 left-0 right-0 h-[200px] bg-linear-to-t from-emerald-500/8 via-emerald-500/3 to-transparent pointer-events-none' />
+      <div className='absolute bottom-0 left-0 right-0 h-[200px] bg-linear-to-t from-primary/8 via-primary/3 to-transparent pointer-events-none' />
 
-      {/* Gentle center glow */}
-      <div className='absolute bottom-0 left-1/2 -translate-x-1/2 h-[150px] w-[400px] rounded-full bg-emerald-500/12 blur-[120px] pointer-events-none' />
+      {/* Subtle glowing orb */}
+      <div className='absolute bottom-0 left-1/2 -translate-x-1/2 h-[150px] w-[400px] rounded-full bg-primary/12 blur-[120px] pointer-events-none' />
 
       <div className='mx-auto max-w-7xl px-6 py-12 relative z-10'>
         <div className='grid gap-8 md:grid-cols-3'>

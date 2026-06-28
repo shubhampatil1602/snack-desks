@@ -70,7 +70,7 @@ export function ActiveWindowCard({ window, serverNow }: ActiveWindowCardProps) {
   if (closed) return null;
 
   return (
-    <div className='border bg-card p-6'>
+    <div className='border p-6'>
       <div className='flex items-start justify-between'>
         <div className='space-y-1'>
           <div className='flex items-center gap-2'>

@@ -24,7 +24,7 @@ export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
     {
       title: `${periodLabel} Spent`,
       value: `₹${stats.totalSpent.toFixed(2)}`,
-      color: "from-emerald-500 to-emerald-600",
+      color: "from-chart-2 to-chart-2/80",
     },
     {
       title: "All Time Spent",
@@ -34,17 +34,17 @@ export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
     {
       title: `${periodLabel} Orders`,
       value: stats.totalOrders,
-      color: "from-blue-500 to-blue-600",
+      color: "from-chart-1 to-chart-1/80",
     },
     {
       title: "Average Order Value",
       value: `₹${stats.averageOrderValue.toFixed(2)}`,
-      color: "from-purple-500 to-purple-600",
+      color: "from-chart-3 to-chart-3/80",
     },
     {
       title: "Current Rank In Your Org.",
       value: stats.currentRank ? `#${stats.currentRank}` : "-",
-      color: "from-red-500 to-red-600",
+      color: "from-destructive to-destructive/80",
     },
   ];
 

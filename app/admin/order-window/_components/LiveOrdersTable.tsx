@@ -57,7 +57,7 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
 
   return (
     <div className='border'>
-      <div className='flex items-center gap-6 border p-4'>
+      <div className='flex items-center gap-6 p-4'>
         <div>
           <p className='text-xs text-muted-foreground'>Orders</p>
           <p className='text-xl font-semibold'>{orders.length}</p>
@@ -69,7 +69,7 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
         </div>
       </div>
       <Table>
-        <TableHeader className='bg-muted'>
+        <TableHeader className='bg-muted border-t'>
           <TableRow>
             <TableHead>User</TableHead>
             <TableHead>Items</TableHead>

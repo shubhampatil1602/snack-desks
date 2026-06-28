@@ -64,13 +64,13 @@ export function FeaturesSection() {
             return (
               <div
                 key={feature.title}
-                className='group relative overflow-hidden border bg-background/70 backdrop-blur-sm p-6 transition-all duration-300 hover:border-emerald-500/20 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]'
+                className='group relative overflow-hidden border bg-background/70 backdrop-blur-sm p-6 transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]'
               >
                 {/* subtle top glow */}
-                <div className='absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-emerald-500/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100' />
+                <div className='absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100' />
 
                 {/* icon */}
-                <div className='mt-3 flex h-12 w-12 items-center justify-center border border-border/50 bg-muted/50 transition-all duration-300 group-hover:scale-105 group-hover:bg-emerald-500/5'>
+                <div className='mt-3 flex h-12 w-12 items-center justify-center border border-border/50 bg-muted/50 transition-all duration-300 group-hover:scale-105 group-hover:bg-primary/5'>
                   <Icon className='h-5 w-5' />
                 </div>
 

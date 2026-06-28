@@ -9,6 +9,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ThemeColorProvider } from "@/components/theme/theme-color-provider";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -43,6 +44,7 @@ export default function RootLayout({
   return (
     <html
       lang='en'
+      suppressHydrationWarning
       className={cn(
         "h-full",
         "antialiased",
@@ -54,14 +56,30 @@ export default function RootLayout({
       )}
     >
       <body className='min-h-full flex flex-col'>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                let theme = localStorage.getItem('theme-color');
+                if (theme === null) theme = 'claude';
+                
+                if (theme && theme !== 'default') {
+                  document.documentElement.setAttribute('data-theme', theme);
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
         <ThemeProvider
           attribute='class'
-          defaultTheme='light'
+          defaultTheme='dark'
           enableSystem
           disableTransitionOnChange
         >
+          <ThemeColorProvider>
           {children}
           <Toaster position='bottom-right' />
+          </ThemeColorProvider>
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

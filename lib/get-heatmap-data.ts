@@ -53,9 +53,9 @@ export const PLATFORM_YEAR = 2026;
 // ₹300+    → dark
 export function getIntensity(spent: number) {
   if (spent === 0) return "bg-muted";
-  if (spent < 100) return "bg-green-200 dark:bg-green-950";
-  if (spent < 300) return "bg-green-400 dark:bg-green-800";
-  return "bg-green-600 dark:bg-green-600";
+  if (spent < 100) return "bg-primary/30";
+  if (spent < 300) return "bg-primary/60";
+  return "bg-primary";
 }
 
 export function buildWeeks(data: HeatmapDay[], year: number): Cell[][] {

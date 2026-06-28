@@ -183,9 +183,9 @@ export function SnackHeatmap({
         <div className='mt-4 flex items-center gap-2 text-xs text-muted-foreground'>
           <span>Less</span>
           <div className='h-3 w-3 rounded-sm bg-muted' />
-          <div className='h-3 w-3 rounded-sm bg-green-200 dark:bg-green-950' />
-          <div className='h-3 w-3 rounded-sm bg-green-400 dark:bg-green-800' />
-          <div className='h-3 w-3 rounded-sm bg-green-600' />
+          <div className='h-3 w-3 rounded-sm bg-primary/30' />
+          <div className='h-3 w-3 rounded-sm bg-primary/60' />
+          <div className='h-3 w-3 rounded-sm bg-primary' />
           <span>More</span>
         </div>
       </CardContent>
