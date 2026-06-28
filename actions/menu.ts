@@ -59,6 +59,7 @@ export async function createMenuItemAction(
       menuCategoryId: parsed.data.categoryId,
       updatedAt: new Date(),
       shopId: parsed.data.shopId || null,
+      imageUrl: parsed.data.imageUrl || null,
     },
   });
   revalidatePath("/admin/menus");
@@ -106,6 +107,7 @@ export async function updateMenuItemAction(
       unit: parsed.data.unit,
       menuCategoryId: parsed.data.categoryId ?? null,
       shopId: parsed.data.shopId || null,
+      imageUrl: parsed.data.imageUrl || null,
     },
   });
   revalidatePath("/admin/menus");

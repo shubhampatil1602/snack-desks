@@ -11,6 +11,7 @@ export const menuItemSchema = z.object({
   unit: z.string().min(1, "Unit is required"),
   categoryId: z.string().min(1, "Category is required"),
   shopId: z.string().optional().nullable(),
+  imageUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
 });
 
 export type MenuItemInput = z.infer<typeof menuItemSchema>;
@@ -21,6 +22,7 @@ export type MenuItemFormValues = {
   unit: string;
   categoryId: string;
   shopId: string;
+  imageUrl: string;
 };
 
 export const categorySchema = z.object({

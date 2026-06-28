@@ -68,6 +68,7 @@ export function MenuFormDialog({
       unit: "",
       categoryId: "",
       shopId: "",
+      imageUrl: "",
     },
   });
 
@@ -84,6 +85,7 @@ export function MenuFormDialog({
           unit: item.unit,
           categoryId: item.menuCategoryId ?? "",
           shopId: item.shopId ?? "",
+          imageUrl: item.imageUrl ?? "",
         });
       } else {
         reset({
@@ -92,6 +94,7 @@ export function MenuFormDialog({
           unit: "",
           categoryId: "",
           shopId: "",
+          imageUrl: "",
         });
       }
     }
@@ -115,6 +118,7 @@ export function MenuFormDialog({
         unit: values.unit,
         categoryId: values.categoryId,
         shopId: values.shopId || null,
+        imageUrl: values.imageUrl || null,
       };
 
       const result =
@@ -179,6 +183,17 @@ export function MenuFormDialog({
               disabled={isSubmitting}
             />
             <FieldError>{errors.name?.message}</FieldError>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor='imageUrl'>Image URL (Optional)</FieldLabel>
+            <Input
+              id='imageUrl'
+              placeholder='https://example.com/image.jpg'
+              {...register("imageUrl")}
+              disabled={isSubmitting}
+            />
+            <FieldError>{errors.imageUrl?.message}</FieldError>
           </Field>
 
           <div className='grid grid-cols-2 gap-4'>
@@ -261,7 +276,7 @@ export function MenuFormDialog({
                 >
                   <SelectTrigger
                     id='shop'
-                    className={shopValue ? "pr-31" : "pr-8"}
+                    className={shopValue ? "pr-16" : ""}
                   >
                     <SelectValue placeholder='Select shop (optional)' />
                   </SelectTrigger>
@@ -274,13 +289,19 @@ export function MenuFormDialog({
                   </SelectContent>
                 </Select>
                 {shopValue && (
-                  <button
+                  <Button
                     type='button'
-                    onClick={handleClearShop}
-                    className='absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded-md'
+                    variant='ghost'
+                    size='icon'
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleClearShop();
+                    }}
+                    className='absolute right-8 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted rounded-md z-10'
                   >
                     <X className='h-4 w-4 text-muted-foreground' />
-                  </button>
+                  </Button>
                 )}
               </div>
               <FieldError>{errors.shopId?.message}</FieldError>

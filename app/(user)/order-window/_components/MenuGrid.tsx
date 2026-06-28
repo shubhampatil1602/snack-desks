@@ -2,6 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cart-store";
+import Image from "next/image";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type MenuItem = {
   id: string;
@@ -17,6 +24,7 @@ type MenuItem = {
     id: string;
     name: string;
   } | null;
+  imageUrl?: string | null;
 };
 
 type MenuGridProps = {
@@ -37,65 +45,132 @@ export function MenuGrid({ items }: MenuGridProps) {
         );
 
         const quantity = cartItem?.quantity ?? 0;
+
         return (
           <div
             key={item.id}
-            className='border p-4 flex flex-col gap-3 relative'
+            className='border flex flex-col h-48 relative bg-card shadow-sm group overflow-hidden'
           >
-            {item.shop && (
-              <div className='absolute -top-2 -right-2'>
-                <span className='text-xs bg-accent shadow text-primary font-bold px-2 py-1'>
-                  {item.shop.name}
-                </span>
+            {/* Top Section: Image + Text Overlay */}
+            <div className='relative flex-1 w-full overflow-hidden'>
+              {/* Image or Placeholder Background */}
+              <div className='absolute inset-0'>
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className='w-full h-full object-cover transition-transform duration-300 group-hover:scale-110'
+                  />
+                ) : (
+                  <></>
+                )}
               </div>
-            )}
-            <div>
-              <h3 className='font-medium'>{item.name}</h3>
 
-              <p className='text-sm text-muted-foreground'>
-                {item.menuCategory.name}
-              </p>
+              {/* Gradient Overlay for Text Readability */}
+              <div className='absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/5 pointer-events-none' />
+
+              {/* Text Content Layer */}
+              <div className='absolute inset-0 p-3 flex flex-col pointer-events-none z-10'>
+                {/* Badges at Top */}
+                <div className='flex justify-end items-start'>
+                  {item.shop && (
+                    <span className='text-[10px] uppercase tracking-wider bg-accent text-primary font-bold px-2 py-1 shadow-sm border'>
+                      {item.shop.name}
+                    </span>
+                  )}
+                </div>
+
+                {/* Name & Category at Bottom of Image */}
+                <div className='mt-auto'>
+                  <h3
+                    className='font-semibold text-white leading-tight line-clamp-2'
+                    title={item.name}
+                  >
+                    {item.name}
+                  </h3>
+                  <p
+                    className='text-xs text-white/80 mt-1 line-clamp-1'
+                    title={item.menuCategory.name}
+                  >
+                    {item.menuCategory.name}
+                  </p>
+                </div>
+              </div>
+
+              {/* Invisible Click Area for Image Preview */}
+              {item.imageUrl && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button
+                      className='absolute inset-0 z-20 w-full h-full outline-none'
+                      aria-label={`View ${item.name} image`}
+                    />
+                  </DialogTrigger>
+                  <DialogContent className='max-w-2xl bg-transparent border-none shadow-none flex flex-col items-center justify-center'>
+                    <DialogTitle className='sr-only'>
+                      {item.name} Image
+                    </DialogTitle>
+                    <div className='relative inline-block max-w-full'>
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className='max-w-full max-h-[70vh] object-contain shadow-2xl'
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
 
-            <div className='flex items-center justify-between'>
-              <span>
+            {/* Bottom Action Strip */}
+            <div className='p-2 shrink-0 border-t bg-card flex items-center justify-between gap-2'>
+              <div className='font-semibold text-sm'>
                 ₹{item.price}
-                {item.unit ? ` / ${item.unit}` : ""}
-              </span>
+                {item.unit && (
+                  <span className='text-muted-foreground font-normal text-xs ml-0.5'>
+                    / {item.unit}
+                  </span>
+                )}
+              </div>
 
-              {quantity === 0 ? (
-                <Button
-                  onClick={() =>
-                    addItem({
-                      menuItemId: item.id,
-                      name: item.name,
-                      price: item.price,
-                    })
-                  }
-                >
-                  Add
-                </Button>
-              ) : (
-                <div className='flex items-center border'>
+              <div className='w-24 shrink-0'>
+                {quantity === 0 ? (
                   <Button
-                    variant='ghost'
-                    size='icon'
-                    onClick={() => decrement(item.id)}
+                    className='w-full h-8 text-sm'
+                    onClick={() =>
+                      addItem({
+                        menuItemId: item.id,
+                        name: item.name,
+                        price: item.price,
+                      })
+                    }
                   >
-                    -
+                    Add
                   </Button>
+                ) : (
+                  <div className='grid grid-cols-3 items-center border h-8'>
+                    <Button
+                      variant='ghost'
+                      className='h-full w-full rounded-none px-0'
+                      onClick={() => decrement(item.id)}
+                    >
+                      -
+                    </Button>
 
-                  <span className='w-8 text-center'>{quantity}</span>
+                    <span className='font-medium text-sm text-center'>
+                      {quantity}
+                    </span>
 
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    onClick={() => increment(item.id)}
-                  >
-                    +
-                  </Button>
-                </div>
-              )}
+                    <Button
+                      variant='ghost'
+                      className='h-full w-full rounded-none px-0'
+                      onClick={() => increment(item.id)}
+                    >
+                      +
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );

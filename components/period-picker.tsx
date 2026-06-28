@@ -44,11 +44,7 @@ export function PeriodPicker({ period, startDate, basePath }: Props) {
 
   const handlePeriodChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
-      params.delete("period");
-    } else {
-      params.set("period", value);
-    }
+    params.set("period", value);
     const queryString = params.toString();
     router.push(`${basePath}${queryString ? `?${queryString}` : ""}`);
   };

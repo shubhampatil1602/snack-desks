@@ -245,6 +245,7 @@ model MenuItem {
   menuCategoryId         String
   shop                   Shop?                  @relation(fields: [shopId], references: [id])
   shopId                 String?
+  imageUrl               String?
 
   @@unique([organizationId, name])
   @@index([organizationId])
