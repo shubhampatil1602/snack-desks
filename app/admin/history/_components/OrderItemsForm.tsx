@@ -42,6 +42,7 @@ export function OrderItemsForm({
   const filteredItems = useMemo(() => {
     return menuItems.filter(
       (item) =>
+        item.isAvailable !== false &&
         item.name.toLowerCase().includes(search.toLowerCase()) &&
         !orderItems.some((orderItem) => orderItem.menuItemId === item.id),
     );
