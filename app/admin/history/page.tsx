@@ -8,12 +8,33 @@ import { getOrganizationOrderHistoryGroupedByWindow } from "@/modules/orders/adm
 import { getMenuItems } from "@/modules/menu/queries";
 import { PaymentQR } from "@/components/payment-qr";
 
-export default async function AdminHistoryPage() {
+import { PeriodPicker } from "@/components/period-picker";
+import { format } from "date-fns";
+
+interface AdminHistoryPageProps {
+  searchParams: Promise<{
+    period?: string;
+  }>;
+}
+
+export default async function AdminHistoryPage({
+  searchParams,
+}: AdminHistoryPageProps) {
   const { session } = await requireAdmin();
+
+  const params = await searchParams;
+  const period = params.period ?? format(new Date(), "yyyy-MM");
 
   const member = await prisma.member.findFirst({
     where: {
       userId: session.user.id,
+    },
+    include: {
+      organization: {
+        select: {
+          createdAt: true,
+        },
+      },
     },
   });
 
@@ -21,7 +42,7 @@ export default async function AdminHistoryPage() {
     return null;
   }
   const [windows, menuItems] = await Promise.all([
-    getOrganizationOrderHistoryGroupedByWindow(member.organizationId),
+    getOrganizationOrderHistoryGroupedByWindow(member.organizationId, period),
     getMenuItems(member.organizationId),
   ]);
 
@@ -34,9 +55,14 @@ export default async function AdminHistoryPage() {
             View history of your organization orders
           </p>
         </div>
-        <div className='space-x-3'>
+        <div className='flex items-center gap-3'>
           <PaymentQR />
           <ExportOrdersDialog />
+          <PeriodPicker
+            period={params.period}
+            startDate={member.organization?.createdAt || new Date()}
+            basePath='/admin/history'
+          />
         </div>
       </div>
 

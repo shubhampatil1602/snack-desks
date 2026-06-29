@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type HistoryPeriod = "all" | "today" | "week" | "month";
+export type HistoryPeriod = "all" | "today" | "week";
 
 export type HistoryStatus =
   | "all"
@@ -22,9 +22,7 @@ export type HistoryStatus =
 type OrderHistoryFiltersProps = {
   period: HistoryPeriod;
   statusFilter: HistoryStatus;
-
   onPeriodChange: (value: HistoryPeriod) => void;
-
   onStatusChange: (value: HistoryStatus) => void;
 };
 
@@ -44,7 +42,6 @@ export function OrderHistoryFilters({
           <TabsTrigger value='all'>All</TabsTrigger>
           <TabsTrigger value='today'>Today</TabsTrigger>
           <TabsTrigger value='week'>Last 7 days</TabsTrigger>
-          <TabsTrigger value='month'>Last 30 days</TabsTrigger>
         </TabsList>
       </Tabs>
 

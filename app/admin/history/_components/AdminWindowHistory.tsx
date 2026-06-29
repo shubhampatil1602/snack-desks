@@ -104,12 +104,6 @@ export function AdminWindowHistory({
         weekAgo.setDate(now.getDate() - 7);
         return windowDate >= weekAgo;
       }
-      if (period === "month") {
-        return (
-          windowDate.getMonth() === now.getMonth() &&
-          windowDate.getFullYear() === now.getFullYear()
-        );
-      }
       return true;
     });
 

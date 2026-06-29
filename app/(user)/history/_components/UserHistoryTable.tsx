@@ -21,9 +21,9 @@ import { DataPagination } from "@/components/ui/data-pagination";
 import { UserOrderHistory } from "@/modules/orders/user-history-queries";
 
 import {
-  OrderHistoryFilters,
   HistoryPeriod,
   HistoryStatus,
+  OrderHistoryFilters,
 } from "@/components/orders/OrderHistoryFilters";
 
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
@@ -39,7 +39,6 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   const [period, setPeriod] = useState<HistoryPeriod>("all");
-
   const [statusFilter, setStatusFilter] = useState<HistoryStatus>("all");
 
   const filteredOrders = orders.filter((order) => {
@@ -63,13 +62,6 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
       weekAgo.setDate(now.getDate() - 7);
 
       return orderDate >= weekAgo;
-    }
-
-    if (period === "month") {
-      return (
-        orderDate.getMonth() === now.getMonth() &&
-        orderDate.getFullYear() === now.getFullYear()
-      );
     }
 
     return true;
