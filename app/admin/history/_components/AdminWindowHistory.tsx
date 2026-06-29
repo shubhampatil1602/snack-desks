@@ -233,6 +233,8 @@ export function AdminWindowHistory({
             });
           };
 
+          const isLocked = window.isLocked;
+
           return (
             <Fragment key={window.id}>
               {/* Window Card */}
@@ -308,11 +310,14 @@ export function AdminWindowHistory({
                     />
                     <OrderWindowSummaryDialog window={window} />
                     <OrderWindowUserSummaryDialog window={window} />
-                    <AddLateOrderDialog
-                      windowId={window.id}
-                      windowLabel={window.label}
-                      menuItems={menuItems}
-                    />
+                    {!isLocked && (
+                      <AddLateOrderDialog
+                        windowId={window.id}
+                        windowLabel={window.label}
+                        menuItems={menuItems}
+                      />
+                    )}
+
                     <DeleteOrderWindowButton
                       windowId={window.id}
                       windowLabel={window.label}
@@ -444,23 +449,25 @@ export function AdminWindowHistory({
 
                                 <TableCell className='py-2 text-center'>
                                   <div className='flex items-center justify-center gap-3'>
-                                    {order.status === "approved" && (
-                                      <AdminEditOrderDialog
-                                        orderId={order.id}
-                                        userName={order.user.name}
-                                        items={order.items.filter(
-                                          (item) => !item.replacementApplied,
-                                        )}
-                                        menuItems={menuItems}
-                                      />
-                                    )}
-                                    {(order.status === "approved" ||
-                                      order.status === "rejected") && (
-                                      <HistoryOrderActions
-                                        orderId={order.id}
-                                        status={order.status}
-                                      />
-                                    )}
+                                    {!isLocked &&
+                                      order.status === "approved" && (
+                                        <AdminEditOrderDialog
+                                          orderId={order.id}
+                                          userName={order.user.name}
+                                          items={order.items.filter(
+                                            (item) => !item.replacementApplied,
+                                          )}
+                                          menuItems={menuItems}
+                                        />
+                                      )}
+                                    {!isLocked &&
+                                      (order.status === "approved" ||
+                                        order.status === "rejected") && (
+                                        <HistoryOrderActions
+                                          orderId={order.id}
+                                          status={order.status}
+                                        />
+                                      )}
                                   </div>
                                 </TableCell>
                               </TableRow>

@@ -40,27 +40,36 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
     },
   });
 
-  return windows.map((window) => ({
-    ...window,
-    orders: window.orders.map((order) => ({
-      ...order,
-      items: order.items.map((item) => ({
-        ...item,
-        menuItem: {
-          ...item.menuItem,
-          price: item.menuItem.price.toString(),
-          shop: item.menuItem.shop,
-        },
-        replacementPreferences: item.replacementPreferences.map((rep) => ({
-          ...rep,
+  const now = Date.now();
+
+  return windows.map((window) => {
+    const windowDate = new Date(window.createdAt).getTime();
+    const diffInDays = (now - windowDate) / (1000 * 3600 * 24);
+    const isLocked = diffInDays > 7;
+
+    return {
+      ...window,
+      isLocked,
+      orders: window.orders.map((order) => ({
+        ...order,
+        items: order.items.map((item) => ({
+          ...item,
           menuItem: {
-            ...rep.menuItem,
-            price: rep.menuItem.price.toString(),
+            ...item.menuItem,
+            price: item.menuItem.price.toString(),
+            shop: item.menuItem.shop,
           },
+          replacementPreferences: item.replacementPreferences.map((rep) => ({
+            ...rep,
+            menuItem: {
+              ...rep.menuItem,
+              price: rep.menuItem.price.toString(),
+            },
+          })),
         })),
       })),
-    })),
-  }));
+    };
+  });
 }
 
 export type AdminWindowHistory = Awaited<
