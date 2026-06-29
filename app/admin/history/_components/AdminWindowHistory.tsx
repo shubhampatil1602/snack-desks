@@ -37,7 +37,8 @@ import { MenuItem } from "@/types/menu";
 import { HistoryOrderActions } from "./HistoryOrderActions";
 import { OrderWindowSummaryDialog } from "./OrderWindowSummaryDialog";
 import { OrderWindowUserSummaryDialog } from "./OrderWindowUserSummaryDialog";
-import { DeleteOrderWindowButton } from "@/components/admins/DeleteOrderWindowButton";
+import { DeleteMultipleOrderWindowsButton } from "./DeleteMultipleOrderWindowsButton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SpinWheelButton } from "./SpinWheelButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,9 @@ export function AdminWindowHistory({
     {},
   );
   const [search, setSearch] = useState("");
+  const [selectedWindows, setSelectedWindows] = useState<Set<string>>(
+    new Set(),
+  );
 
   function toggleOrder(orderId: string) {
     setExpandedOrders((prev) => ({
@@ -147,7 +151,7 @@ export function AdminWindowHistory({
 
   const pagination = usePagination({
     data: sortedWindows,
-    itemsPerPage: 5,
+    itemsPerPage: 10,
   });
 
   function toggleWindow(windowId: string) {
@@ -155,6 +159,35 @@ export function AdminWindowHistory({
       ...prev,
       [windowId]: !prev[windowId],
     }));
+  }
+
+  function toggleSelection(windowId: string) {
+    setSelectedWindows((prev) => {
+      const next = new Set(prev);
+      if (next.has(windowId)) {
+        next.delete(windowId);
+      } else {
+        next.add(windowId);
+      }
+      return next;
+    });
+  }
+
+  const visibleWindowIds = pagination.paginatedData.map((w) => w.id);
+  const allVisibleSelected =
+    visibleWindowIds.length > 0 &&
+    visibleWindowIds.every((id) => selectedWindows.has(id));
+
+  function toggleAllVisible() {
+    setSelectedWindows((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        visibleWindowIds.forEach((id) => next.delete(id));
+      } else {
+        visibleWindowIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
   }
 
   return (
@@ -167,15 +200,35 @@ export function AdminWindowHistory({
           onStatusChange={setStatusFilter}
         />
 
-        <div className='flex items-center justify-between gap-2'>
-          <div className='relative'>
-            <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
-            <Input
-              placeholder='Search employee...'
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className='w-[220px] pl-8 h-8 text-sm'
-            />
+        <div className='flex items-center justify-between gap-2 my-3'>
+          <div className='flex gap-3 flex-wrap'>
+            <div
+              className='flex items-center gap-2 border px-3 h-10 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer'
+              onClick={toggleAllVisible}
+            >
+              <Checkbox
+                checked={allVisibleSelected}
+                onCheckedChange={toggleAllVisible}
+                aria-label='Select all visible windows'
+                id='select-all-checkbox'
+                className='pointer-events-none' // let the parent div handle the click
+              />
+              <label
+                htmlFor='select-all-checkbox'
+                className='text-sm font-medium text-muted-foreground hidden sm:inline-block cursor-pointer'
+              >
+                Select All
+              </label>
+            </div>
+            <div className='relative border pr-2 h-10'>
+              <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                placeholder='Search employee...'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className='w-[220px] pl-8 h-9 text-sm border-none'
+              />
+            </div>
           </div>
 
           <Select
@@ -228,7 +281,12 @@ export function AdminWindowHistory({
           };
 
           const isLocked = window.isLocked;
-          const hasUnspunLateOrders = window.orders.some(o => o.createdByAdmin && (!window.lastSpunAt || new Date(o.createdAt) > new Date(window.lastSpunAt)));
+          const hasUnspunLateOrders = window.orders.some(
+            (o) =>
+              o.createdByAdmin &&
+              (!window.lastSpunAt ||
+                new Date(o.createdAt) > new Date(window.lastSpunAt)),
+          );
 
           return (
             <Fragment key={window.id}>
@@ -236,22 +294,29 @@ export function AdminWindowHistory({
               <div className='border-collapse border my-3'>
                 {/* Window Header */}
                 <div className='flex items-center justify-between px-3 py-2 bg-muted/20 overflow-x-auto'>
-                  <div className='flex items-center gap-2 w-xl'>
-                    <button
-                      className='p-0'
-                      onClick={() => toggleWindow(window.id)}
-                    >
-                      {isExpanded ? (
-                        <ChevronDown className='h-3.5 w-3.5' />
-                      ) : (
-                        <ChevronRight className='h-3.5 w-3.5' />
-                      )}
-                    </button>
+                  <div className='flex items-center gap-4 w-xl'>
+                    <div className='flex items-center gap-3'>
+                      <Checkbox
+                        checked={selectedWindows.has(window.id)}
+                        onCheckedChange={() => toggleSelection(window.id)}
+                        aria-label={`Select order window ${window.label}`}
+                      />
+                      <button
+                        className='p-0'
+                        onClick={() => toggleWindow(window.id)}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className='h-3.5 w-3.5' />
+                        ) : (
+                          <ChevronRight className='h-3.5 w-3.5' />
+                        )}
+                      </button>
+                    </div>
                     <button
                       className='flex items-center gap-2 cursor-pointer'
                       onClick={() => toggleWindow(window.id)}
                     >
-                      <div className='ml-3 flex flex-col'>
+                      <div className='flex flex-col'>
                         <span className='text-sm font-medium'>
                           {new Date(window.createdAt).toLocaleDateString(
                             "en-IN",
@@ -291,14 +356,16 @@ export function AdminWindowHistory({
                   </div>
 
                   <div className='flex items-center justify-end gap-2 w-xl'>
-                    {window.winnerUserId && !window.paid && !hasUnspunLateOrders && (
-                      <Button
-                        size='sm'
-                        onClick={() => markAsPaidAction(window.id)}
-                      >
-                        Mark as Paid
-                      </Button>
-                    )}
+                    {window.winnerUserId &&
+                      !window.paid &&
+                      !hasUnspunLateOrders && (
+                        <Button
+                          size='sm'
+                          onClick={() => markAsPaidAction(window.id)}
+                        >
+                          Mark as Paid
+                        </Button>
+                      )}
                     <SpinWheelButton
                       windowId={window.id}
                       winnerName={window.winnerUser?.name ?? null}
@@ -313,11 +380,6 @@ export function AdminWindowHistory({
                         menuItems={menuItems}
                       />
                     )}
-
-                    <DeleteOrderWindowButton
-                      windowId={window.id}
-                      windowLabel={window.label}
-                    />
                   </div>
                 </div>
 
@@ -493,6 +555,11 @@ export function AdminWindowHistory({
       </div>
 
       <DataPagination {...pagination} />
+
+      <DeleteMultipleOrderWindowsButton
+        selectedIds={selectedWindows}
+        onClearSelection={() => setSelectedWindows(new Set())}
+      />
     </div>
   );
 }

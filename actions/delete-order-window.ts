@@ -53,3 +53,42 @@ export async function deleteOrderWindowAction(windowId: string) {
     };
   }
 }
+
+export async function deleteMultipleOrderWindowsAction(windowIds: string[]) {
+  try {
+    const session = await authIsRequired();
+
+    if (session.user.role !== "admin" && session.user.role !== "super_admin") {
+      return {
+        success: false,
+        error: "Unauthorized",
+      };
+    }
+
+    if (!windowIds || windowIds.length === 0) {
+      return {
+        success: false,
+        error: "No windows selected",
+      };
+    }
+
+    await prisma.orderWindow.deleteMany({
+      where: {
+        id: { in: windowIds },
+      },
+    });
+
+    revalidatePath("/admin/history");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Delete multiple order windows error:", error);
+
+    return {
+      success: false,
+      error: "Failed to delete order windows",
+    };
+  }
+}
