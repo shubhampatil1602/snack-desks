@@ -23,52 +23,15 @@ export async function spinWheelAction(windowId: string) {
     };
   }
 
-  if (window.winnerUserId) {
-    return {
-      success: false,
-      error: "Winner already selected",
-    };
-  }
-
-  const participants = await prisma.order.findMany({
-    where: {
-      windowId,
-      status: {
-        not: "cancelled",
-      },
-    },
-    distinct: ["userId"],
-    select: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-  });
-
-  if (participants.length === 0) {
-    return {
-      success: false,
-      error: "No participants found",
-    };
-  }
-
   const excludedIds = [
-    // "rfxrlBvbryRERoUnpgoy6dXx495yZbou",
     "hBnoaYLfQSivXVOcNY5Bj2JgbTWXR4po",
     "ZnQ2LO4x1qu0rGOocGebxXvq0OdTNhqu",
   ];
 
-  // Winner cooldown: exclude previous window's winner for one round
   let previousWinnerId: string | null = null;
   try {
     const previousWindow = await prisma.orderWindow.findFirst({
-      where: {
-        id: { not: windowId },
-        winnerUserId: { not: null },
-      },
+      where: { id: { not: windowId }, winnerUserId: { not: null } },
       orderBy: { createdAt: "desc" },
       select: { winnerUserId: true },
     });
@@ -77,41 +40,93 @@ export async function spinWheelAction(windowId: string) {
     console.error("Failed to fetch previous winner", e);
   }
 
-  // Build eligible participants list, applying both exclusions
-  let eligible = participants.filter(
-    (p) =>
-      !excludedIds.includes(p.user.id) &&
-      (!previousWinnerId || p.user.id !== previousWinnerId)
-  );
+  let filtered: { id: string; name: string }[] = [];
 
-  // If exclusions eliminate all candidates, fall back to participants excluding only hardcoded ids
-  if (eligible.length === 0) {
-    eligible = participants.filter((p) => !excludedIds.includes(p.user.id));
+  if (window.winnerUserId) {
+    // Late-spin: Re-spin between current winner and all late orders
+    const lateParticipants = await prisma.order.findMany({
+      where: {
+        windowId,
+        status: { not: "cancelled" },
+        createdByAdmin: true,
+      },
+      distinct: ["userId"],
+      select: { user: { select: { id: true, name: true } } },
+    });
+
+    if (lateParticipants.length === 0) {
+      return { success: false, error: "No late orders to spin" };
+    }
+
+    const currentWinner = await prisma.user.findUnique({
+      where: { id: window.winnerUserId },
+      select: { id: true, name: true },
+    });
+
+    let eligible = lateParticipants.filter(
+      (p) =>
+        !excludedIds.includes(p.user.id) &&
+        (!previousWinnerId || p.user.id !== previousWinnerId),
+    );
+
+    if (eligible.length === 0) {
+      eligible = lateParticipants.filter((p) => !excludedIds.includes(p.user.id));
+    }
+
+    if (eligible.length === 0) {
+      eligible = lateParticipants;
+    }
+
+    const lateUserIds = new Set(eligible.map((p) => p.user.id));
+    filtered = eligible.map((p) => p.user);
+
+    if (currentWinner && !lateUserIds.has(currentWinner.id)) {
+      filtered.push(currentWinner);
+    }
+  } else {
+    // Initial spin
+    const participants = await prisma.order.findMany({
+      where: {
+        windowId,
+        status: { not: "cancelled" },
+      },
+      distinct: ["userId"],
+      select: {
+        user: { select: { id: true, name: true } },
+      },
+    });
+
+    if (participants.length === 0) {
+      return { success: false, error: "No participants found" };
+    }
+
+    let eligible = participants.filter(
+      (p) =>
+        !excludedIds.includes(p.user.id) &&
+        (!previousWinnerId || p.user.id !== previousWinnerId),
+    );
+
+    if (eligible.length === 0) {
+      eligible = participants.filter((p) => !excludedIds.includes(p.user.id));
+    }
+
+    if (eligible.length === 0) {
+      eligible = participants;
+    }
+
+    filtered = eligible.map((p) => p.user);
   }
 
-  const filtered = eligible;
-
-  // Note: filtered will always have at least one participant because we fall back to the full list.
-
-  const winner = filtered[Math.floor(Math.random() * filtered.length)].user;
-  const result = await prisma.orderWindow.updateMany({
-    where: {
-      id: windowId,
-      winnerUserId: null,
-    },
+  const winner = filtered[Math.floor(Math.random() * filtered.length)];
+  
+  await prisma.orderWindow.update({
+    where: { id: windowId },
     data: {
       winnerUserId: winner.id,
+      lastSpunAt: new Date(),
       paid: false,
     },
   });
-  console.log("update result", result);
-
-  if (result.count === 0) {
-    return {
-      success: false,
-      error: "Winner already selected",
-    };
-  }
 
   revalidatePath("/admin/history");
   revalidatePath("/history");

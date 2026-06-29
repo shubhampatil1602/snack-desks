@@ -25,6 +25,7 @@ import {
 type Props = {
   windowId: string;
   winnerName?: string | null;
+  hasUnspunLateOrders?: boolean;
 };
 
 function getShortName(name: string) {
@@ -33,7 +34,11 @@ function getShortName(name: string) {
   return parts[1] ? `${parts[0]} ${parts[1][0]}.` : parts[0];
 }
 
-export function SpinWheelButton({ windowId, winnerName }: Props) {
+export function SpinWheelButton({
+  windowId,
+  winnerName,
+  hasUnspunLateOrders,
+}: Props) {
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
@@ -88,8 +93,11 @@ export function SpinWheelButton({ windowId, winnerName }: Props) {
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button size='sm' variant={winnerName ? "winner" : "default"}>
-          {winnerName ? (
+        <Button
+          size='sm'
+          variant={!hasUnspunLateOrders && winnerName ? "winner" : "default"}
+        >
+          {!hasUnspunLateOrders && winnerName ? (
             <>
               <Trophy className='size-4 mr-2' />
               {getShortName(winnerName)}
@@ -97,47 +105,35 @@ export function SpinWheelButton({ windowId, winnerName }: Props) {
           ) : (
             <>
               <Sparkles className='size-4 mr-2' />
-              Spin Wheel
+              {winnerName ? "Re-Spin Wheel" : "Spin Wheel"}
             </>
           )}
         </Button>
       </AlertDialogTrigger>
 
       <AlertDialogContent className='max-w-md'>
-        {winnerName ? (
-          <div className='py-6 text-center space-y-5'>
-            <div className='flex justify-center'>
-              <div className='rounded-full bg-yellow-100 dark:bg-yellow-950 p-4'>
-                <Trophy className='size-10 text-yellow-500' />
-              </div>
-            </div>
-
-            <div>
-              <p className='text-sm text-muted-foreground'>Order Collector</p>
-
-              <h2 className='text-3xl font-heading mt-2'>{winnerName}</h2>
-            </div>
-
-            <Badge className='text-sm px-3 py-1'>🏆 Winner</Badge>
-
-            <p className='text-sm text-muted-foreground'>
-              Selected to collect this order.
-            </p>
-
-            <Button onClick={() => setOpen(false)}>Close</Button>
-          </div>
-        ) : !winner ? (
+        {!winner ? (
           <>
             <AlertDialogHeader>
               <AlertDialogTitle>Select Order Collector</AlertDialogTitle>
 
               <AlertDialogDescription>
                 A random participant from this order window will be selected.
-                This action can only be performed once.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
-            <div className='py-10 flex justify-center'>
+            <div className='py-10 flex flex-col justify-center items-center gap-6'>
+              {winnerName && !spinning && (
+                <div className='text-center space-y-1 bg-yellow-100/50 dark:bg-yellow-900/20 px-6 py-4 border border-yellow-200 dark:border-yellow-900/50'>
+                  <p className='text-xs font-semibold text-yellow-600 dark:text-yellow-500 uppercase tracking-wider'>
+                    Current Winner
+                  </p>
+                  <p className='text-xl font-heading text-yellow-800 dark:text-yellow-400'>
+                    {winnerName}
+                  </p>
+                </div>
+              )}
+
               {spinning ? (
                 <div className='text-center space-y-4'>
                   <div className='animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mx-auto' />

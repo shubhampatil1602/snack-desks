@@ -228,6 +228,7 @@ export function AdminWindowHistory({
           };
 
           const isLocked = window.isLocked;
+          const hasUnspunLateOrders = window.orders.some(o => o.createdByAdmin && (!window.lastSpunAt || new Date(o.createdAt) > new Date(window.lastSpunAt)));
 
           return (
             <Fragment key={window.id}>
@@ -290,7 +291,7 @@ export function AdminWindowHistory({
                   </div>
 
                   <div className='flex items-center justify-end gap-2 w-xl'>
-                    {window.winnerUserId && !window.paid && (
+                    {window.winnerUserId && !window.paid && !hasUnspunLateOrders && (
                       <Button
                         size='sm'
                         onClick={() => markAsPaidAction(window.id)}
@@ -301,6 +302,7 @@ export function AdminWindowHistory({
                     <SpinWheelButton
                       windowId={window.id}
                       winnerName={window.winnerUser?.name ?? null}
+                      hasUnspunLateOrders={hasUnspunLateOrders}
                     />
                     <OrderWindowSummaryDialog window={window} />
                     <OrderWindowUserSummaryDialog window={window} />
