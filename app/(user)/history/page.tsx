@@ -5,10 +5,14 @@ import { PaymentQR } from "@/components/payment-qr";
 import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { CartSync } from "../_components/cart-sync";
 import { prisma } from "@/lib/db";
-import { format } from "date-fns";
+
 import { PeriodPicker } from "@/components/period-picker";
 
-import { generateMonthsFromDate, getPeriodLabel } from "@/lib/period-utils";
+import {
+  generateMonthsFromDate,
+  getPeriodLabel,
+  getActivePeriod,
+} from "@/lib/period-utils";
 import { getPeriodCookie } from "@/actions/period-cookie";
 
 interface OrderHistoryPageProps {
@@ -25,7 +29,7 @@ export default async function OrderHistoryPage({
   const params = await searchParams;
   const cookiePeriod = await getPeriodCookie();
   const rawPeriod = params.period ?? cookiePeriod ?? undefined;
-  const period = rawPeriod ?? format(new Date(), "yyyy-MM");
+  const period = getActivePeriod(rawPeriod);
 
   const member = await prisma.member.findFirst({
     where: {
@@ -58,7 +62,8 @@ export default async function OrderHistoryPage({
         <div>
           <h1 className='text-2xl font-heading tracking-wide'>Order History</h1>
           <p className='text-sm text-muted-foreground mt-1'>
-            View your previous orders {period === "all" ? "of all time" : `in ${periodLabel}`}
+            View your previous orders{" "}
+            {period === "all" ? "of all time" : `in ${periodLabel}`}
           </p>
         </div>
 

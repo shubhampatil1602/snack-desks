@@ -1,11 +1,15 @@
 import { requireAdmin } from "@/actions/user";
 import { getEmployeeRankings } from "@/modules/rankings/queries";
 import { Rankings } from "@/components/rankings/Rankings";
-import { format } from "date-fns";
+
 import { prisma } from "@/lib/db";
 import { PeriodPicker } from "@/components/period-picker";
 import { getPeriodCookie } from "@/actions/period-cookie";
-import { generateMonthsFromDate, getPeriodLabel } from "@/lib/period-utils";
+import {
+  generateMonthsFromDate,
+  getPeriodLabel,
+  getActivePeriod,
+} from "@/lib/period-utils";
 
 interface AdminRankingsPageProps {
   searchParams: Promise<{
@@ -34,7 +38,7 @@ export default async function AdminRankingsPage({
   const params = await searchParams;
   const cookiePeriod = await getPeriodCookie();
   const rawPeriod = params.period ?? cookiePeriod ?? undefined;
-  const period = rawPeriod ?? format(new Date(), "yyyy-MM");
+  const period = getActivePeriod(rawPeriod);
 
   const months = generateMonthsFromDate(organization.createdAt);
   const periodLabel = getPeriodLabel(period, months);
@@ -47,7 +51,8 @@ export default async function AdminRankingsPage({
         <div>
           <h1 className='text-2xl font-heading'>Employee Rankings</h1>
           <p className='text-sm text-muted-foreground'>
-            Most active employees based on approved orders {period === "all" ? "of all time" : `in ${periodLabel}`}.
+            Most active employees based on approved orders{" "}
+            {period === "all" ? "of all time" : `in ${periodLabel}`}.
           </p>
         </div>
 

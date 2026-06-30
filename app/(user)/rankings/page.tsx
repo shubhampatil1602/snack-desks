@@ -4,10 +4,14 @@ import { getEmployeeRankings } from "@/modules/rankings/queries";
 import { Rankings } from "@/components/rankings/Rankings";
 import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { CartSync } from "../_components/cart-sync";
-import { format } from "date-fns";
+
 import { PeriodPicker } from "@/components/period-picker";
 
-import { generateMonthsFromDate, getPeriodLabel } from "@/lib/period-utils";
+import {
+  generateMonthsFromDate,
+  getPeriodLabel,
+  getActivePeriod,
+} from "@/lib/period-utils";
 import { getPeriodCookie } from "@/actions/period-cookie";
 
 interface RankingsPageProps {
@@ -24,7 +28,7 @@ export default async function RankingsPage({
   const params = await searchParams;
   const cookiePeriod = await getPeriodCookie();
   const rawPeriod = params.period ?? cookiePeriod ?? undefined;
-  const period = rawPeriod ?? format(new Date(), "yyyy-MM");
+  const period = getActivePeriod(rawPeriod);
 
   const member = await prisma.member.findFirst({
     where: {
@@ -36,8 +40,6 @@ export default async function RankingsPage({
   });
 
   if (!member) return null;
-
-
 
   const months = generateMonthsFromDate(member.createdAt);
   const periodLabel = getPeriodLabel(period, months);
@@ -54,7 +56,8 @@ export default async function RankingsPage({
         <div>
           <h1 className='text-2xl font-heading'>Rankings</h1>
           <p className='text-sm text-muted-foreground'>
-            See how you compare with your coworkers {period === "all" ? "of all time" : `in ${periodLabel}`}.
+            See how you compare with your coworkers{" "}
+            {period === "all" ? "of all time" : `in ${periodLabel}`}.
           </p>
         </div>
 

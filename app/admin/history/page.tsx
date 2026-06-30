@@ -10,8 +10,11 @@ import { PaymentQR } from "@/components/payment-qr";
 
 import { PeriodPicker } from "@/components/period-picker";
 import { getPeriodCookie } from "@/actions/period-cookie";
-import { generateMonthsFromDate, getPeriodLabel } from "@/lib/period-utils";
-import { format } from "date-fns";
+import {
+  generateMonthsFromDate,
+  getPeriodLabel,
+  getActivePeriod,
+} from "@/lib/period-utils";
 
 interface AdminHistoryPageProps {
   searchParams: Promise<{
@@ -27,7 +30,7 @@ export default async function AdminHistoryPage({
   const params = await searchParams;
   const cookiePeriod = await getPeriodCookie();
   const rawPeriod = params.period ?? cookiePeriod ?? undefined;
-  const period = rawPeriod ?? format(new Date(), "yyyy-MM");
+  const period = getActivePeriod(rawPeriod);
 
   const member = await prisma.member.findFirst({
     where: {
@@ -60,7 +63,8 @@ export default async function AdminHistoryPage({
         <div>
           <h1 className='text-2xl font-heading tracking-wide'>Order History</h1>
           <p className='text-sm text-muted-foreground mt-1'>
-            View history of your organization orders {period === "all" ? "of all time" : `in ${periodLabel}`}
+            View history of your organization orders{" "}
+            {period === "all" ? "of all time" : `in ${periodLabel}`}
           </p>
         </div>
         <div className='flex items-center gap-3'>
