@@ -63,25 +63,27 @@ export async function spinWheelAction(windowId: string) {
       select: { id: true, name: true },
     });
 
-    let eligible = lateParticipants.filter(
+    const eligible = lateParticipants.filter(
       (p) =>
         !excludedIds.includes(p.user.id) &&
         (!previousWinnerId || p.user.id !== previousWinnerId),
     );
 
-    if (eligible.length === 0) {
-      eligible = lateParticipants.filter((p) => !excludedIds.includes(p.user.id));
-    }
-
-    if (eligible.length === 0) {
-      eligible = lateParticipants;
-    }
-
     const lateUserIds = new Set(eligible.map((p) => p.user.id));
     filtered = eligible.map((p) => p.user);
 
     if (currentWinner && !lateUserIds.has(currentWinner.id)) {
-      filtered.push(currentWinner);
+      const isExcluded =
+        excludedIds.includes(currentWinner.id) ||
+        (previousWinnerId && currentWinner.id === previousWinnerId);
+
+      if (!isExcluded) {
+        filtered.push(currentWinner);
+      }
+    }
+
+    if (filtered.length === 0) {
+      return { success: false, error: "No eligible participants found" };
     }
   } else {
     // Initial spin
@@ -100,25 +102,21 @@ export async function spinWheelAction(windowId: string) {
       return { success: false, error: "No participants found" };
     }
 
-    let eligible = participants.filter(
+    const eligible = participants.filter(
       (p) =>
         !excludedIds.includes(p.user.id) &&
         (!previousWinnerId || p.user.id !== previousWinnerId),
     );
 
     if (eligible.length === 0) {
-      eligible = participants.filter((p) => !excludedIds.includes(p.user.id));
-    }
-
-    if (eligible.length === 0) {
-      eligible = participants;
+      return { success: false, error: "No eligible participants found" };
     }
 
     filtered = eligible.map((p) => p.user);
   }
 
   const winner = filtered[Math.floor(Math.random() * filtered.length)];
-  
+
   await prisma.orderWindow.update({
     where: { id: windowId },
     data: {

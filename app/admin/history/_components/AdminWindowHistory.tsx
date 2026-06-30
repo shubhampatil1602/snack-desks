@@ -284,6 +284,7 @@ export function AdminWindowHistory({
           const hasUnspunLateOrders = window.orders.some(
             (o) =>
               o.createdByAdmin &&
+              o.status !== "cancelled" &&
               (!window.lastSpunAt ||
                 new Date(o.createdAt) > new Date(window.lastSpunAt)),
           );

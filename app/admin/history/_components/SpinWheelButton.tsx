@@ -57,6 +57,7 @@ export function SpinWheelButton({
 
       if (!result.success) {
         toast.error(result.error);
+        setOpen(false);
         return;
       }
 
@@ -112,7 +113,7 @@ export function SpinWheelButton({
       </AlertDialogTrigger>
 
       <AlertDialogContent className='max-w-md'>
-        {!winner ? (
+        {!winner && !(!hasUnspunLateOrders && winnerName) ? (
           <>
             <AlertDialogHeader>
               <AlertDialogTitle>Select Order Collector</AlertDialogTitle>
@@ -178,7 +179,7 @@ export function SpinWheelButton({
             <div>
               <p className='text-sm text-muted-foreground'>Order Collector</p>
 
-              <h2 className='text-3xl font-heading mt-2'>{winner.name}</h2>
+              <h2 className='text-3xl font-heading mt-2'>{winner?.name || winnerName}</h2>
             </div>
 
             <Badge className='text-sm px-3 py-1'>🏆 Winner</Badge>
