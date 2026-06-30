@@ -8,6 +8,7 @@ import {
   getActivePeriod,
 } from "@/lib/period-utils";
 import { PeriodPicker } from "@/components/period-picker";
+import { getPeriodCookie } from "@/actions/period-cookie";
 
 import { DashboardStats } from "./_components/DashboardStats";
 import { ActiveWindowCard } from "./_components/ActiveWindowCard";
@@ -42,7 +43,9 @@ export default async function AdminDashboard({
   }
 
   const params = await searchParams;
-  const period = getActivePeriod(params.period);
+  const cookiePeriod = await getPeriodCookie();
+  const rawPeriod = params.period ?? cookiePeriod ?? undefined;
+  const period = getActivePeriod(rawPeriod);
 
   const dashboardData = await getDashboardData(member.organizationId, period);
   const serverNow = new Date().getTime();
@@ -63,7 +66,7 @@ export default async function AdminDashboard({
         </div>
 
         <PeriodPicker
-          period={params.period}
+          period={rawPeriod}
           startDate={organization.createdAt}
           basePath='/admin/dashboard'
         />

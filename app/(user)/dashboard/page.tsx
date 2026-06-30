@@ -19,6 +19,8 @@ import { redirect } from "next/navigation";
 import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { CartSync } from "../_components/cart-sync";
 
+import { getPeriodCookie } from "@/actions/period-cookie";
+
 interface UserDashboardProps {
   searchParams: Promise<{
     period?: string;
@@ -56,7 +58,9 @@ export default async function UserDashboard({
   if (!member) return null;
 
   const params = await searchParams;
-  const period = getActivePeriod(params.period);
+  const cookiePeriod = await getPeriodCookie();
+  const rawPeriod = params.period ?? cookiePeriod ?? undefined;
+  const period = getActivePeriod(rawPeriod);
 
   const data = await getUserDashboardData(
     member.organizationId,
@@ -84,7 +88,7 @@ export default async function UserDashboard({
         </div>
 
         <PeriodPicker
-          period={params.period}
+          period={rawPeriod}
           startDate={member.organization.createdAt}
           basePath='/dashboard'
         />

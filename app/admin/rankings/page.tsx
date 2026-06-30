@@ -4,6 +4,8 @@ import { Rankings } from "@/components/rankings/Rankings";
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { PeriodPicker } from "@/components/period-picker";
+import { getPeriodCookie } from "@/actions/period-cookie";
+import { generateMonthsFromDate, getPeriodLabel } from "@/lib/period-utils";
 
 interface AdminRankingsPageProps {
   searchParams: Promise<{
@@ -30,7 +32,12 @@ export default async function AdminRankingsPage({
   }
 
   const params = await searchParams;
-  const period = params.period ?? format(new Date(), "yyyy-MM");
+  const cookiePeriod = await getPeriodCookie();
+  const rawPeriod = params.period ?? cookiePeriod ?? undefined;
+  const period = rawPeriod ?? format(new Date(), "yyyy-MM");
+
+  const months = generateMonthsFromDate(organization.createdAt);
+  const periodLabel = getPeriodLabel(period, months);
 
   const rankings = await getEmployeeRankings(member.organizationId, period);
 
@@ -40,12 +47,12 @@ export default async function AdminRankingsPage({
         <div>
           <h1 className='text-2xl font-heading'>Employee Rankings</h1>
           <p className='text-sm text-muted-foreground'>
-            Most active employees based on approved orders.
+            Most active employees based on approved orders {period === "all" ? "of all time" : `in ${periodLabel}`}.
           </p>
         </div>
 
         <PeriodPicker
-          period={params.period}
+          period={rawPeriod}
           startDate={organization.createdAt}
           basePath='/admin/rankings'
         />

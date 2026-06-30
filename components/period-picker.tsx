@@ -1,5 +1,7 @@
 "use client";
 
+import { setPeriodCookie } from "@/actions/period-cookie";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   DropdownMenu,
@@ -42,7 +44,9 @@ export function PeriodPicker({ period, startDate, basePath }: Props) {
   const currentLabel = getPeriodLabel(period, months);
   const activePeriod = getActivePeriod(period);
 
-  const handlePeriodChange = (value: string) => {
+  const handlePeriodChange = async (value: string) => {
+    await setPeriodCookie(value);
+    
     const params = new URLSearchParams(searchParams.toString());
     params.set("period", value);
     const queryString = params.toString();

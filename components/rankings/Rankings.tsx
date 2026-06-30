@@ -107,7 +107,7 @@ export function Rankings({ rankings, mode, currentUserId }: RankingsProps) {
                           #{rank}
                         </span>
                         <p className='text-xs'>
-                          All time:{" "}
+                          Spent:{" "}
                           <span className='font-semibold pl-1'>
                             ₹{emp.spent.toFixed(0)}
                           </span>
@@ -141,7 +141,7 @@ export function Rankings({ rankings, mode, currentUserId }: RankingsProps) {
                     </span>
                     <span className='text-muted-foreground text-xs'>·</span>
                     <span className='text-sm text-muted-foreground'>
-                      All time: ₹{user.spent.toFixed(0)}
+                      Spent: ₹{user.spent.toFixed(0)}
                     </span>
                   </div>
                 </div>
@@ -174,7 +174,7 @@ export function Rankings({ rankings, mode, currentUserId }: RankingsProps) {
                 </span>
                 <span className='text-muted-foreground text-xs'>·</span>
                 <span className='text-sm text-muted-foreground'>
-                  All time: ₹{currentUser.spent.toFixed(0)}
+                  Spent: ₹{currentUser.spent.toFixed(0)}
                 </span>
               </div>
             </div>
@@ -214,7 +214,7 @@ export function Rankings({ rankings, mode, currentUserId }: RankingsProps) {
                   </span>
                   <span className='text-muted-foreground text-xs'>·</span>
                   <span className='text-sm text-muted-foreground'>
-                    All time: ₹{user.spent.toFixed(0)}
+                    Spent: ₹{user.spent.toFixed(0)}
                   </span>
                 </div>
               </div>
