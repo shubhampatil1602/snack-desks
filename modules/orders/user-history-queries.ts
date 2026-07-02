@@ -149,7 +149,8 @@ export async function getUserOrderHistory(
                 price: i.menuItem.price.toString(),
               },
             })),
-          }));
+          }))
+          .sort((a, b) => a.user.name.localeCompare(b.user.name));
       })(),
     },
   }));

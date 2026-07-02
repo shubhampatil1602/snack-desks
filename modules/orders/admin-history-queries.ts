@@ -111,7 +111,8 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
                 },
               })),
             })),
-          }));
+          }))
+          .sort((a, b) => a.user.name.localeCompare(b.user.name));
       })(),
     };
   });
