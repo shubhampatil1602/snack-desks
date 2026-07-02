@@ -72,12 +72,39 @@ export async function getUserOrderHistory(
       },
       orderWindow: {
         select: {
+          id: true,
           label: true,
           paid: true,
+          createdAt: true,
           winnerUserId: true,
           winnerUser: {
             select: {
               name: true,
+            },
+          },
+          orders: {
+            orderBy: {
+              createdAt: "desc",
+            },
+            select: {
+              status: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              items: {
+                select: {
+                  quantity: true,
+                  replacementApplied: true,
+                  menuItem: {
+                    select: {
+                      price: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -103,6 +130,28 @@ export async function getUserOrderHistory(
         },
       })),
     })),
+    orderWindow: {
+      ...order.orderWindow,
+      orders: (() => {
+        const seenUsers = new Set<string>();
+        return (order.orderWindow.orders || [])
+          .filter((o) => {
+            if (seenUsers.has(o.user.id)) return false;
+            seenUsers.add(o.user.id);
+            return true;
+          })
+          .map((o) => ({
+            ...o,
+            items: o.items.map((i) => ({
+              ...i,
+              menuItem: {
+                ...i.menuItem,
+                price: i.menuItem.price.toString(),
+              },
+            })),
+          }));
+      })(),
+    },
   }));
 }
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { Copy, Users, Check } from "lucide-react";
+import { Copy, Users, Check, ArrowUpDown } from "lucide-react";
 
 import {
   Dialog,
@@ -14,10 +14,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-import { AdminWindowHistory as AdminWindowHistoryType } from "@/modules/orders/admin-history-queries";
-
 type OrderWindowUserSummaryDialogProps = {
-  window: AdminWindowHistoryType[number];
+  window: {
+    createdAt: Date;
+    label: string;
+    orders: {
+      status: string;
+      user: {
+        id: string;
+        name: string;
+      };
+      items: {
+        quantity: number;
+        replacementApplied: boolean;
+        menuItem: {
+          price: string;
+        };
+      }[];
+    }[];
+  };
   trigger?: React.ReactNode;
 };
 
@@ -27,6 +42,7 @@ export function OrderWindowUserSummaryDialog({
 }: OrderWindowUserSummaryDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sortBy, setSortBy] = useState<"name" | "amount">("name");
 
   // Only approved orders
   const approvedOrders = window.orders.filter((o) => o.status === "approved");
@@ -72,8 +88,13 @@ export function OrderWindowUserSummaryDialog({
       },
       [] as Array<{ id: string; name: string; total: number }>,
     )
-    // Sort by total (highest first)
-    .sort((a, b) => b.total - a.total);
+    // Sort based on state
+    .sort((a, b) => {
+      if (sortBy === "amount") {
+        return b.total - a.total;
+      }
+      return a.name.localeCompare(b.name);
+    });
 
   async function copySummary() {
     const date = new Date(window.createdAt).toLocaleDateString("en-IN", {
@@ -158,7 +179,20 @@ ${userBreakdown
           {/* User Breakdown - Approved Orders Only */}
           <div className='space-y-3 border-t pt-4 max-h-120 overflow-y-auto'>
             <div className='flex justify-between items-center'>
-              <h4 className='font-medium'>Amount Per User</h4>
+              <div className='flex items-center gap-3'>
+                <h4 className='font-medium'>Amount Per User</h4>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() =>
+                    setSortBy((s) => (s === "name" ? "amount" : "name"))
+                  }
+                  className='h-6 text-[11px] px-2 font-normal text-muted-foreground hover:text-foreground'
+                >
+                  <ArrowUpDown className='h-3 w-3 mr-1' />
+                  Sort: {sortBy === "name" ? "A to Z" : "Amount"}
+                </Button>
+              </div>
               <Button
                 variant='ghost'
                 size='sm'

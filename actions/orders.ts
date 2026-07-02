@@ -177,6 +177,25 @@ export async function updateOrderAction(
     return { success: false, error: "Organization not found" };
   }
 
+  if (items.length === 0) {
+    await prisma.$transaction(async (tx) => {
+      await tx.orderItem.deleteMany({ where: { orderId } });
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: "cancelled", updatedAt: new Date() },
+      });
+    });
+
+    await notify({
+      type: "order_cancelled",
+      orgId: member.organizationId,
+      payload: { orderId },
+    });
+
+    revalidatePath("/order-window");
+    return { success: true, orderId: order.id };
+  }
+
   // replace all items in a transaction
   await prisma.$transaction(async (tx) => {
     // Delete many cascades and automatically deletes orderItemReplacements
@@ -361,14 +380,17 @@ export async function updateAdminOrderAction(
   }
 
   if (items.length === 0) {
-    await prisma.order.update({
-      where: {
-        id: orderId,
-      },
-      data: {
-        status: "cancelled",
-        updatedAt: new Date(),
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.orderItem.deleteMany({ where: { orderId } });
+      await tx.order.update({
+        where: {
+          id: orderId,
+        },
+        data: {
+          status: "cancelled",
+          updatedAt: new Date(),
+        },
+      });
     });
 
     return {

@@ -49,6 +49,9 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
         },
       },
       orders: {
+        orderBy: {
+          createdAt: "desc",
+        },
         include: {
           user: true,
           items: {
@@ -83,24 +86,33 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
     return {
       ...window,
       isLocked,
-      orders: window.orders.map((order) => ({
-        ...order,
-        items: order.items.map((item) => ({
-          ...item,
-          menuItem: {
-            ...item.menuItem,
-            price: item.menuItem.price.toString(),
-            shop: item.menuItem.shop,
-          },
-          replacementPreferences: item.replacementPreferences.map((rep) => ({
-            ...rep,
-            menuItem: {
-              ...rep.menuItem,
-              price: rep.menuItem.price.toString(),
-            },
-          })),
-        })),
-      })),
+      orders: (() => {
+        const seenUsers = new Set<string>();
+        return window.orders
+          .filter((order) => {
+            if (seenUsers.has(order.userId)) return false;
+            seenUsers.add(order.userId);
+            return true;
+          })
+          .map((order) => ({
+            ...order,
+            items: order.items.map((item) => ({
+              ...item,
+              menuItem: {
+                ...item.menuItem,
+                price: item.menuItem.price.toString(),
+                shop: item.menuItem.shop,
+              },
+              replacementPreferences: item.replacementPreferences.map((rep) => ({
+                ...rep,
+                menuItem: {
+                  ...rep.menuItem,
+                  price: rep.menuItem.price.toString(),
+                },
+              })),
+            })),
+          }));
+      })(),
     };
   });
 }
