@@ -78,7 +78,7 @@ export default async function AdminHistoryPage({
         </div>
       </div>
 
-      <AdminWindowHistory windows={windows} menuItems={menuItems} />
+      <AdminWindowHistory windows={windows} menuItems={menuItems} globalPeriodLabel={periodLabel} />
     </div>
   );
 }

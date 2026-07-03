@@ -83,7 +83,21 @@ export async function spinWheelAction(windowId: string) {
     }
 
     if (filtered.length === 0) {
-      return { success: false, error: "No eligible participants found" };
+      // Fallback: allow previous winner if they are the only ones available
+      const fallbackEligible = lateParticipants.filter(
+        (p) => !excludedIds.includes(p.user.id),
+      );
+      filtered = fallbackEligible.map((p) => p.user);
+
+      if (currentWinner && !excludedIds.includes(currentWinner.id)) {
+        if (!filtered.some((u) => u.id === currentWinner.id)) {
+          filtered.push(currentWinner);
+        }
+      }
+
+      if (filtered.length === 0) {
+        return { success: false, error: "No eligible participants found" };
+      }
     }
   } else {
     // Initial spin
@@ -102,14 +116,23 @@ export async function spinWheelAction(windowId: string) {
       return { success: false, error: "No participants found" };
     }
 
-    const eligible = participants.filter(
+    let eligible = participants.filter(
       (p) =>
         !excludedIds.includes(p.user.id) &&
         (!previousWinnerId || p.user.id !== previousWinnerId),
     );
 
     if (eligible.length === 0) {
-      return { success: false, error: "No eligible participants found" };
+      // Fallback: If excluding the previous winner leaves us with 0 participants,
+      // allow the previous winner to participate (e.g. they are the only person in the window).
+      const fallbackEligible = participants.filter(
+        (p) => !excludedIds.includes(p.user.id),
+      );
+      if (fallbackEligible.length > 0) {
+        eligible = fallbackEligible;
+      } else {
+        return { success: false, error: "No eligible participants found" };
+      }
     }
 
     filtered = eligible.map((p) => p.user);

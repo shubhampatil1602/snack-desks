@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Dot, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Dot, Search, CalendarDays } from "lucide-react";
 
 import {
   Table,
@@ -48,11 +48,13 @@ import { AddLateOrderDialog } from "./AddLateOrderDialog";
 type AdminWindowHistoryProps = {
   windows: AdminWindowHistoryType;
   menuItems: MenuItem[];
+  globalPeriodLabel: string;
 };
 
 export function AdminWindowHistory({
   windows,
   menuItems,
+  globalPeriodLabel,
 }: AdminWindowHistoryProps) {
   const [expandedWindows, setExpandedWindows] = useState<
     Record<string, boolean>
@@ -149,6 +151,33 @@ export function AdminWindowHistory({
     return revenueB - revenueA;
   });
 
+  const totalPeriodRevenue = sortedWindows.reduce(
+    (sum, window) =>
+      sum +
+      window.orders
+        .filter((o) => o.status !== "cancelled")
+        .reduce(
+          (orderSum, order) =>
+            orderSum +
+            order.items
+              .filter((item) => !item.replacementApplied)
+              .reduce(
+                (itemSum, item) =>
+                  itemSum + Number(item.menuItem.price) * item.quantity,
+                0,
+              ),
+          0,
+        ),
+    0,
+  );
+
+  function getPeriodLabel(p: HistoryPeriod) {
+    if (p === "all") return globalPeriodLabel === "All Time" ? "All" : globalPeriodLabel;
+    if (p === "today") return "Today";
+    if (p === "week") return "Last 7 days";
+    return p;
+  }
+
   const pagination = usePagination({
     data: sortedWindows,
     itemsPerPage: 10,
@@ -226,8 +255,13 @@ export function AdminWindowHistory({
                 placeholder='Search employee...'
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className='w-[220px] pl-8 h-9 text-sm border-none'
+                className='w-[220px] pl-8 h-9 text-sm border-none bg-transparent'
               />
+            </div>
+            <div className='flex items-center h-10 px-3 border bg-muted/10 text-sm shrink-0'>
+              <CalendarDays className='mr-2 h-4 w-4 text-muted-foreground' />
+              <span className='text-muted-foreground mr-1.5'>{getPeriodLabel(period)}:</span>
+              <span className='font-semibold'>{formatCurrency(totalPeriodRevenue)}</span>
             </div>
           </div>
 
@@ -538,6 +572,7 @@ export function AdminWindowHistory({
                                     <OrderHistoryDetails
                                       items={order.items}
                                       isAdmin={true}
+                                      isLocked={isLocked}
                                     />
                                   </TableCell>
                                 </TableRow>

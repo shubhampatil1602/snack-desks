@@ -38,11 +38,13 @@ type OrderItem = {
 type OrderHistoryDetailsProps = {
   items: OrderItem[];
   isAdmin?: boolean;
+  isLocked?: boolean;
 };
 
 export function OrderHistoryDetails({
   items,
   isAdmin = false,
+  isLocked = false,
 }: OrderHistoryDetailsProps) {
   const activeItems = items.filter((item) => !item.replacementApplied);
   const replacedItems = items.filter((item) => item.replacementApplied);
@@ -65,7 +67,9 @@ export function OrderHistoryDetails({
                 <span>
                   {item.menuItem.name} × {item.quantity}
                 </span>
-                {isAdmin &&
+
+                {!isLocked &&
+                  isAdmin &&
                   item.replacementPreferences &&
                   item.replacementPreferences.length > 0 && (
                     <UseAlternativeButton orderItemId={item.id} item={item} />
