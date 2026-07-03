@@ -1,19 +1,18 @@
 import { authIsRequired } from "@/actions/user";
-import { UserHistoryTable } from "./_components/UserHistoryTable";
-import { getUserOrderHistory } from "@/modules/orders/user-history-queries";
 import { PaymentQR } from "@/components/payment-qr";
 import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { CartSync } from "../_components/cart-sync";
 import { prisma } from "@/lib/db";
-
 import { PeriodPicker } from "@/components/period-picker";
-
+import { Suspense } from "react";
 import {
   generateMonthsFromDate,
   getPeriodLabel,
   getActivePeriod,
 } from "@/lib/period-utils";
 import { getPeriodCookie } from "@/actions/period-cookie";
+import { UserHistoryFetcher } from "./_components/HistoryFetchers";
+import { UserHistorySkeleton } from "./_components/HistorySkeletons";
 
 interface OrderHistoryPageProps {
   searchParams: Promise<{
@@ -46,9 +45,6 @@ export default async function OrderHistoryPage({
 
   if (!member) return null;
 
-  // Pass period to the query
-  const orders = await getUserOrderHistory(session.user.id, period);
-
   const months = generateMonthsFromDate(member.organization.createdAt);
   const periodLabel = getPeriodLabel(period, months);
 
@@ -67,7 +63,7 @@ export default async function OrderHistoryPage({
           </p>
         </div>
 
-        <div className='flex items-center gap-3'>
+        <div className='flex items-center flex-wrap gap-3'>
           <PaymentQR />
           <PeriodPicker
             period={rawPeriod}
@@ -77,7 +73,9 @@ export default async function OrderHistoryPage({
         </div>
       </div>
 
-      <UserHistoryTable orders={orders} />
+      <Suspense fallback={<UserHistorySkeleton />}>
+        <UserHistoryFetcher userId={session.user.id} period={period} />
+      </Suspense>
     </div>
   );
 }

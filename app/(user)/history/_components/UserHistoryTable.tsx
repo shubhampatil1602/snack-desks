@@ -82,7 +82,7 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
         onStatusChange={setStatusFilter}
       />
 
-      <div className='border'>
+      <div className='border overflow-x-auto'>
         <Table>
           <TableHeader className='bg-muted'>
             <TableRow>

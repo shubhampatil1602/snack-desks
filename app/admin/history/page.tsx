@@ -1,13 +1,9 @@
 import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
+import { Suspense } from "react";
 
-import { AdminWindowHistory } from "./_components/AdminWindowHistory";
 import { ExportOrdersDialog } from "./_components/ExportOrdersDialog";
-
-import { getOrganizationOrderHistoryGroupedByWindow } from "@/modules/orders/admin-history-queries";
-import { getMenuItems } from "@/modules/menu/queries";
 import { PaymentQR } from "@/components/payment-qr";
-
 import { PeriodPicker } from "@/components/period-picker";
 import { getPeriodCookie } from "@/actions/period-cookie";
 import {
@@ -15,6 +11,9 @@ import {
   getPeriodLabel,
   getActivePeriod,
 } from "@/lib/period-utils";
+
+import { AdminWindowHistoryFetcher } from "./_components/HistoryFetchers";
+import { AdminWindowHistorySkeleton } from "./_components/HistorySkeletons";
 
 interface AdminHistoryPageProps {
   searchParams: Promise<{
@@ -52,14 +51,9 @@ export default async function AdminHistoryPage({
   const months = generateMonthsFromDate(member.organization.createdAt);
   const periodLabel = getPeriodLabel(period, months);
 
-  const [windows, menuItems] = await Promise.all([
-    getOrganizationOrderHistoryGroupedByWindow(member.organizationId, period),
-    getMenuItems(member.organizationId),
-  ]);
-
   return (
     <div className='px-4 space-y-6'>
-      <div className='flex justify-between items-center pb-4 border-b'>
+      <div className='flex flex-col md:flex-row md:items-center justify-between pb-4 border-b gap-4'>
         <div>
           <h1 className='text-2xl font-heading tracking-wide'>Order History</h1>
           <p className='text-sm text-muted-foreground mt-1'>
@@ -67,7 +61,7 @@ export default async function AdminHistoryPage({
             {period === "all" ? "of all time" : `in ${periodLabel}`}
           </p>
         </div>
-        <div className='flex items-center gap-3'>
+        <div className='flex items-center flex-wrap gap-3'>
           <PaymentQR />
           <ExportOrdersDialog />
           <PeriodPicker
@@ -78,7 +72,13 @@ export default async function AdminHistoryPage({
         </div>
       </div>
 
-      <AdminWindowHistory windows={windows} menuItems={menuItems} globalPeriodLabel={periodLabel} />
+      <Suspense fallback={<AdminWindowHistorySkeleton />}>
+        <AdminWindowHistoryFetcher
+          organizationId={member.organizationId}
+          period={period}
+          periodLabel={periodLabel}
+        />
+      </Suspense>
     </div>
   );
 }

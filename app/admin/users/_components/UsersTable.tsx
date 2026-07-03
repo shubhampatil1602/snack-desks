@@ -16,7 +16,6 @@ import { OrganizationHeader } from "@/components/admins/OrganizationHeader";
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { RiTokenSwapFill } from "@remixicon/react";
 import { ResetTokenCountdown } from "@/components/admins/ResetTokenCountdown";
 import { GenerateResetTokenDialog } from "@/components/admins/GenerateResetTokenDialog";
 
@@ -76,7 +75,7 @@ export function UsersTable({ organization, members }: UsersTableProps) {
       </div>
 
       {/* Users Table */}
-      <div className='border'>
+      <div className='border overflow-x-auto'>
         <Table>
           <TableHeader className='bg-muted'>
             <TableRow>

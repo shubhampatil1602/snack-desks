@@ -3,32 +3,191 @@ import {
   parsePeriod,
   getISTDateParts,
   getISTDayBoundaries,
-  getISTMonthBoundaries,
 } from "@/lib/date-utils";
 import { getHeatmapData } from "@/lib/get-heatmap-data";
+import { getEmployeeRankings } from "@/modules/rankings/queries";
 
-export async function getUserDashboardData(
+function getDateFilter(period: string) {
+  const { startDate, endDate } = parsePeriod(period);
+  return startDate && endDate
+    ? {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      }
+    : {};
+}
+
+export async function getUserStats(
   organizationId: string,
   userId: string,
-  period: string, // Can be "all" or "YYYY" or "YYYY-MM"
+  period: string,
 ) {
-  // Parse period - supports "all", "YYYY", and "YYYY-MM"
-  const { startDate, endDate } = parsePeriod(period);
+  const dateFilter = getDateFilter(period);
 
-  // Build where clause with optional date filter
-  const dateFilter =
-    startDate && endDate
-      ? {
-          createdAt: {
-            gte: startDate,
-            lte: endDate,
+  const orders = await prisma.order.findMany({
+    where: {
+      organizationId,
+      userId,
+      status: "approved",
+      ...dateFilter,
+    },
+    select: {
+      items: {
+        where: { replacementApplied: false },
+        select: {
+          quantity: true,
+          menuItem: { select: { price: true } },
+        },
+      },
+    },
+  });
+
+  const totalSpent = orders.reduce(
+    (sum, order) =>
+      sum +
+      order.items.reduce(
+        (itemSum, item) =>
+          itemSum + Number(item.menuItem.price) * item.quantity,
+        0,
+      ),
+    0,
+  );
+
+  const totalOrders = orders.length;
+  const averageOrderValue = totalOrders === 0 ? 0 : totalSpent / totalOrders;
+
+  // Rank
+  const rankings = await getEmployeeRankings(organizationId, period);
+  const currentUserRank = rankings.find((r) => r.userId === userId) ?? null;
+
+  // Time-based spent
+  const { dayStart, dayEnd } = getISTDayBoundaries();
+  let includesToday = false;
+  const { year: currentYear, month: currentMonth } = getISTDateParts();
+
+  if (period === "all") {
+    includesToday = true;
+  } else if (period.length === 4) {
+    includesToday = Number(period) === currentYear;
+  } else if (period.length === 7) {
+    const [year, month] = period.split("-");
+    includesToday =
+      Number(year) === currentYear && Number(month) === currentMonth + 1;
+  }
+
+  const allTimeOrders = await prisma.order.findMany({
+    where: {
+      organizationId,
+      userId,
+      status: "approved",
+    },
+    select: {
+      items: {
+        where: { replacementApplied: false },
+        select: {
+          quantity: true,
+          menuItem: { select: { price: true } },
+        },
+      },
+    },
+  });
+
+  const allTimeSpent = allTimeOrders.reduce(
+    (sum, order) =>
+      sum +
+      order.items.reduce(
+        (itemSum, item) =>
+          itemSum + Number(item.menuItem.price) * item.quantity,
+        0,
+      ),
+    0,
+  );
+
+  let todaySpent = null;
+  if (includesToday) {
+    const todayOrders = await prisma.order.findMany({
+      where: {
+        organizationId,
+        userId,
+        status: "approved",
+        createdAt: {
+          gte: dayStart,
+          lte: dayEnd,
+        },
+      },
+      select: {
+        items: {
+          where: { replacementApplied: false },
+          select: {
+            quantity: true,
+            menuItem: { select: { price: true } },
           },
-        }
-      : {};
+        },
+      },
+    });
 
-  // =========================
-  // User Orders (filtered by period)
-  // =========================
+    todaySpent = todayOrders.reduce(
+      (sum, order) =>
+        sum +
+        order.items.reduce(
+          (itemSum, item) =>
+            itemSum + Number(item.menuItem.price) * item.quantity,
+          0,
+        ),
+      0,
+    );
+  }
+
+  return {
+    totalOrders,
+    totalSpent,
+    averageOrderValue,
+    currentRank: currentUserRank,
+    allTimeSpent,
+    todaySpent,
+  };
+}
+
+export async function getUserFavoriteItems(
+  organizationId: string,
+  userId: string,
+  period: string,
+) {
+  const dateFilter = getDateFilter(period);
+
+  const items = await prisma.orderItem.groupBy({
+    by: ["menuItemId"],
+    where: {
+      order: { organizationId, userId, status: "approved", ...dateFilter },
+      replacementApplied: false,
+    },
+    _sum: { quantity: true },
+    orderBy: { _sum: { quantity: "desc" } },
+    take: 5,
+  });
+
+  const menuItems = await prisma.menuItem.findMany({
+    where: { id: { in: items.map((i) => i.menuItemId) } },
+    select: { id: true, name: true },
+  });
+
+  const menuLookup = new Map(menuItems.map((m) => [m.id, m.name]));
+
+  return items.map((item) => ({
+    menuItemId: item.menuItemId,
+    name: menuLookup.get(item.menuItemId) ?? "Unknown",
+    quantity: item._sum.quantity ?? 0,
+  }));
+}
+
+export async function getUserRecentOrders(
+  organizationId: string,
+  userId: string,
+  period: string,
+) {
+  const dateFilter = getDateFilter(period);
 
   const orders = await prisma.order.findMany({
     where: {
@@ -41,231 +200,35 @@ export async function getUserDashboardData(
       id: true,
       status: true,
       createdAt: true,
-
-      orderWindow: {
-        select: {
-          label: true,
-        },
-      },
-
+      orderWindow: { select: { label: true } },
       items: {
+        where: { replacementApplied: false },
         select: {
           quantity: true,
-          menuItemId: true,
-          replacementApplied: true,
-
-          menuItem: {
-            select: {
-              name: true,
-              price: true,
-            },
-          },
+          menuItem: { select: { price: true } },
         },
       },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: "desc" },
+    take: 5,
   });
 
-  // =========================
-  // Stats
-  // =========================
+  return orders.map((order) => ({
+    id: order.id,
+    status: order.status,
+    createdAt: order.createdAt,
+    windowLabel: order.orderWindow.label,
+    total: order.items.reduce(
+      (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
+      0,
+    ),
+  }));
+}
 
-  const totalSpent = orders.reduce(
-    (sum, order) =>
-      sum +
-      order.items
-        .filter((item) => !item.replacementApplied)
-        .reduce(
-          (itemSum, item) =>
-            itemSum + Number(item.menuItem.price) * item.quantity,
-          0,
-        ),
-    0,
-  );
-
-  const totalOrders = orders.length;
-
-  const averageOrderValue = totalOrders === 0 ? 0 : totalSpent / totalOrders;
-
-  // =========================
-  // Favorite Items (filtered by period)
-  // =========================
-
-  const itemMap = new Map<
-    string,
-    {
-      menuItemId: string;
-      name: string;
-      quantity: number;
-    }
-  >();
-
-  for (const order of orders) {
-    for (const item of order.items) {
-      if (item.replacementApplied) continue;
-      const existing = itemMap.get(item.menuItemId);
-
-      if (existing) {
-        existing.quantity += item.quantity;
-      } else {
-        itemMap.set(item.menuItemId, {
-          menuItemId: item.menuItemId,
-          name: item.menuItem.name,
-          quantity: item.quantity,
-        });
-      }
-    }
-  }
-
-  const favoriteItems = Array.from(itemMap.values())
-    .sort((a, b) => b.quantity - a.quantity)
-    .slice(0, 5);
-
-  // =========================
-  // Recent Orders (filtered by period)
-  // =========================
-
-  const recentOrders = orders.slice(0, 5).map((order) => {
-    const total = order.items
-      .filter((item) => !item.replacementApplied)
-      .reduce(
-        (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-        0,
-      );
-
-    return {
-      id: order.id,
-      status: order.status,
-      createdAt: order.createdAt,
-      windowLabel: order.orderWindow.label,
-      total,
-    };
-  });
-
-  // =========================
-  // Rankings (filtered by period)
-  // =========================
-
-  const allApprovedOrders = await prisma.order.findMany({
-    where: {
-      organizationId,
-      status: "approved",
-      ...dateFilter,
-    },
-    select: {
-      userId: true,
-
-      user: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-
-      items: {
-        select: {
-          quantity: true,
-          replacementApplied: true,
-
-          menuItem: {
-            select: {
-              price: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  const rankingsMap = new Map<
-    string,
-    {
-      userId: string;
-      name: string;
-      spent: number;
-      orders: number;
-    }
-  >();
-
-  for (const order of allApprovedOrders) {
-    const total = order.items
-      .filter((item) => !item.replacementApplied)
-      .reduce(
-        (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-        0,
-      );
-
-    const existing = rankingsMap.get(order.userId);
-
-    if (existing) {
-      existing.spent += total;
-      existing.orders += 1;
-    } else {
-      rankingsMap.set(order.userId, {
-        userId: order.user.id,
-        name: order.user.name,
-        spent: total,
-        orders: 1,
-      });
-    }
-  }
-
-  const rankings = Array.from(rankingsMap.values())
-    .sort((a, b) => b.spent - a.spent)
-    .map((user, index) => ({
-      rank: index + 1,
-      ...user,
-    }));
-
-  const currentUserRank =
-    rankings.find((user) => user.userId === userId) ?? null;
-
-  // =========================
-  // Time-based Spent
-  // =========================
-
-  const { dayStart, dayEnd } = getISTDayBoundaries();
-  const { monthStart } = getISTMonthBoundaries();
-
-  const currentMonthOrders = await prisma.order.findMany({
-    where: {
-      organizationId,
-      userId,
-      status: "approved",
-      createdAt: {
-        gte: monthStart,
-      },
-    },
-    select: {
-      createdAt: true,
-      items: {
-        select: {
-          quantity: true,
-          replacementApplied: true,
-          menuItem: {
-            select: {
-              price: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  let includesToday = false;
-  const { year: currentYear, month: currentMonth } = getISTDateParts();
-  
-  if (period === "all") {
-    includesToday = true;
-  } else if (period.length === 4) {
-    includesToday = Number(period) === currentYear;
-  } else if (period.length === 7) {
-    const [year, month] = period.split("-");
-    includesToday = Number(year) === currentYear && Number(month) === currentMonth + 1;
-  }
-
+export async function getUserHeatmapData(
+  organizationId: string,
+  userId: string,
+) {
   const allTimeOrders = await prisma.order.findMany({
     where: {
       organizationId,
@@ -275,82 +238,26 @@ export async function getUserDashboardData(
     select: {
       createdAt: true,
       items: {
+        where: { replacementApplied: false },
         select: {
           quantity: true,
-          replacementApplied: true,
-          menuItem: {
-            select: { price: true },
-          },
+          menuItem: { select: { price: true } },
         },
       },
     },
   });
 
-  const heatmapData = getHeatmapData(allTimeOrders as any);
+  return getHeatmapData(allTimeOrders as any);
+}
 
-  const splitMasterWins = await prisma.orderWindow.count({
+export async function getUserSplitMasterWins(
+  organizationId: string,
+  userId: string,
+) {
+  return prisma.orderWindow.count({
     where: {
       organizationId,
       winnerUserId: userId,
     },
   });
-
-  const allTimeSpent = allTimeOrders.reduce(
-    (sum, order) =>
-      sum +
-      order.items
-        .filter((item) => !item.replacementApplied)
-        .reduce(
-          (itemSum, item) =>
-            itemSum + Number(item.menuItem.price) * item.quantity,
-          0,
-        ),
-    0,
-  );
-
-  const todaySpent = includesToday ? currentMonthOrders
-    .filter((order) => {
-      const orderDate = new Date(order.createdAt);
-      return orderDate >= dayStart && orderDate <= dayEnd;
-    })
-    .reduce(
-      (sum, order) =>
-        sum +
-        order.items
-          .filter((item) => !item.replacementApplied)
-          .reduce(
-            (itemSum, item) =>
-              itemSum + Number(item.menuItem.price) * item.quantity,
-            0,
-          ),
-      0,
-    ) : null;
-
-  // =========================
-  // Return
-  // =========================
-
-  return {
-    stats: {
-      totalOrders,
-      totalSpent,
-      averageOrderValue,
-      currentRank: currentUserRank?.rank ?? null,
-      allTimeSpent,
-      todaySpent,
-    },
-
-    rank: currentUserRank,
-
-    recentOrders,
-
-    favoriteItems,
-
-    heatmapData,
-    splitMasterWins,
-  };
 }
-
-export type UserDashboardData = Awaited<
-  ReturnType<typeof getUserDashboardData>
->;

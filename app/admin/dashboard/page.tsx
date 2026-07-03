@@ -1,6 +1,4 @@
 import { requireAdmin } from "@/actions/user";
-import { getDashboardData } from "@/modules/admin-dashboard/queries";
-
 import { prisma } from "@/lib/db";
 import {
   getPeriodLabel,
@@ -10,13 +8,24 @@ import {
 import { PeriodPicker } from "@/components/period-picker";
 import { getPeriodCookie } from "@/actions/period-cookie";
 
-import { DashboardStats } from "./_components/DashboardStats";
-import { ActiveWindowCard } from "./_components/ActiveWindowCard";
-import { TopSellingItemsCard } from "./_components/TopSellingItemsCard";
-import { TopEmployeesCard } from "./_components/TopEmployeesCard";
-import { RecentWindowsCard } from "./_components/RecentWindowsCard";
 import { DashboardSSE } from "./_components/DashboardSSE";
-import { SnackHeatmap } from "@/components/SnackHeatMap";
+import { Suspense } from "react";
+import {
+  ActiveWindowFetcher,
+  DashboardStatsFetcher,
+  HeatmapFetcher,
+  RecentWindowsFetcher,
+  TopEmployeesFetcher,
+  TopSellingItemsFetcher,
+} from "./_components/DashboardFetchers";
+import {
+  ActiveWindowSkeleton,
+  HeatmapSkeleton,
+  RecentWindowsSkeleton,
+  StatsSkeleton,
+  TopEmployeesSkeleton,
+  TopItemsSkeleton,
+} from "./_components/DashboardSkeletons";
 
 interface AdminDashboardProps {
   searchParams: Promise<{
@@ -47,9 +56,6 @@ export default async function AdminDashboard({
   const rawPeriod = params.period ?? cookiePeriod ?? undefined;
   const period = getActivePeriod(rawPeriod);
 
-  const dashboardData = await getDashboardData(member.organizationId, period);
-  const serverNow = new Date().getTime();
-
   const months = generateMonthsFromDate(organization.createdAt);
   const periodLabel = getPeriodLabel(period, months);
 
@@ -73,24 +79,39 @@ export default async function AdminDashboard({
       </div>
 
       <DashboardSSE />
-      <ActiveWindowCard
-        window={dashboardData.activeWindow}
-        serverNow={serverNow}
-      />
+      
+      <Suspense fallback={<ActiveWindowSkeleton />}>
+        <ActiveWindowFetcher organizationId={member.organizationId} />
+      </Suspense>
 
-      <DashboardStats stats={dashboardData.stats} periodLabel={periodLabel} />
+      <Suspense fallback={<StatsSkeleton />}>
+        <DashboardStatsFetcher 
+          organizationId={member.organizationId} 
+          period={period} 
+          periodLabel={periodLabel} 
+        />
+      </Suspense>
+
       <div className='grid gap-3 lg:grid-cols-2'>
-        <TopSellingItemsCard items={dashboardData.topSellingItems} />
-        <TopEmployeesCard employees={dashboardData.topEmployees} />
+        <Suspense fallback={<TopItemsSkeleton />}>
+          <TopSellingItemsFetcher organizationId={member.organizationId} period={period} />
+        </Suspense>
+        
+        <Suspense fallback={<TopEmployeesSkeleton />}>
+          <TopEmployeesFetcher organizationId={member.organizationId} period={period} />
+        </Suspense>
       </div>
-      <SnackHeatmap
-        data={dashboardData.heatmapData}
-        joinedAt={organization.createdAt}
-        title='Organization Activity'
-        description='Total spending across the organization over time'
-      />
+      
+      <Suspense fallback={<HeatmapSkeleton />}>
+        <HeatmapFetcher 
+          organizationId={member.organizationId} 
+          joinedAt={organization.createdAt} 
+        />
+      </Suspense>
 
-      <RecentWindowsCard windows={dashboardData.recentWindows} />
+      <Suspense fallback={<RecentWindowsSkeleton />}>
+        <RecentWindowsFetcher organizationId={member.organizationId} period={period} />
+      </Suspense>
     </div>
   );
 }

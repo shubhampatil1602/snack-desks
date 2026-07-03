@@ -1,42 +1,10 @@
 import { requireAdmin } from "@/actions/user";
-import { prisma } from "@/lib/db";
-import { UsersTable } from "./_components/UsersTable";
+import { Suspense } from "react";
+import { UsersTableFetcher } from "./_components/UserFetchers";
+import { UsersTableSkeleton } from "./_components/UserSkeletons";
 
 export default async function UsersPage() {
   const { member } = await requireAdmin();
-
-  const organization = await prisma.organization.findUnique({
-    where: {
-      id: member.organizationId,
-    },
-    select: {
-      name: true,
-      slug: true,
-      createdAt: true,
-      inviteCode: true,
-      members: {
-        where: {
-          role: "member",
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              createdAt: true,
-              passwordResetExpiry: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
-  });
-
-  if (!organization) return null;
 
   return (
     <div className='space-y-6 px-4'>
@@ -48,16 +16,9 @@ export default async function UsersPage() {
         </p>
       </div>
 
-      <UsersTable
-        organization={{
-          name: organization.name,
-          slug: organization.slug,
-          inviteCode: organization.inviteCode,
-          createdAt: organization.createdAt,
-          memberCount: organization.members.length,
-        }}
-        members={organization.members}
-      />
+      <Suspense fallback={<UsersTableSkeleton />}>
+        <UsersTableFetcher organizationId={member.organizationId} />
+      </Suspense>
     </div>
   );
 }

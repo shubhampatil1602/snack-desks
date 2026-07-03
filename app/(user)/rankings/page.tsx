@@ -1,10 +1,8 @@
 import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
-import { getEmployeeRankings } from "@/modules/rankings/queries";
-import { Rankings } from "@/components/rankings/Rankings";
 import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { CartSync } from "../_components/cart-sync";
-
+import { Suspense } from "react";
 import { PeriodPicker } from "@/components/period-picker";
 
 import {
@@ -13,6 +11,8 @@ import {
   getActivePeriod,
 } from "@/lib/period-utils";
 import { getPeriodCookie } from "@/actions/period-cookie";
+import { UserRankingFetcher } from "./_components/RankingFetchers";
+import { UserRankingSkeleton } from "./_components/RankingSkeletons";
 
 interface RankingsPageProps {
   searchParams: Promise<{
@@ -44,8 +44,6 @@ export default async function RankingsPage({
   const months = generateMonthsFromDate(member.createdAt);
   const periodLabel = getPeriodLabel(period, months);
 
-  const rankings = await getEmployeeRankings(member.organizationId, period);
-
   const activeWindow = await getActiveWindowWithMenu(member.organizationId);
 
   return (
@@ -68,11 +66,13 @@ export default async function RankingsPage({
         />
       </div>
 
-      <Rankings
-        rankings={rankings}
-        mode='user'
-        currentUserId={session.user.id}
-      />
+      <Suspense fallback={<UserRankingSkeleton />}>
+        <UserRankingFetcher
+          organizationId={member.organizationId}
+          period={period}
+          userId={session.user.id}
+        />
+      </Suspense>
     </div>
   );
 }

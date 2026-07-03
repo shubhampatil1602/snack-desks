@@ -6,7 +6,7 @@ type UserStatsCardsProps = {
     totalOrders: number;
     totalSpent: number;
     averageOrderValue: number;
-    currentRank: number | null;
+    currentRank: { rank: number } | null;
     allTimeSpent: number;
     todaySpent: number | null;
   };
@@ -44,7 +44,7 @@ export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
     },
     {
       title: "Current Rank In Your Org.",
-      value: stats.currentRank ? `#${stats.currentRank}` : "-",
+      value: stats.currentRank ? `#${stats.currentRank.rank}` : "-",
       color: "from-destructive to-destructive/80",
     },
   ];

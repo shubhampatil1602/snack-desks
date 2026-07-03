@@ -57,7 +57,7 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
   const bill = orders.reduce((sum, order) => sum + order.total, 0);
 
   return (
-    <div className='border'>
+    <div className='border overflow-x-auto'>
       <div className='flex items-center gap-6 p-4'>
         <div>
           <p className='text-xs text-muted-foreground'>Orders</p>

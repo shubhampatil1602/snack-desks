@@ -35,7 +35,7 @@ export function NoActiveWindow() {
     router.refresh();
   });
   return (
-    <div className='flex flex-col items-center justify-center min-h-full gap-3'>
+    <div className='flex flex-col items-center justify-center min-h-[85vh] gap-3'>
       <div className='rounded-full bg-muted p-4'>
         <ShoppingBag className='h-8 w-8 text-muted-foreground' />
       </div>

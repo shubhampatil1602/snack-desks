@@ -229,7 +229,7 @@ export function AdminWindowHistory({
           onStatusChange={setStatusFilter}
         />
 
-        <div className='flex items-center justify-between gap-2 my-3'>
+        <div className='flex flex-col md:flex-row md:items-center justify-between gap-4 my-3'>
           <div className='flex gap-3 flex-wrap'>
             <div
               className='flex items-center gap-2 border px-3 h-10 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer'
@@ -329,7 +329,7 @@ export function AdminWindowHistory({
               <div className='border-collapse border my-3'>
                 {/* Window Header */}
                 <div className='flex items-center justify-between px-3 py-2 bg-muted/20 overflow-x-auto'>
-                  <div className='flex items-center gap-4 w-xl'>
+                  <div className='flex items-center gap-4'>
                     <div className='flex items-center gap-3'>
                       <Checkbox
                         checked={selectedWindows.has(window.id)}
@@ -390,7 +390,7 @@ export function AdminWindowHistory({
                     </button>
                   </div>
 
-                  <div className='flex items-center justify-end gap-2 w-xl'>
+                  <div className='flex items-center justify-end gap-2'>
                     {window.winnerUserId &&
                       !window.paid &&
                       !hasUnspunLateOrders && (
@@ -420,7 +420,7 @@ export function AdminWindowHistory({
 
                 {/* Orders Table */}
                 {isExpanded && (
-                  <div className='border-t'>
+                  <div className='border-t overflow-x-auto'>
                     <Table>
                       <TableHeader>
                         <TableRow className='hover:bg-transparent bg-muted/10'>

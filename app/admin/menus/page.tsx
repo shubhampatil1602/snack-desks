@@ -1,14 +1,8 @@
 import { requireAdmin } from "@/actions/user";
-import {
-  getMenuCategories,
-  getMenuItems,
-  getShops,
-} from "@/modules/menu/queries";
-import { MenuTable } from "./_components/MenuTable";
 import { prisma } from "@/lib/db";
-import { CategoryManager } from "./_components/CategoryManager";
-import { MenuFormDialog } from "./_components/MenuFormDialog";
-import { ShopManager } from "./_components/ShopManager";
+import { Suspense } from "react";
+import { MenuContentFetcher } from "./_components/MenuFetchers";
+import { MenuTableSkeleton } from "./_components/MenuSkeletons";
 
 export default async function MenusPage() {
   const { session } = await requireAdmin();
@@ -17,30 +11,34 @@ export default async function MenusPage() {
     where: { userId: session.user.id },
   });
 
-  const [items, categories, shops] = member
-    ? await Promise.all([
-        getMenuItems(member.organizationId),
-        getMenuCategories(member.organizationId),
-        getShops(member.organizationId),
-      ])
-    : [[], [], []];
+  if (!member) {
+    return null;
+  }
 
   return (
     <div className='px-4'>
+      <h1 className='text-2xl font-heading tracking-wide'>Menus</h1>
+      <Suspense fallback={<MenuLoadingFallback />}>
+        <MenuContentFetcher organizationId={member.organizationId} />
+      </Suspense>
+    </div>
+  );
+}
+
+function MenuLoadingFallback() {
+  return (
+    <>
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h1 className='text-2xl font-heading tracking-wide'>Menus</h1>
-          <p className='text-sm text-muted-foreground mt-1'>
-            {items.length} item{items.length !== 1 ? "s" : ""} on the menu
-          </p>
+          <div className='h-5 w-64 bg-muted animate-pulse mt-1' />
         </div>
-        <div className='space-x-3'>
-          <MenuFormDialog mode='create' categories={categories} shops={shops} />
-          <CategoryManager categories={categories} />
-          <ShopManager shops={shops} />
+        <div className='space-x-3 flex'>
+          <div className='h-9 sm:w-28 bg-primary/20 animate-pulse' />
+          <div className='h-9 sm:w-32 bg-muted animate-pulse' />
+          <div className='h-9 sm:w-28 bg-muted animate-pulse' />
         </div>
       </div>
-      <MenuTable data={items} categories={categories} shops={shops} />
-    </div>
+      <MenuTableSkeleton />
+    </>
   );
 }

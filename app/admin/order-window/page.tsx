@@ -1,16 +1,8 @@
 import { requireAdmin } from "@/actions/user";
-import {
-  getActiveWindow,
-  getTodaysWindows,
-} from "@/modules/order-window/queries";
 import { prisma } from "@/lib/db";
-import { ActiveWindowCard } from "./_components/ActiveWindowCard";
-import { CreateWindowForm } from "./_components/CreateWindowForm";
-import { TodaysWindowsList } from "./_components/TodaysWindowsList";
-import { Tabs, TabsTrigger, TabsList, TabsContent } from "@/components/ui/tabs";
-import { getLiveOrders } from "@/modules/orders/admin-queries";
-import { LiveOrdersTable } from "./_components/LiveOrdersTable";
-import { LiveOrdersSSE } from "./_components/LiveOrdersSSE";
+import { Suspense } from "react";
+import { OrderWindowContentFetcher } from "./_components/OrderWindowFetchers";
+import { OrderWindowContentSkeleton } from "./_components/OrderWindowSkeletons";
 
 export default async function AdminOrderWindowPage() {
   const { session } = await requireAdmin();
@@ -19,15 +11,9 @@ export default async function AdminOrderWindowPage() {
     where: { userId: session.user.id },
   });
 
-  const [activeWindow, todaysWindows] = member
-    ? await Promise.all([
-        getActiveWindow(member.organizationId),
-        getTodaysWindows(member.organizationId),
-      ])
-    : [null, []];
-
-  const liveOrders = activeWindow ? await getLiveOrders(activeWindow.id) : [];
-  const serverNow = new Date().getTime();
+  if (!member) {
+    return null;
+  }
 
   return (
     <div className='px-4 space-y-6'>
@@ -38,34 +24,9 @@ export default async function AdminOrderWindowPage() {
         </p>
       </div>
 
-      {/* active window or create form */}
-      {activeWindow ? (
-        <>
-          <ActiveWindowCard window={activeWindow} serverNow={serverNow} />
-          <Tabs defaultValue='active-orders'>
-            <TabsList className='w-full mb-1'>
-              <TabsTrigger value='active-orders'>Active Orders</TabsTrigger>
-
-              <TabsTrigger value='recent-windows'>Recent Windows</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value='active-orders'>
-              <LiveOrdersSSE />
-              <LiveOrdersTable orders={liveOrders} />
-            </TabsContent>
-
-            <TabsContent value='recent-windows'>
-              <TodaysWindowsList windows={todaysWindows} />
-            </TabsContent>
-          </Tabs>
-        </>
-      ) : (
-        <>
-          <CreateWindowForm />
-          <h2 className='text-sm font-medium mb-3'>Recent Windows</h2>
-          <TodaysWindowsList windows={todaysWindows} />
-        </>
-      )}
+      <Suspense fallback={<OrderWindowContentSkeleton />}>
+        <OrderWindowContentFetcher organizationId={member.organizationId} />
+      </Suspense>
     </div>
   );
 }

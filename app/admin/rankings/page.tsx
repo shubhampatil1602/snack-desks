@@ -1,7 +1,5 @@
 import { requireAdmin } from "@/actions/user";
-import { getEmployeeRankings } from "@/modules/rankings/queries";
-import { Rankings } from "@/components/rankings/Rankings";
-
+import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { PeriodPicker } from "@/components/period-picker";
 import { getPeriodCookie } from "@/actions/period-cookie";
@@ -10,6 +8,9 @@ import {
   getPeriodLabel,
   getActivePeriod,
 } from "@/lib/period-utils";
+
+import { RankingFetcher } from "./_components/RankingFetchers";
+import { RankingSkeleton } from "./_components/RankingSkeletons";
 
 interface AdminRankingsPageProps {
   searchParams: Promise<{
@@ -43,8 +44,6 @@ export default async function AdminRankingsPage({
   const months = generateMonthsFromDate(organization.createdAt);
   const periodLabel = getPeriodLabel(period, months);
 
-  const rankings = await getEmployeeRankings(member.organizationId, period);
-
   return (
     <div className='space-y-6 px-4'>
       <div className='flex items-start justify-between gap-4 flex-wrap'>
@@ -63,7 +62,12 @@ export default async function AdminRankingsPage({
         />
       </div>
 
-      <Rankings rankings={rankings} mode='admin' />
+      <Suspense fallback={<RankingSkeleton />}>
+        <RankingFetcher
+          organizationId={member.organizationId}
+          period={period}
+        />
+      </Suspense>
     </div>
   );
 }

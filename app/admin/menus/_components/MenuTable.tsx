@@ -128,7 +128,7 @@ export function MenuTable({ data, categories, shops }: MenuTableProps) {
         />
       </div>
 
-      <div className='border'>
+      <div className='border overflow-x-auto'>
         <Table>
           <TableHeader className='bg-muted'>
             <TableRow>

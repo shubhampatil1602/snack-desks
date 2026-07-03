@@ -4,199 +4,114 @@ import {
   parsePeriod,
   getISTDateParts,
   getISTDayBoundaries,
-  getISTMonthBoundaries,
 } from "@/lib/date-utils";
-import { getHeatmapData } from "@/lib/get-heatmap-data";
+import { format, subYears, addDays } from "date-fns";
 
-export async function getDashboardData(organizationId: string, period: string) {
-  // Parse period - supports "all", "YYYY", and "YYYY-MM"
+export function getDateFilter(period: string) {
   const { startDate, endDate } = parsePeriod(period);
-
-  // Build where clause with optional date filter
-  const dateFilter =
-    startDate && endDate
-      ? {
-          createdAt: {
-            gte: startDate,
-            lte: endDate,
-          },
-        }
-      : {};
-
-  const { dayStart, dayEnd } = getISTDayBoundaries();
-  const { monthStart } = getISTMonthBoundaries();
-
-  const [
-    activeWindow,
-    allOrders,
-    currentMonthOrders,
-    recentWindows,
-    topSellingRaw,
-    rankings,
-    statusDistributionRaw,
-  ] = await Promise.all([
-    prisma.orderWindow.findFirst({
-      where: {
-        organizationId,
-        status: "active",
-      },
-      select: {
-        id: true,
-        label: true,
-        startsAt: true,
-        endsAt: true,
-        orders: {
-          select: {
-            status: true,
-          },
-        },
-      },
-    }),
-
-    prisma.order.findMany({
-      where: {
-        organizationId,
-        ...dateFilter,
-      },
-      include: {
-        user: true,
-        items: {
-          include: {
-            menuItem: true,
-          },
-        },
-      },
-    }),
-
-    prisma.order.findMany({
-      where: {
-        organizationId,
-        status: "approved",
+  return startDate && endDate
+    ? {
         createdAt: {
-          gte: monthStart,
+          gte: startDate,
+          lte: endDate,
+        },
+      }
+    : {};
+}
+
+export async function getDashboardActiveWindow(organizationId: string) {
+  return prisma.orderWindow.findFirst({
+    where: {
+      organizationId,
+      status: "active",
+    },
+    select: {
+      id: true,
+      label: true,
+      startsAt: true,
+      endsAt: true,
+      orders: {
+        select: {
+          status: true,
         },
       },
-      include: {
-        items: {
-          include: {
-            menuItem: true,
+    },
+  });
+}
+
+export async function getDashboardStats(organizationId: string, period: string) {
+  const dateFilter = getDateFilter(period);
+  const { dayStart, dayEnd } = getISTDayBoundaries();
+
+  const [allOrdersCount, approvedOrdersCount, rawAllTime, currentMonthRaw] =
+    await Promise.all([
+      prisma.order.count({
+        where: { organizationId, ...dateFilter },
+      }),
+      prisma.order.count({
+        where: { organizationId, status: "approved", ...dateFilter },
+      }),
+
+      // Total Revenue for Period
+      prisma.orderItem.groupBy({
+        by: ["menuItemId"],
+        where: {
+          order: { organizationId, status: "approved", ...dateFilter },
+          replacementApplied: false,
+        },
+        _sum: { quantity: true },
+      }),
+
+      // Today Revenue (if applicable)
+      prisma.orderItem.groupBy({
+        by: ["menuItemId"],
+        where: {
+          order: {
+            organizationId,
+            status: "approved",
+            createdAt: { gte: dayStart, lte: dayEnd },
           },
+          replacementApplied: false,
         },
-      },
-    }),
+        _sum: { quantity: true },
+      }),
+    ]);
 
-    prisma.orderWindow.findMany({
-      where: {
-        organizationId,
-        ...dateFilter,
-      },
-      include: {
-        orders: {
-          include: {
-            items: {
-              include: {
-                menuItem: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 5,
-    }),
+  // We still need all-time revenue (unfiltered by period)
+  const allTimeRaw = await prisma.orderItem.groupBy({
+    by: ["menuItemId"],
+    where: {
+      order: { organizationId, status: "approved" },
+      replacementApplied: false,
+    },
+    _sum: { quantity: true },
+  });
 
-    prisma.orderItem.groupBy({
-      by: ["menuItemId"],
-      where: {
-        order: {
-          organizationId,
-          status: "approved",
-          ...dateFilter,
-        },
-        replacementApplied: false,
-      },
-      _sum: {
-        quantity: true,
-      },
-      orderBy: {
-        _sum: {
-          quantity: "desc",
-        },
-      },
-      take: 5,
-    }),
-
-    getEmployeeRankings(organizationId, period),
-
-    prisma.order.groupBy({
-      by: ["status"],
-      where: {
-        organizationId,
-        ...dateFilter,
-      },
-      _count: {
-        id: true,
-      },
-    }),
+  // Get all unique menu items involved to fetch prices once
+  const menuItemIds = new Set([
+    ...rawAllTime.map((i) => i.menuItemId),
+    ...currentMonthRaw.map((i) => i.menuItemId),
+    ...allTimeRaw.map((i) => i.menuItemId),
   ]);
 
-  const [menuItems] = await Promise.all([
-    prisma.menuItem.findMany({
-      where: {
-        id: {
-          in: topSellingRaw.map((item) => item.menuItemId),
-        },
-      },
-    }),
-  ]);
+  const menuItems = await prisma.menuItem.findMany({
+    where: { id: { in: Array.from(menuItemIds) } },
+    select: { id: true, price: true },
+  });
+  
+  const menuLookup = new Map(menuItems.map((m) => [m.id, Number(m.price)]));
 
-  const menuLookup = new Map(menuItems.map((item) => [item.id, item]));
-
-  // =========================
-  // Stats
-  // =========================
-
-  const approvedOrders = allOrders.filter(
-    (order) => order.status === "approved",
+  const totalRevenue = rawAllTime.reduce(
+    (sum, item) =>
+      sum + (item._sum.quantity ?? 0) * (menuLookup.get(item.menuItemId) ?? 0),
+    0
   );
-
-  const totalRevenue = approvedOrders.reduce(
-    (sum, order) =>
-      sum +
-      order.items
-        .filter((item) => !item.replacementApplied)
-        .reduce(
-          (itemSum, item) =>
-            itemSum + Number(item.menuItem.price) * item.quantity,
-          0,
-        ),
-    0,
+  
+  const allTimeRevenue = allTimeRaw.reduce(
+    (sum, item) =>
+      sum + (item._sum.quantity ?? 0) * (menuLookup.get(item.menuItemId) ?? 0),
+    0
   );
-
-  const avgOrderValue =
-    approvedOrders.length === 0 ? 0 : totalRevenue / approvedOrders.length;
-
-  // =========================
-  // Top Selling Items
-  // =========================
-
-  const topSellingItems = topSellingRaw.map((item) => ({
-    menuItemId: item.menuItemId,
-    name: menuLookup.get(item.menuItemId)?.name ?? "Unknown",
-    quantity: item._sum.quantity ?? 0,
-  }));
-
-  // =========================
-  // Top Employees
-  // =========================
-
-  const topEmployees = rankings.slice(0, 3);
-
-  // =========================
-  // Time-based Revenue
-  // =========================
 
   let includesToday = false;
   const { year: currentYear, month: currentMonth } = getISTDateParts();
@@ -207,113 +122,145 @@ export async function getDashboardData(organizationId: string, period: string) {
     includesToday = Number(period) === currentYear;
   } else if (period.length === 7) {
     const [year, month] = period.split("-");
-    includesToday = Number(year) === currentYear && Number(month) === currentMonth + 1;
+    includesToday =
+      Number(year) === currentYear && Number(month) === currentMonth + 1;
   }
 
-  const allTimeOrders = await prisma.order.findMany({
+  const todayRevenue = includesToday
+    ? currentMonthRaw.reduce(
+        (sum, item) =>
+          sum +
+          (item._sum.quantity ?? 0) * (menuLookup.get(item.menuItemId) ?? 0),
+        0
+      )
+    : null;
+
+  const avgOrderValue =
+    approvedOrdersCount === 0 ? 0 : totalRevenue / approvedOrdersCount;
+
+  return {
+    totalRevenue,
+    totalOrders: allOrdersCount,
+    approvedOrders: approvedOrdersCount,
+    avgOrderValue,
+    allTimeRevenue,
+    todayRevenue,
+  };
+}
+
+export async function getTopSellingItems(
+  organizationId: string,
+  period: string
+) {
+  const dateFilter = getDateFilter(period);
+
+  const topSellingRaw = await prisma.orderItem.groupBy({
+    by: ["menuItemId"],
     where: {
-      organizationId,
-      status: "approved",
+      order: { organizationId, status: "approved", ...dateFilter },
+      replacementApplied: false,
     },
-    select: {
-      createdAt: true,
-      items: {
+    _sum: { quantity: true },
+    orderBy: { _sum: { quantity: "desc" } },
+    take: 5,
+  });
+
+  const menuItems = await prisma.menuItem.findMany({
+    where: { id: { in: topSellingRaw.map((item) => item.menuItemId) } },
+  });
+
+  const menuLookup = new Map(menuItems.map((item) => [item.id, item]));
+
+  return topSellingRaw.map((item) => ({
+    menuItemId: item.menuItemId,
+    name: menuLookup.get(item.menuItemId)?.name ?? "Unknown",
+    quantity: item._sum.quantity ?? 0,
+  }));
+}
+
+export async function getTopEmployeesData(
+  organizationId: string,
+  period: string
+) {
+  const rankings = await getEmployeeRankings(organizationId, period);
+  return rankings.slice(0, 3);
+}
+
+export async function getRecentWindows(
+  organizationId: string,
+  period: string
+) {
+  const dateFilter = getDateFilter(period);
+  const recentWindows = await prisma.orderWindow.findMany({
+    where: { organizationId, ...dateFilter },
+    include: {
+      orders: {
+        where: { status: "approved" },
         select: {
-          quantity: true,
-          replacementApplied: true,
-          menuItem: {
-            select: { price: true },
+          items: {
+            where: { replacementApplied: false },
+            select: { quantity: true, menuItem: { select: { price: true } } },
           },
         },
       },
     },
+    orderBy: { createdAt: "desc" },
+    take: 5,
   });
 
-  const heatmapData = getHeatmapData(allTimeOrders as any);
-
-  const allTimeRevenue = allTimeOrders.reduce(
-    (sum, order) =>
-      sum +
-      order.items
-        .filter((item) => !item.replacementApplied)
-        .reduce(
+  return recentWindows.map((window) => {
+    const revenue = window.orders.reduce((sum, order) => {
+      return (
+        sum +
+        order.items.reduce(
           (itemSum, item) =>
             itemSum + Number(item.menuItem.price) * item.quantity,
-          0,
-        ),
-    0,
-  );
+          0
+        )
+      );
+    }, 0);
 
-  const todayRevenue = includesToday ? currentMonthOrders
-    .filter((order) => {
-      const orderDate = new Date(order.createdAt);
-      return orderDate >= dayStart && orderDate <= dayEnd;
-    })
-    .reduce(
-      (sum, order) =>
-        sum +
-        order.items
-          .filter((item) => !item.replacementApplied)
-          .reduce(
-            (itemSum, item) =>
-              itemSum + Number(item.menuItem.price) * item.quantity,
-            0,
-          ),
-      0,
-    ) : null;
-
-  const statusDistribution = {
-    approved:
-      statusDistributionRaw.find((s) => s.status === "approved")?._count.id ??
-      0,
-    rejected:
-      statusDistributionRaw.find((s) => s.status === "rejected")?._count.id ??
-      0,
-    cancelled:
-      statusDistributionRaw.find((s) => s.status === "cancelled")?._count.id ??
-      0,
-  };
-
-  return {
-    activeWindow,
-    stats: {
-      totalRevenue,
-      totalOrders: allOrders.length,
-      approvedOrders: approvedOrders.length,
-      avgOrderValue,
-      allTimeRevenue,
-      todayRevenue,
-    },
-    topSellingItems,
-    topEmployees,
-    recentWindows: recentWindows.map((window) => {
-      const revenue = window.orders
-        .filter((order) => order.status === "approved")
-        .reduce(
-          (sum, order) =>
-            sum +
-            order.items
-              .filter((item) => !item.replacementApplied)
-              .reduce(
-                (itemSum, item) =>
-                  itemSum + Number(item.menuItem.price) * item.quantity,
-                0,
-              ),
-          0,
-        );
-
-      return {
-        id: window.id,
-        label: window.label,
-        createdAt: window.createdAt,
-        status: window.status,
-        ordersCount: window.orders.length,
-        revenue,
-      };
-    }),
-    statusDistribution,
-    heatmapData,
-  };
+    return {
+      id: window.id,
+      label: window.label,
+      createdAt: window.createdAt,
+      status: window.status,
+      ordersCount: window.orders.length,
+      revenue,
+    };
+  });
 }
 
-export type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
+export async function getDashboardHeatmap(organizationId: string) {
+  const endDate = new Date();
+  const startDate = subYears(endDate, 1);
+
+  // Raw query for massive performance gain. Exactly mimics previous logic.
+  const rawData = await prisma.$queryRaw<{ date: Date; spent: number }[]>`
+    SELECT 
+      DATE_TRUNC('day', o."createdAt") as "date",
+      SUM(oi.quantity * m.price) as "spent"
+    FROM "order" o
+    JOIN "order_item" oi ON o.id = oi."orderId"
+    JOIN "menu_item" m ON oi."menuItemId" = m.id
+    WHERE o."organizationId" = ${organizationId}
+      AND o.status = 'approved'
+      AND oi."replacementApplied" = false
+      AND o."createdAt" >= ${startDate}
+    GROUP BY DATE_TRUNC('day', o."createdAt")
+  `;
+
+  const orderMap = new Map<string, number>();
+  for (const row of rawData) {
+    if (row.date) {
+      orderMap.set(format(row.date, "yyyy-MM-dd"), Number(row.spent));
+    }
+  }
+
+  const data = [];
+  for (let date = startDate; date <= endDate; date = addDays(date, 1)) {
+    const key = format(date, "yyyy-MM-dd");
+    data.push({ date: key, spent: orderMap.get(key) ?? 0 });
+  }
+  return data;
+}
