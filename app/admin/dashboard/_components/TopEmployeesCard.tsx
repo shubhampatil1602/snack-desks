@@ -74,7 +74,7 @@ export function TopEmployeesCard({ employees }: TopEmployeesCardProps) {
                 return (
                   <div
                     key={emp.userId}
-                    className='flex flex-col items-center gap-2 w-[120px]'
+                    className='flex flex-col items-center gap-2 w-[130px]'
                   >
                     <div
                       className={`h-10 w-10 rounded-full flex items-center justify-center text-xs font-semibold ${podiumStyles.avatar[colIdx]}`}
@@ -99,7 +99,7 @@ export function TopEmployeesCard({ employees }: TopEmployeesCardProps) {
                         #{rank}
                       </span>
                       <p className='text-xs'>
-                        All time:{" "}
+                        Spent:{" "}
                         <span className='font-semibold pl-1'>
                           {formatCurrency(emp.spent)}
                         </span>
