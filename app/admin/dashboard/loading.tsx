@@ -17,9 +17,6 @@ export default function DashboardLoading() {
             Here&apos;s what&apos;s happening across your organization.
           </p>
         </div>
-
-        {/* Placeholder for the PeriodPicker to keep layout stable */}
-        <div className='h-10 w-[240px] bg-muted animate-pulse rounded-md' />
       </div>
 
       <ActiveWindowSkeleton />

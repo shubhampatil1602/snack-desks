@@ -92,7 +92,7 @@ export async function signInAction(
 
   try {
     await auth.api.signInEmail({
-      body: { email, password },
+      body: { email, password, rememberMe: true },
       headers: await headers(),
     });
 
