@@ -138,7 +138,7 @@ export function MenuFormDialog({
       setOpen(false);
       reset();
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong");
     } finally {
       setIsSubmitting(false);
@@ -202,6 +202,7 @@ export function MenuFormDialog({
               <Input
                 id='price'
                 type='number'
+                step='0.01'
                 placeholder='20'
                 {...register("price")}
                 disabled={isSubmitting}
@@ -274,10 +275,7 @@ export function MenuFormDialog({
                   }
                   disabled={isSubmitting}
                 >
-                  <SelectTrigger
-                    id='shop'
-                    className={shopValue ? "pr-16" : ""}
-                  >
+                  <SelectTrigger id='shop' className={shopValue ? "pr-16" : ""}>
                     <SelectValue placeholder='Select shop (optional)' />
                   </SelectTrigger>
                   <SelectContent>

@@ -7,7 +7,12 @@ import {
 
 export const menuItemSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
-  price: z.coerce.number().min(0, "Price must be positive"),
+  price: z.coerce
+    .number()
+    .min(0, "Price must be positive")
+    .refine((val) => /^\d+(\.\d{1,2})?$/.test(val.toString()), {
+      message: "Price can have at most 2 decimal places",
+    }),
   unit: z.string().min(1, "Unit is required"),
   categoryId: z.string().min(1, "Category is required"),
   shopId: z.string().optional().nullable(),
