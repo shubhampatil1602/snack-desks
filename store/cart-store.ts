@@ -29,6 +29,7 @@ type CartStore = {
 
   increment: (menuItemId: string) => void;
   decrement: (menuItemId: string) => void;
+  setQuantity: (menuItemId: string, quantity: number) => void;
 
   addReplacementItem: (originalMenuItemId: string, replacement: CartReplacementItem) => void;
   removeReplacementItem: (originalMenuItemId: string, replacementMenuItemId: string) => void;
@@ -101,6 +102,25 @@ export const useCartStore = create<CartStore>()(
               : item,
           ),
         })),
+
+      setQuantity: (menuItemId, quantity) =>
+        set((state) => {
+          if (quantity <= 0) {
+            return {
+              items: state.items.filter((item) => item.menuItemId !== menuItemId),
+            };
+          }
+          return {
+            items: state.items.map((item) =>
+              item.menuItemId === menuItemId
+                ? {
+                    ...item,
+                    quantity,
+                  }
+                : item,
+            ),
+          };
+        }),
 
       decrement: (menuItemId) =>
         set((state) => ({

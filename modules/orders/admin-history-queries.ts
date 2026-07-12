@@ -63,7 +63,11 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
               },
               replacementPreferences: {
                 include: {
-                  menuItem: true,
+                  menuItem: {
+                    include: {
+                      shop: true,
+                    },
+                  },
                 },
               },
             },

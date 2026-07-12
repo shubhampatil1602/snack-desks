@@ -131,7 +131,7 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
 
                           {isReplaced && (
                             <Badge
-                              variant='outline'
+                              variant='default'
                               className='text-[10px] bg-muted'
                             >
                               Alternative Used
@@ -143,9 +143,9 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
                         {hasReplacements && !isReplaced && (
                           <div className='text-[10px] text-muted-foreground ml-2 border-l pl-2 border-muted'>
                             Alternative Pref:{" "}
-                            {item.replacementPreferences
-                              .map((r) => `${r.menuItem.name} × ${r.quantity}`)
-                              .join(", ")}
+                            {item.replacementPreferences.length > 0 &&
+                              `${item.replacementPreferences[0].menuItem.name} × ${item.replacementPreferences[0].quantity}`}
+                            {item.replacementPreferences.length > 1 && " ..."}
                           </div>
                         )}
                       </div>

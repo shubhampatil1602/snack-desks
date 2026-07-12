@@ -747,3 +747,216 @@ async function createOrderItems(
     }
   }
 }
+
+export async function bulkDeleteOrderItemFromWindowAction(
+  windowId: string,
+  menuItemId: string,
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const member = await prisma.member.findFirst({
+    where: {
+      userId: session.user.id,
+    },
+  });
+
+  if (!member) {
+    return {
+      success: false,
+      error: "Organization not found",
+    };
+  }
+
+  const orderWindow = await prisma.orderWindow.findUnique({
+    where: { id: windowId },
+  });
+
+  if (!orderWindow) {
+    return { success: false, error: "Order window not found" };
+  }
+
+  // Find all order items to delete
+  const orderItemsToDelete = await prisma.orderItem.findMany({
+    where: {
+      menuItemId: menuItemId,
+      order: {
+        windowId: windowId,
+        status: { not: "cancelled" },
+      },
+    },
+    include: {
+      order: true,
+    },
+  });
+
+  if (orderItemsToDelete.length === 0) {
+    return { success: false, error: "No orders found with this item" };
+  }
+
+  const orderIds = [...new Set(orderItemsToDelete.map((oi) => oi.orderId))];
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Delete the order items
+    await tx.orderItem.deleteMany({
+      where: {
+        menuItemId: menuItemId,
+        order: {
+          windowId: windowId,
+          status: { not: "cancelled" },
+        },
+      },
+    });
+
+    // 2. Check if any affected orders now have 0 items
+    for (const orderId of orderIds) {
+      const remainingItems = await tx.orderItem.count({
+        where: { orderId },
+      });
+
+      if (remainingItems === 0) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: "cancelled", updatedAt: new Date() },
+        });
+        
+        await notify({
+          type: "order_cancelled",
+          orgId: member.organizationId,
+          payload: { orderId },
+        });
+      } else {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { updatedAt: new Date() },
+        });
+        
+        await notify({
+          type: "order_updated",
+          orgId: member.organizationId,
+          payload: { orderId },
+        });
+      }
+    }
+  });
+
+  revalidatePath("/admin/history");
+  revalidatePath("/admin/order-window");
+  revalidatePath("/admin/dashboard");
+
+  return { success: true, orderId: "bulk-delete" };
+}
+
+export async function bulkUpdateOrderItemAction(
+  windowId: string,
+  menuItemId: string,
+  updates: { orderId: string; newQuantity: number }[],
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const member = await prisma.member.findFirst({
+    where: {
+      userId: session.user.id,
+    },
+  });
+
+  if (!member) {
+    return {
+      success: false,
+      error: "Organization not found",
+    };
+  }
+
+  const orderWindow = await prisma.orderWindow.findUnique({
+    where: { id: windowId },
+  });
+
+  if (!orderWindow) {
+    return { success: false, error: "Order window not found" };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const update of updates) {
+      const { orderId, newQuantity } = update;
+
+      const currentItems = await tx.orderItem.findMany({
+        where: {
+          orderId: orderId,
+          menuItemId: menuItemId,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      const currentQuantity = currentItems.reduce(
+        (acc, item) => acc + item.quantity,
+        0,
+      );
+
+      if (newQuantity === currentQuantity) {
+        continue; // No change for this user
+      }
+
+      if (newQuantity === 0) {
+        // Delete all matching items for this order
+        await tx.orderItem.deleteMany({
+          where: {
+            orderId: orderId,
+            menuItemId: menuItemId,
+          },
+        });
+      } else {
+        // Adjust quantities, preserving rows where possible
+        let remainingToKeep = newQuantity;
+        for (const item of currentItems) {
+          if (remainingToKeep >= item.quantity) {
+            remainingToKeep -= item.quantity;
+          } else if (remainingToKeep > 0) {
+            await tx.orderItem.update({
+              where: { id: item.id },
+              data: { quantity: remainingToKeep },
+            });
+            remainingToKeep = 0;
+          } else {
+            await tx.orderItem.delete({
+              where: { id: item.id },
+            });
+          }
+        }
+      }
+
+      // Check if order is empty
+      const remainingItems = await tx.orderItem.count({
+        where: { orderId },
+      });
+
+      if (remainingItems === 0) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: "cancelled", updatedAt: new Date() },
+        });
+
+        await notify({
+          type: "order_cancelled",
+          orgId: member.organizationId,
+          payload: { orderId },
+        });
+      } else {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { updatedAt: new Date() },
+        });
+
+        await notify({
+          type: "order_updated",
+          orgId: member.organizationId,
+          payload: { orderId },
+        });
+      }
+    }
+  });
+
+  revalidatePath("/admin/history");
+  revalidatePath("/admin/order-window");
+  revalidatePath("/admin/dashboard");
+
+  return { success: true, orderId: "bulk-update" };
+}
