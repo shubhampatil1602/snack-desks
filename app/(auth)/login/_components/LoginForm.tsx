@@ -43,7 +43,7 @@ export function LoginForm() {
 
   return (
     <div className='min-h-screen flex items-center justify-center px-4'>
-      <div className='w-full max-w-md bg-background/60 px-6 py-7 shadow'>
+      <div className='w-full max-w-md bg-background px-6 py-7 shadow'>
         <div className='mb-4'>
           <Link href='/' className='text-base font-medium'>
             SnackDesk

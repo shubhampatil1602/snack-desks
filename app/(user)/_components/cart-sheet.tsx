@@ -7,7 +7,9 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
+import { QuantityInput } from "./QuantityInput";
 import {
   Table,
   TableBody,
@@ -95,6 +97,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const items = useCartStore((state) => state.items);
   const increment = useCartStore((state) => state.increment);
   const decrement = useCartStore((state) => state.decrement);
+  const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
   const windowId = useCartStore((state) => state.windowId);
@@ -247,19 +250,28 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           <Button
                             variant='outline'
                             size='icon'
-                            className='h-8 w-8'
+                            className='h-8 w-8 shrink-0'
                             onClick={() => decrement(item.menuItemId)}
                             disabled={isMutating}
                           >
                             <Minus className='h-3 w-3' />
                           </Button>
-                          <span className='w-8 text-center font-medium'>
-                            {item.quantity}
-                          </span>
+                          <div className='w-8 h-8 shrink-0 font-medium'>
+                            <QuantityInput
+                              initialQuantity={item.quantity}
+                              onUpdate={(qty) => {
+                                if (qty === 0) {
+                                  removeItem(item.menuItemId);
+                                } else {
+                                  setQuantity(item.menuItemId, qty);
+                                }
+                              }}
+                            />
+                          </div>
                           <Button
                             variant='outline'
                             size='icon'
-                            className='h-8 w-8'
+                            className='h-8 w-8 shrink-0'
                             onClick={() => increment(item.menuItemId)}
                             disabled={isMutating}
                           >
@@ -516,7 +528,7 @@ function ManageAlternativesDialog({
                           type='button'
                           variant='ghost'
                           size='icon'
-                          className='h-7 w-7 rounded-none'
+                          className='h-7 w-7 rounded-none shrink-0'
                           onClick={() => {
                             if (rep.quantity === 1) {
                               removeReplacementItem(
@@ -535,14 +547,30 @@ function ManageAlternativesDialog({
                         >
                           <Minus className='h-2.5 w-2.5' />
                         </Button>
-                        <span className='w-5 text-center text-xs font-semibold'>
-                          {rep.quantity}
-                        </span>
+                        <div className='w-6 h-7 shrink-0 text-xs font-semibold'>
+                          <QuantityInput
+                            initialQuantity={rep.quantity}
+                            onUpdate={(qty) => {
+                              if (qty === 0) {
+                                removeReplacementItem(
+                                  originalItem.menuItemId,
+                                  rep.menuItemId,
+                                );
+                              } else {
+                                updateReplacementItemQuantity(
+                                  originalItem.menuItemId,
+                                  rep.menuItemId,
+                                  qty,
+                                );
+                              }
+                            }}
+                          />
+                        </div>
                         <Button
                           type='button'
                           variant='ghost'
                           size='icon'
-                          className='h-7 w-7 rounded-none'
+                          className='h-7 w-7 rounded-none shrink-0'
                           onClick={() => {
                             updateReplacementItemQuantity(
                               originalItem.menuItemId,

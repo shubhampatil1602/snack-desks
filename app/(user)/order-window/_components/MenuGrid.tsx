@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { useCartStore } from "@/store/cart-store";
-import Image from "next/image";
+import { QuantityInput } from "@/app/(user)/_components/QuantityInput";
+
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ export function MenuGrid({ items }: MenuGridProps) {
   const addItem = useCartStore((state) => state.addItem);
   const increment = useCartStore((state) => state.increment);
   const decrement = useCartStore((state) => state.decrement);
+  const setQuantity = useCartStore((state) => state.setQuantity);
   const cartItems = useCartStore((state) => state.items);
 
   return (
@@ -158,9 +160,12 @@ export function MenuGrid({ items }: MenuGridProps) {
                       -
                     </Button>
 
-                    <span className='font-medium text-sm text-center'>
-                      {quantity}
-                    </span>
+                    <div className='flex items-center justify-center'>
+                      <QuantityInput
+                        initialQuantity={quantity}
+                        onUpdate={(qty) => setQuantity(item.id, qty)}
+                      />
+                    </div>
 
                     <Button
                       variant='ghost'
