@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Copy, Check, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { BreakdownItemData } from "./types";
 
 type ItemBreakdownListProps = {
@@ -92,10 +91,10 @@ export function ItemBreakdownList({
                           <Button
                             variant='ghost'
                             size='icon'
-                            className='h-5 w-5 rounded-none text-destructive hover:bg-destructive hover:text-destructive-foreground'
+                            className='h-5 w-5 rounded-none'
                             onClick={() => onDeleteItem({ name, data: value })}
                           >
-                            <Trash2 className='h-3 w-3' />
+                            <Trash2 className='h-3 w-3 text-destructive hover:bg-destructive hover:text-destructive-foreground' />
                           </Button>
                         )}
                       </div>
