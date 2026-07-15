@@ -51,8 +51,15 @@ export function ActiveWindowCard({ window, serverNow }: ActiveWindowCardProps) {
     );
   }
 
-  const approved = window.orders.filter((o) => o.status === "approved").length;
-  const pending = window.orders.filter((o) => o.status === "pending").length;
+  const { approved, pending, cancelled } = window.orders.reduce(
+    (acc, o) => {
+      if (o.status === "approved") acc.approved++;
+      else if (o.status === "pending") acc.pending++;
+      else if (o.status === "cancelled") acc.cancelled++;
+      return acc;
+    },
+    { approved: 0, pending: 0, cancelled: 0 },
+  );
 
   return (
     <div className='border bg-card relative overflow-hidden'>
@@ -118,6 +125,10 @@ export function ActiveWindowCard({ window, serverNow }: ActiveWindowCardProps) {
             <div>
               <p className='text-sm text-muted-foreground'>Pending</p>
               <p className='text-xl font-bold text-center'>{pending}</p>
+            </div>
+            <div>
+              <p className='text-sm text-muted-foreground'>Cancelled</p>
+              <p className='text-xl font-bold text-center'>{cancelled}</p>
             </div>
           </div>
         </div>

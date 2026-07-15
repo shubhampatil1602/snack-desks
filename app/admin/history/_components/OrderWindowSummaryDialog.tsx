@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 
 import { AdminWindowHistory as AdminWindowHistoryType } from "@/modules/orders/admin-history-queries";
 import { BreakdownItemData, ShopBreakdown } from "./types";
@@ -140,7 +139,9 @@ export function OrderWindowSummaryDialog({
   for (const shop of shopsMap.values()) {
     const uniqueOrders = new Set();
     for (const order of approvedOrders) {
-      if (order.items.some((item) => item.menuItem.shop?.name === shop.shopName)) {
+      if (
+        order.items.some((item) => item.menuItem.shop?.name === shop.shopName)
+      ) {
         uniqueOrders.add(order.id);
       }
     }
@@ -359,7 +360,6 @@ export function OrderWindowSummaryDialog({
             />
           )}
         </div>
-
       </DialogContent>
 
       {/* Delete/Update Modal */}
