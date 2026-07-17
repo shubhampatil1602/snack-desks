@@ -59,6 +59,11 @@ export const shopSchema = z.object({
     .trim()
     .min(1, "Shop name is required")
     .max(30, "Shop name is too long"),
+  paymentUpi: z
+    .string()
+    .trim()
+    .optional()
+    .nullable(),
 });
 
 export type ShopInput = z.infer<typeof shopSchema>;

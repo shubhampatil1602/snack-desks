@@ -101,6 +101,11 @@ export async function getUserOrderHistory(
                   menuItem: {
                     select: {
                       price: true,
+                      shop: {
+                        select: {
+                          name: true,
+                        },
+                      },
                     },
                   },
                 },

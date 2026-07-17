@@ -29,6 +29,7 @@ type OrderWindowUserSummaryDialogProps = {
         replacementApplied: boolean;
         menuItem: {
           price: string;
+          shop?: { name: string } | null;
         };
       }[];
     }[];
@@ -44,57 +45,52 @@ export function OrderWindowUserSummaryDialog({
   const [copied, setCopied] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "amount">("name");
 
-  // Only approved orders
-  const approvedOrders = window.orders.filter((o) => o.status === "approved");
-  const rejectedOrders = window.orders.filter((o) => o.status === "rejected");
-  const cancelledOrders = window.orders.filter((o) => o.status === "cancelled");
+  let total = 0;
+  let approvedCount = 0;
+  let rejectedCount = 0;
+  let cancelledCount = 0;
+  const shopTotals: Record<string, number> = {};
+  const userTotals: Record<
+    string,
+    { id: string; name: string; total: number }
+  > = {};
 
-  // Total Bill from approved orders only
-  const total = approvedOrders.reduce(
-    (sum, order) =>
-      sum +
-      order.items
-        .filter((item) => !item.replacementApplied)
-        .reduce(
-          (itemSum, item) =>
-            itemSum + Number(item.menuItem.price) * item.quantity,
-          0,
-        ),
-    0,
-  );
+  window.orders.forEach((order) => {
+    if (order.status === "approved") approvedCount++;
+    else if (order.status === "rejected") rejectedCount++;
+    else if (order.status === "cancelled") cancelledCount++;
 
-  // User breakdown from approved orders ONLY
-  const userBreakdown = approvedOrders
-    .map((order) => ({
-      id: order.user.id,
-      name: order.user.name,
-      total: order.items
-        .filter((item) => !item.replacementApplied)
-        .reduce(
-          (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-          0,
-        ),
-    }))
-    // Group by user (if same user has multiple approved orders)
-    .reduce(
-      (acc, curr) => {
-        const existing = acc.find((user) => user.id === curr.id);
-        if (existing) {
-          existing.total += curr.total;
-        } else {
-          acc.push({ ...curr });
+    if (order.status === "approved") {
+      let orderTotal = 0;
+      order.items.forEach((item) => {
+        if (!item.replacementApplied) {
+          const itemTotal = Number(item.menuItem.price) * item.quantity;
+          orderTotal += itemTotal;
+          total += itemTotal;
+
+          const shopName = item.menuItem.shop?.name || "Unknown";
+          shopTotals[shopName] = (shopTotals[shopName] || 0) + itemTotal;
         }
-        return acc;
-      },
-      [] as Array<{ id: string; name: string; total: number }>,
-    )
-    // Sort based on state
-    .sort((a, b) => {
-      if (sortBy === "amount") {
-        return b.total - a.total;
+      });
+
+      if (orderTotal > 0) {
+        if (userTotals[order.user.id]) {
+          userTotals[order.user.id].total += orderTotal;
+        } else {
+          userTotals[order.user.id] = {
+            id: order.user.id,
+            name: order.user.name,
+            total: orderTotal,
+          };
+        }
       }
-      return a.name.localeCompare(b.name);
-    });
+    }
+  });
+
+  const userBreakdown = Object.values(userTotals).sort((a, b) => {
+    if (sortBy === "amount") return b.total - a.total;
+    return a.name.localeCompare(b.name);
+  });
 
   async function copySummary() {
     const date = new Date(window.createdAt).toLocaleDateString("en-IN", {
@@ -103,9 +99,16 @@ export function OrderWindowUserSummaryDialog({
       year: "numeric",
     });
 
+    const shopBreakdownText = Object.entries(shopTotals)
+      .map(
+        ([shopName, shopTotal]) => `${shopName}: ${formatCurrency(shopTotal)}`,
+      )
+      .join(", ");
+
     const text = `${window.label} Window (${date})
 
 Total Bill: ${formatCurrency(total)}
+${shopBreakdownText ? shopBreakdownText + "\n" : ""}
 ${userBreakdown
   .map((user) => `  ${user.name} - ${formatCurrency(user.total)}`)
   .join("\n")}`;
@@ -157,24 +160,43 @@ ${userBreakdown
             <div className='col-span-1 text-center'>
               <p className='text-xs text-muted-foreground'>Approved</p>
               <p className='text-xl font-semibold text-green-600'>
-                {approvedOrders.length}
+                {approvedCount}
               </p>
             </div>
 
             <div className='col-span-1 text-center'>
               <p className='text-xs text-muted-foreground'>Rejected</p>
               <p className='text-xl font-semibold text-red-600'>
-                {rejectedOrders.length}
+                {rejectedCount}
               </p>
             </div>
 
             <div className='col-span-1 text-center'>
               <p className='text-xs text-muted-foreground'>Cancelled</p>
               <p className='text-xl font-semibold text-yellow-600'>
-                {cancelledOrders.length}
+                {cancelledCount}
               </p>
             </div>
           </div>
+
+          {/* Shop Breakdown */}
+          {Object.entries(shopTotals).length > 0 && (
+            <div className='flex flex-wrap gap-2'>
+              {Object.entries(shopTotals).map(([shopName, shopTotal]) => (
+                <div
+                  key={shopName}
+                  className='flex items-center text-xs bg-primary/10 px-2.5 py-1 rounded-full font-semibold'
+                >
+                  <span className='text-muted-foreground uppercase tracking-wider mr-1.5'>
+                    {shopName}:
+                  </span>
+                  <span className='text-primary'>
+                    {formatCurrency(shopTotal)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* User Breakdown - Approved Orders Only */}
           <div className='space-y-3 border-t pt-4 max-h-120 overflow-y-auto'>

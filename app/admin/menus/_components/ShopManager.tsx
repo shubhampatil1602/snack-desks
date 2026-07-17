@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Trash2, Plus, Pencil, X, ShoppingBag } from "lucide-react";
+import { Trash2, Pencil, ShoppingBag } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -22,8 +22,7 @@ import {
   deleteShopAction,
   updateShopAction,
 } from "@/actions/menu";
-import { IconCheck } from "@tabler/icons-react";
-import { ShopCategory, shopSchema } from "@/types/menu";
+import { ShopCategory, ShopInput, shopSchema } from "@/types/menu";
 
 interface ShopManagerProps {
   shops: ShopCategory[];
@@ -34,8 +33,6 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
   const [open, setOpen] = useState(false);
   const [_, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -43,17 +40,29 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(shopSchema) });
+  } = useForm<ShopInput>({ resolver: zodResolver(shopSchema) });
 
-  async function onSubmit(values: { name: string }) {
-    const result = await createShopAction(values);
-    if (!result.success) {
-      toast.error(result.error);
-      return;
+  async function onSubmit(values: ShopInput) {
+    if (editingId) {
+      const result = await updateShopAction(editingId, values);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Shop updated");
+      setEditingId(null);
+      reset({ name: "", paymentUpi: "" });
+      router.refresh();
+    } else {
+      const result = await createShopAction(values);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Shop created");
+      reset({ name: "", paymentUpi: "" });
+      router.refresh();
     }
-    toast.success("Shop created");
-    reset();
-    router.refresh();
   }
 
   async function handleDelete(id: string, name: string) {
@@ -65,30 +74,12 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
       return;
     }
     toast.success(`${name} deleted`);
+    if (editingId === id) {
+      setEditingId(null);
+      reset({ name: "", paymentUpi: "" });
+    }
     router.refresh();
   }
-
-  async function handleUpdate(id: string) {
-    setUpdatingId(id);
-    const result = await updateShopAction(id, {
-      name: editingName,
-    });
-    setUpdatingId(null);
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success("Shop updated");
-    setEditingId(null);
-    router.refresh();
-  }
-
-  useEffect(() => {
-    if (editingId) {
-      inputRef.current?.focus();
-    }
-  }, [editingId]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -103,22 +94,43 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
           <SheetTitle>Manage Shops</SheetTitle>
         </SheetHeader>
 
-        <div className='space-y-6 px-6 pl-8'>
-          {/* Add new shop */}
+        <div className='space-y-6 px-6 pl-8 h-[calc(100vh-100px)] overflow-y-auto pb-10'>
+          {/* Shop Form */}
           <form onSubmit={handleSubmit(onSubmit)} className='space-y-3'>
             <Field>
-              <FieldLabel htmlFor='name'>New shop</FieldLabel>
-              <div className='flex gap-2'>
+              <FieldLabel htmlFor='name'>{editingId ? "Update Shop" : "New Shop"}</FieldLabel>
+              <div className='flex flex-col gap-2'>
                 <Input
                   id='name'
-                  placeholder='e.g. Tea Stall'
+                  placeholder='Shop Name (e.g. Tea Stall)'
                   {...register("name")}
                 />
-                <Button type='submit' size='sm' disabled={isSubmitting}>
-                  {isSubmitting ? <Spinner /> : <Plus className='h-4 w-4' />}
-                </Button>
+                <Input
+                  id='paymentUpi'
+                  placeholder='Payment UPI (Optional)'
+                  {...register("paymentUpi")}
+                />
+                <div className='flex gap-2 mt-1'>
+                  <Button type='submit' size='sm' disabled={isSubmitting} className='flex-1'>
+                    {isSubmitting ? <Spinner /> : (editingId ? "Update Shop" : "Add Shop")}
+                  </Button>
+                  {editingId && (
+                    <Button 
+                      type='button' 
+                      variant='outline' 
+                      size='sm' 
+                      onClick={() => {
+                        setEditingId(null);
+                        reset({ name: "", paymentUpi: "" });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
               </div>
               <FieldError>{errors.name?.message as string}</FieldError>
+              <FieldError>{errors.paymentUpi?.message as string}</FieldError>
             </Field>
           </form>
 
@@ -132,68 +144,33 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
               initial.map((shop) => (
                 <div
                   key={shop.id}
-                  className='flex items-center justify-between px-3 py-2 border'
+                  className={`flex items-center justify-between px-3 py-2 border ${editingId === shop.id ? 'bg-muted/30 border-primary' : ''}`}
                 >
-                  {editingId === shop.id ? (
-                    <Input
-                      className='h-4 border-none w-3/4'
-                      ref={inputRef}
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                    />
-                  ) : (
+                  <div className='flex flex-col'>
                     <span className='text-sm font-medium'>{shop.name}</span>
-                  )}
-                  {editingId === shop.id ? (
-                    <div className='flex items-center gap-2'>
-                      <Button
-                        size='sm'
-                        onClick={() => handleUpdate(shop.id)}
-                        disabled={
-                          editingName.trim() === shop.name.trim() ||
-                          editingName.trim().length === 0
-                        }
-                      >
-                        {updatingId === shop.id ? (
-                          <Spinner />
-                        ) : (
-                          <IconCheck stroke={2} />
-                        )}
-                      </Button>
+                    {shop.paymentUpi && <span className='text-[10px] text-muted-foreground'>{shop.paymentUpi}</span>}
+                  </div>
+                  
+                  <div className='flex items-center gap-1'>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      onClick={() => {
+                        setEditingId(shop.id);
+                        reset({ name: shop.name, paymentUpi: shop.paymentUpi || "" });
+                      }}
+                    >
+                      <Pencil className='h-3.5 w-3.5' />
+                    </Button>
 
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={() => {
-                          setEditingId(null);
-                          setEditingName("");
-                        }}
-                      >
-                        <X className='h-3.5 w-3.5' />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className='flex items-center gap-1'>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={() => {
-                          setEditingId(shop.id);
-                          setEditingName(shop.name);
-                        }}
-                      >
-                        <Pencil className='h-3.5 w-3.5' />
-                      </Button>
-
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={() => handleDelete(shop.id, shop.name)}
-                      >
-                        <Trash2 className='h-3.5 w-3.5' />
-                      </Button>
-                    </div>
-                  )}
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      onClick={() => handleDelete(shop.id, shop.name)}
+                    >
+                      <Trash2 className='h-3.5 w-3.5' />
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
