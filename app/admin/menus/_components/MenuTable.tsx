@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { formatCurrency } from "@/lib/utils";
 import {
   Table,
@@ -20,8 +20,16 @@ import { DeleteMenuDialog } from "./DeleteMenuDialog";
 import { toggleMenuItemAvailabilityAction } from "@/actions/menu";
 import type { MenuCategory, MenuItem, ShopCategory } from "@/types/menu";
 import { cn } from "@/lib/utils";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface MenuTableProps {
   data: MenuItem[];
@@ -34,26 +42,53 @@ export function MenuTable({ data, categories, shops }: MenuTableProps) {
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [toggledItems, setToggledItems] = useState<Record<string, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedShop, setSelectedShop] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<string>("all");
 
-  const items = data
-    .filter((item) => !deletedIds.has(item.id))
-    .map((item) => ({
-      ...item,
-      isAvailable: toggledItems[item.id] ?? item.isAvailable,
-    }))
-    .filter((item) =>
-      selectedCategory === null
-        ? true
-        : item.menuCategoryId === selectedCategory,
-    )
-    .filter((item) => {
-      const query = search.toLowerCase();
+  const isFiltered =
+    search !== "" ||
+    selectedCategory !== null ||
+    selectedShop !== null ||
+    availability !== "all";
 
-      return (
-        item.name.toLowerCase().includes(query) ||
-        item.menuCategory?.name.toLowerCase().includes(query)
-      );
-    });
+  const itemsWithoutCategoryFilter = useMemo(() => {
+    const query = search.toLowerCase();
+
+    return data.reduce((acc, item) => {
+      if (deletedIds.has(item.id)) return acc;
+      if (selectedShop && item.shopId !== selectedShop) return acc;
+
+      const isAvailable = toggledItems[item.id] ?? item.isAvailable;
+      
+      if (availability === "available" && !isAvailable) return acc;
+      if (availability === "unavailable" && isAvailable) return acc;
+
+      if (
+        query &&
+        !item.name.toLowerCase().includes(query) &&
+        !item.menuCategory?.name.toLowerCase().includes(query)
+      ) {
+        return acc;
+      }
+
+      acc.push({ ...item, isAvailable });
+      return acc;
+    }, [] as MenuItem[]);
+  }, [
+    data,
+    deletedIds,
+    toggledItems,
+    selectedShop,
+    availability,
+    search,
+  ]);
+
+  const items = useMemo(() => {
+    if (!selectedCategory) return itemsWithoutCategoryFilter;
+    return itemsWithoutCategoryFilter.filter(
+      (item) => item.menuCategoryId === selectedCategory
+    );
+  }, [itemsWithoutCategoryFilter, selectedCategory]);
 
   const pagination = usePagination({ data: items, itemsPerPage: 10 });
 
@@ -87,45 +122,95 @@ export function MenuTable({ data, categories, shops }: MenuTableProps) {
       <div className='flex items-center gap-2 flex-wrap'>
         <Badge
           className={cn(
-            "cursor-pointer transition-all px-3 py-2 mr-1 border",
+            "cursor-pointer transition-all px-3 py-2 border",
             selectedCategory === null
               ? "bg-accent opacity-100"
               : "opacity-50 hover:opacity-75",
           )}
           onClick={() => setSelectedCategory(null)}
         >
-          All {data.filter((i) => !deletedIds.has(i.id)).length}
+          All {itemsWithoutCategoryFilter.length}
         </Badge>
-        {categories.map((cat) => (
-          <Badge
-            key={cat.id}
-            variant={selectedCategory === cat.id ? "default" : "outline"}
-            className={cn(
-              "cursor-pointer transition-all px-3 py-2 border",
-              selectedCategory === cat.id
-                ? "bg-accent opacity-100"
-                : "opacity-50 hover:opacity-75",
-            )}
-            onClick={() => setSelectedCategory(cat.id)}
-          >
-            {cat.name}{" "}
-            {
-              data.filter(
-                (i) => !deletedIds.has(i.id) && i.menuCategoryId === cat.id,
-              ).length
-            }
-          </Badge>
-        ))}
+        {categories.map((cat) => {
+          const count = itemsWithoutCategoryFilter.filter(
+            (i) => i.menuCategoryId === cat.id,
+          ).length;
+          
+          return (
+            <Badge
+              key={cat.id}
+              variant={selectedCategory === cat.id ? "default" : "outline"}
+              className={cn(
+                "cursor-pointer transition-all px-3 py-2 border",
+                selectedCategory === cat.id
+                  ? "bg-accent opacity-100"
+                  : "opacity-50 hover:opacity-75",
+              )}
+              onClick={() => setSelectedCategory(cat.id)}
+            >
+              {cat.name} {count}
+            </Badge>
+          );
+        })}
       </div>
+      <div className='flex items-center justify-between gap-4 flex-wrap'>
+        <div className='relative w-full max-w-sm flex-1 min-w-[200px]'>
+          <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            placeholder='Search menu item...'
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className='pl-8'
+          />
+        </div>
 
-      <div className='relative max-w-sm'>
-        <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
-        <Input
-          placeholder='Search menu item...'
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className='pl-8'
-        />
+        <div className='flex items-center gap-2'>
+          {shops.length > 0 && (
+            <Select
+              value={selectedShop ?? "all"}
+              onValueChange={(v) => setSelectedShop(v === "all" ? null : v)}
+            >
+              <SelectTrigger className='w-[140px]'>
+                <SelectValue placeholder='All Shops' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>All Shops</SelectItem>
+                {shops.map((shop) => (
+                  <SelectItem key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Select value={availability} onValueChange={setAvailability}>
+            <SelectTrigger className='w-[140px]'>
+              <SelectValue placeholder='Availability' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='all'>All Status</SelectItem>
+              <SelectItem value='available'>Available</SelectItem>
+              <SelectItem value='unavailable'>Unavailable</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {isFiltered && (
+            <Button
+              variant='ghost'
+              className='px-3'
+              onClick={() => {
+                setSearch("");
+                setSelectedCategory(null);
+                setSelectedShop(null);
+                setAvailability("all");
+              }}
+            >
+              <X className='h-4 w-4 mr-2' />
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className='border overflow-x-auto'>

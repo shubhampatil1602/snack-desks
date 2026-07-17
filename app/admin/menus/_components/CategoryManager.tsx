@@ -112,7 +112,7 @@ export function CategoryManager({ categories: initial }: CategoryManagerProps) {
           <SheetTitle>Manage Categories</SheetTitle>
         </SheetHeader>
 
-        <div className='space-y-6 px-6 pl-8'>
+        <div className='space-y-6 px-6 pl-8 h-[calc(100vh-100px)] overflow-y-auto pb-10'>
           {/* Add new category */}
           <form onSubmit={handleSubmit(onSubmit)} className='space-y-3'>
             <Field>

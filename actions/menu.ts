@@ -322,6 +322,7 @@ export async function createShopAction(
       id: nanoid(),
       organizationId: member.organizationId,
       name: parsed.data.name.trim(),
+      paymentUpi: parsed.data.paymentUpi?.trim() || null,
     },
   });
 
@@ -396,6 +397,7 @@ export async function updateShopAction(
     },
     data: {
       name: parsed.data.name.trim(),
+      paymentUpi: parsed.data.paymentUpi?.trim() || null,
     },
   });
 
