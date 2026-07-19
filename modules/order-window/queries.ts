@@ -28,7 +28,15 @@ export async function getTodaysWindows(organizationId: string) {
       createdAt: { gte: dayStart },
     },
     include: {
-      _count: { select: { orders: true } },
+      _count: {
+        select: {
+          orders: {
+            where: {
+              status: { notIn: ["cancelled", "rejected"] },
+            },
+          },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });

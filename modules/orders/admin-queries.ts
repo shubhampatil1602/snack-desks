@@ -4,9 +4,6 @@ export async function getLiveOrders(windowId: string) {
   const orders = await prisma.order.findMany({
     where: {
       windowId,
-      status: {
-        not: "cancelled",
-      },
     },
     include: {
       user: true,

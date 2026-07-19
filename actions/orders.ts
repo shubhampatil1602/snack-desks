@@ -180,9 +180,8 @@ export async function updateOrderAction(
   if (items.length === 0) {
     await prisma.$transaction(async (tx) => {
       await tx.orderItem.deleteMany({ where: { orderId } });
-      await tx.order.update({
+      await tx.order.delete({
         where: { id: orderId },
-        data: { status: "cancelled", updatedAt: new Date() },
       });
     });
 
@@ -273,7 +272,7 @@ export async function cancelOrderAction(
 
 export async function updateOrderStatusAction(
   orderId: string,
-  status: "approved" | "rejected" | "pending",
+  status: "approved" | "rejected" | "pending" | "cancelled",
 ): Promise<ActionResult> {
   const { session } = await requireAdmin();
 

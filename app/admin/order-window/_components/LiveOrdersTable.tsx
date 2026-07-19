@@ -54,14 +54,17 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
     );
   }
 
-  const bill = orders.reduce((sum, order) => sum + order.total, 0);
+  const activeOrders = orders.filter(
+    (o) => o.status !== "cancelled" && o.status !== "rejected",
+  );
+  const bill = activeOrders.reduce((sum, order) => sum + order.total, 0);
 
   return (
     <div className='border overflow-x-auto'>
       <div className='flex items-center gap-6 p-4'>
         <div>
           <p className='text-xs text-muted-foreground'>Orders</p>
-          <p className='text-xl font-semibold'>{orders.length}</p>
+          <p className='text-xl font-semibold'>{activeOrders.length}</p>
         </div>
 
         <div>

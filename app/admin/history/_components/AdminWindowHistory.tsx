@@ -85,6 +85,11 @@ export function AdminWindowHistory({
     .map((window) => ({
       ...window,
       orders: window.orders.filter((order) => {
+        // filter out legacy 0-item cancelled orders
+        if (order.status === "cancelled" && order.items.length === 0) {
+          return false;
+        }
+
         if (
           search &&
           !order.user.name.toLowerCase().includes(search.toLowerCase())
@@ -155,7 +160,7 @@ export function AdminWindowHistory({
     (sum, window) =>
       sum +
       window.orders
-        .filter((o) => o.status !== "cancelled")
+        .filter((o) => o.status !== "cancelled" && o.status !== "rejected")
         .reduce(
           (orderSum, order) =>
             orderSum +
@@ -287,7 +292,7 @@ export function AdminWindowHistory({
         {pagination.paginatedData.map((window) => {
           const isExpanded = expandedWindows[window.id];
           const windowRevenue = window.orders
-            .filter((o) => o.status !== "cancelled")
+            .filter((o) => o.status !== "cancelled" && o.status !== "rejected")
             .reduce(
               (sum, order) =>
                 sum +
@@ -437,7 +442,16 @@ export function AdminWindowHistory({
                               <span className='text-muted-foreground text-xs'>
                                 ·
                               </span>
-                              <span>{window.orders.length} orders</span>
+                              <span>
+                                {
+                                  window.orders.filter(
+                                    (o) =>
+                                      o.status !== "cancelled" &&
+                                      o.status !== "rejected",
+                                  ).length
+                                }{" "}
+                                orders
+                              </span>
                             </div>
                           </TableHead>
                           <TableHead className='py-2 text-xs font-medium'>
