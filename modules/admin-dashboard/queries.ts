@@ -192,7 +192,7 @@ export async function getRecentWindows(
 ) {
   const dateFilter = getDateFilter(period);
   const recentWindows = await prisma.orderWindow.findMany({
-    where: { organizationId, ...dateFilter },
+    where: { organizationId, status: { not: "active" }, ...dateFilter },
     include: {
       orders: {
         where: { status: "approved" },

@@ -9,7 +9,7 @@ export const menuItemSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   price: z.coerce
     .number()
-    .min(0, "Price must be positive")
+    .min(1, "Price must be at least ₹1")
     .refine((val) => /^\d+(\.\d{1,2})?$/.test(val.toString()), {
       message: "Price can have at most 2 decimal places",
     }),
