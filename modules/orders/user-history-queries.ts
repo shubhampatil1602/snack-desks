@@ -103,11 +103,13 @@ export async function getUserOrderHistory(
               },
               items: {
                 select: {
+                  id: true,
                   quantity: true,
+                  menuItemId: true,
                   replacementApplied: true,
+                  originalOrderItemId: true,
                   menuItem: {
                     select: {
-                      id: true,
                       name: true,
                       price: true,
                       shop: {
@@ -119,16 +121,12 @@ export async function getUserOrderHistory(
                   },
                   replacementPreferences: {
                     select: {
+                      id: true,
                       quantity: true,
                       menuItem: {
                         select: {
                           name: true,
                           price: true,
-                          shop: {
-                            select: {
-                              name: true,
-                            },
-                          },
                         },
                       },
                     },
@@ -147,27 +145,25 @@ export async function getUserOrderHistory(
 
   const member = await prisma.member.findFirst({
     where: { userId },
-    select: { canViewGlobalSplit: true }
+    select: { canViewGlobalSplit: true },
   });
   const canViewGlobalSplit = member?.canViewGlobalSplit || false;
-  
-  const formatOrderItems = <T extends {
-    menuItem: { price: { toString(): string } };
-    replacementPreferences: { menuItem: { price: { toString(): string } } }[];
-  }>(items: T[]) => items.map(item => ({
-    ...item,
-    menuItem: {
-      ...item.menuItem,
-      price: item.menuItem.price.toString(),
-    },
-    replacementPreferences: item.replacementPreferences.map(rep => ({
-      ...rep,
+
+  const formatOrderItems = (items: (typeof orders)[0]["items"]) =>
+    items.map((item) => ({
+      ...item,
       menuItem: {
-        ...rep.menuItem,
-        price: rep.menuItem.price.toString(),
+        ...item.menuItem,
+        price: item.menuItem.price.toString(),
       },
-    })),
-  }));
+      replacementPreferences: item.replacementPreferences.map((rep) => ({
+        ...rep,
+        menuItem: {
+          ...rep.menuItem,
+          price: rep.menuItem.price.toString(),
+        },
+      })),
+    }));
 
   return orders.map((order) => ({
     ...order,
@@ -176,9 +172,9 @@ export async function getUserOrderHistory(
     orderWindow: {
       ...order.orderWindow,
       orders: (order.orderWindow.orders || [])
-        .map(o => ({
+        .map((o) => ({
           ...o,
-          items: formatOrderItems(o.items)
+          items: formatOrderItems(o.items),
         }))
         .sort((a, b) => a.user.name.localeCompare(b.user.name)),
     },

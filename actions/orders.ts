@@ -183,6 +183,12 @@ export async function updateOrderAction(
       await tx.order.delete({
         where: { id: orderId },
       });
+      if (order.orderWindow.winnerUserId === order.userId) {
+        await tx.orderWindow.update({
+          where: { id: order.windowId },
+          data: { winnerUserId: null },
+        });
+      }
     });
 
     await notify({
@@ -309,13 +315,27 @@ export async function updateOrderStatusAction(
     };
   }
 
-  await prisma.order.update({
-    where: {
-      id: orderId,
-    },
-    data: {
-      status,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        status,
+      },
+    });
+
+    if (status === "rejected" || status === "cancelled") {
+      const window = await tx.orderWindow.findUnique({
+        where: { id: order.windowId },
+      });
+      if (window?.winnerUserId === order.userId) {
+        await tx.orderWindow.update({
+          where: { id: order.windowId },
+          data: { winnerUserId: null },
+        });
+      }
+    }
   });
 
   await notify({
@@ -381,15 +401,18 @@ export async function updateAdminOrderAction(
   if (items.length === 0) {
     await prisma.$transaction(async (tx) => {
       await tx.orderItem.deleteMany({ where: { orderId } });
-      await tx.order.update({
-        where: {
-          id: orderId,
-        },
-        data: {
-          status: "cancelled",
-          updatedAt: new Date(),
-        },
+      await tx.order.delete({
+        where: { id: orderId },
       });
+      const window = await tx.orderWindow.findUnique({
+        where: { id: order.windowId },
+      });
+      if (window?.winnerUserId === order.userId) {
+        await tx.orderWindow.update({
+          where: { id: order.windowId },
+          data: { winnerUserId: null },
+        });
+      }
     });
 
     return {
@@ -649,6 +672,14 @@ export async function createLateOrderAction(
 
     await createOrderItems(tx, newOrder.id, items);
 
+    const window = await tx.orderWindow.findUnique({ where: { id: windowId } });
+    if (window?.originalWinnerUserId === userId && !window?.winnerUserId) {
+      await tx.orderWindow.update({
+        where: { id: windowId },
+        data: { winnerUserId: userId },
+      });
+    }
+
     return newOrder;
   });
 
@@ -813,10 +844,19 @@ export async function bulkDeleteOrderItemFromWindowAction(
       });
 
       if (remainingItems === 0) {
-        await tx.order.update({
-          where: { id: orderId },
-          data: { status: "cancelled", updatedAt: new Date() },
-        });
+        const order = await tx.order.findUnique({ where: { id: orderId } });
+        if (order) {
+          await tx.order.delete({
+            where: { id: orderId },
+          });
+          const window = await tx.orderWindow.findUnique({ where: { id: order.windowId } });
+          if (window?.winnerUserId === order.userId) {
+            await tx.orderWindow.update({
+              where: { id: order.windowId },
+              data: { winnerUserId: null }
+            });
+          }
+        }
         
         await notify({
           type: "order_cancelled",

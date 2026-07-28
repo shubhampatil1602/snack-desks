@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Info } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import {
   Table,
@@ -19,9 +19,7 @@ import { ShopBreakdownInfo } from "@/components/orders/ShopBreakdownInfo";
 import { usePagination } from "@/hooks/use-pagination";
 import { DataPagination } from "@/components/ui/data-pagination";
 
-import {
-  UserOrderHistory,
-} from "@/modules/orders/user-history-queries";
+import { UserOrderHistory } from "@/modules/orders/user-history-queries";
 import { AdminWindowHistory } from "@/modules/orders/admin-history-queries";
 
 import {

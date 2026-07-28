@@ -147,8 +147,9 @@ model OrderWindow {
 
   orders       Order[]
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  winnerUserId String?
-  winnerUser   User?        @relation("OrderWindowWinner", fields: [winnerUserId], references: [id])
+  winnerUserId         String?
+  winnerUser           User?        @relation("OrderWindowWinner", fields: [winnerUserId], references: [id])
+  originalWinnerUserId String?
   lastSpunAt   DateTime?
   paid         Boolean      @default(false)
   shops        Shop[]

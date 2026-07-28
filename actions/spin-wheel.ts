@@ -13,6 +13,7 @@ export async function spinWheelAction(windowId: string) {
     },
     select: {
       winnerUserId: true,
+      originalWinnerUserId: true,
     },
   });
 
@@ -144,6 +145,7 @@ export async function spinWheelAction(windowId: string) {
     where: { id: windowId },
     data: {
       winnerUserId: winner.id,
+      originalWinnerUserId: window.originalWinnerUserId || winner.id,
       lastSpunAt: new Date(),
       paid: false,
     },
