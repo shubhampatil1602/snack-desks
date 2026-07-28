@@ -3,6 +3,7 @@ export type BreakdownItemData = {
   quantity: number;
   total: number;
   users: { orderId: string; userId: string; name: string; quantity: number }[];
+  alternatives?: { itemName: string; quantity: number; userName: string }[];
 };
 
 export type ShopBreakdown = {

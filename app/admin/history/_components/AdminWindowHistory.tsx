@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Dot, Search, CalendarDays } from "lucide-react";
+import { ChevronDown, ChevronRight, Dot, Search, CalendarDays, Info } from "lucide-react";
 
 import {
   Table,
@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ShopBreakdownInfo } from "@/components/orders/ShopBreakdownInfo";
 
 import {
   OrderHistoryFilters,
@@ -156,25 +157,23 @@ export function AdminWindowHistory({
     return revenueB - revenueA;
   });
 
-  const totalPeriodRevenue = sortedWindows.reduce(
-    (sum, window) =>
-      sum +
-      window.orders
-        .filter((o) => o.status !== "cancelled" && o.status !== "rejected")
-        .reduce(
-          (orderSum, order) =>
-            orderSum +
-            order.items
-              .filter((item) => !item.replacementApplied)
-              .reduce(
-                (itemSum, item) =>
-                  itemSum + Number(item.menuItem.price) * item.quantity,
-                0,
-              ),
-          0,
-        ),
-    0,
-  );
+  const totalPeriodShopRevenue: Record<string, number> = {};
+  let totalPeriodRevenue = 0;
+
+  sortedWindows.forEach((window) => {
+    window.orders
+      .filter((o) => o.status !== "cancelled" && o.status !== "rejected")
+      .forEach((order) => {
+        order.items
+          .filter((item) => !item.replacementApplied)
+          .forEach((item) => {
+            const itemTotal = Number(item.menuItem.price) * item.quantity;
+            totalPeriodRevenue += itemTotal;
+            const shopName = item.menuItem.shop?.name || "Unknown Shop";
+            totalPeriodShopRevenue[shopName] = (totalPeriodShopRevenue[shopName] || 0) + itemTotal;
+          });
+      });
+  });
 
   function getPeriodLabel(p: HistoryPeriod) {
     if (p === "all") return globalPeriodLabel === "All Time" ? "All" : globalPeriodLabel;
@@ -267,6 +266,7 @@ export function AdminWindowHistory({
               <CalendarDays className='mr-2 h-4 w-4 text-muted-foreground' />
               <span className='text-muted-foreground mr-1.5'>{getPeriodLabel(period)}:</span>
               <span className='font-semibold'>{formatCurrency(totalPeriodRevenue)}</span>
+              <ShopBreakdownInfo breakdown={totalPeriodShopRevenue} className="ml-1.5" />
             </div>
           </div>
 
@@ -291,20 +291,21 @@ export function AdminWindowHistory({
       <div>
         {pagination.paginatedData.map((window) => {
           const isExpanded = expandedWindows[window.id];
-          const windowRevenue = window.orders
+          const windowShopRevenue: Record<string, number> = {};
+          let windowRevenue = 0;
+
+          window.orders
             .filter((o) => o.status !== "cancelled" && o.status !== "rejected")
-            .reduce(
-              (sum, order) =>
-                sum +
-                order.items
-                  .filter((item) => !item.replacementApplied)
-                  .reduce(
-                    (itemSum, item) =>
-                      itemSum + Number(item.menuItem.price) * item.quantity,
-                    0,
-                  ),
-              0,
-            );
+            .forEach((order) => {
+              order.items
+                .filter((item) => !item.replacementApplied)
+                .forEach((item) => {
+                  const itemTotal = Number(item.menuItem.price) * item.quantity;
+                  windowRevenue += itemTotal;
+                  const shopName = item.menuItem.shop?.name || "Unknown Shop";
+                  windowShopRevenue[shopName] = (windowShopRevenue[shopName] || 0) + itemTotal;
+                });
+            });
 
           const allOrdersExpanded =
             window.orders.length > 0 &&
@@ -437,12 +438,10 @@ export function AdminWindowHistory({
                             Items
                           </TableHead>
                           <TableHead className='py-2 text-xs font-medium text-center'>
-                            <div className='space-x-2'>
-                              <span> {formatCurrency(windowRevenue)}</span>
-                              <span className='text-muted-foreground text-xs'>
-                                ·
-                              </span>
-                              <span>
+                            <div className='flex items-center justify-center space-x-1.5'>
+                              <span>{formatCurrency(windowRevenue)}</span>
+                              <span className='text-muted-foreground text-xs'>·</span>
+                              <span className='font-normal text-muted-foreground text-xs'>
                                 {
                                   window.orders.filter(
                                     (o) =>
@@ -452,6 +451,7 @@ export function AdminWindowHistory({
                                 }{" "}
                                 orders
                               </span>
+                              <ShopBreakdownInfo breakdown={windowShopRevenue} className="-ml-0.5" />
                             </div>
                           </TableHead>
                           <TableHead className='py-2 text-xs font-medium'>

@@ -18,6 +18,8 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ResetTokenCountdown } from "@/components/admins/ResetTokenCountdown";
 import { GenerateResetTokenDialog } from "@/components/admins/GenerateResetTokenDialog";
+import { Switch } from "@/components/ui/switch";
+import { toggleSplitSummary } from "@/actions/toggle-split-summary";
 
 type UsersTableProps = {
   organization: {
@@ -30,6 +32,7 @@ type UsersTableProps = {
   members: {
     id: string;
     createdAt: Date;
+    canViewGlobalSplit: boolean;
     user: {
       id: string;
       name: string;
@@ -82,6 +85,7 @@ export function UsersTable({ organization, members }: UsersTableProps) {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Joined</TableHead>
+              <TableHead>Show Summary</TableHead>
               <TableHead>Reset Token</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -114,6 +118,15 @@ export function UsersTable({ organization, members }: UsersTableProps) {
                       month: "short",
                       year: "numeric",
                     })}
+                  </TableCell>
+
+                  <TableCell>
+                    <Switch
+                      checked={member.canViewGlobalSplit}
+                      onCheckedChange={async (checked) => {
+                        await toggleSplitSummary(member.id, checked);
+                      }}
+                    />
                   </TableCell>
 
                   <TableCell>

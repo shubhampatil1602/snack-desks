@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 const createWindowSchema = z.object({
   label: z.string().min(1, "Label is required"),
   duration: z.coerce.number().min(1).optional(), // in minutes, optional
+  shopIds: z.array(z.string()).min(1, "Select at least one shop"),
 });
 
 export type CreateWindowInput = z.infer<typeof createWindowSchema>;
@@ -63,6 +64,9 @@ export async function createWindowAction(
       startsAt,
       endsAt,
       createdBy: session.user.id,
+      shops: {
+        connect: parsed.data.shopIds.map((id) => ({ id })),
+      },
       organization: {
         connect: { id: member.organizationId },
       },

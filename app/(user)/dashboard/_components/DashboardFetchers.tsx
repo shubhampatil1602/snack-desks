@@ -93,7 +93,7 @@ export async function ProfileHeaderFetcher({
     where: { userId, organizationId },
     include: {
       user: true,
-      organization: { select: { name: true, createdAt: true } },
+      organization: { select: { name: true, createdAt: true, inviteCode: true } },
     },
   });
 

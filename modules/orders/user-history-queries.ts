@@ -54,6 +54,11 @@ export async function getUserOrderHistory(
             select: {
               name: true,
               price: true,
+              shop: {
+                select: {
+                  name: true,
+                },
+              },
             },
           },
           replacementPreferences: {
@@ -87,6 +92,8 @@ export async function getUserOrderHistory(
               createdAt: "desc",
             },
             select: {
+              id: true,
+              userId: true,
               status: true,
               user: {
                 select: {
@@ -100,10 +107,28 @@ export async function getUserOrderHistory(
                   replacementApplied: true,
                   menuItem: {
                     select: {
+                      id: true,
+                      name: true,
                       price: true,
                       shop: {
                         select: {
                           name: true,
+                        },
+                      },
+                    },
+                  },
+                  replacementPreferences: {
+                    select: {
+                      quantity: true,
+                      menuItem: {
+                        select: {
+                          name: true,
+                          price: true,
+                          shop: {
+                            select: {
+                              name: true,
+                            },
+                          },
                         },
                       },
                     },
@@ -119,8 +144,15 @@ export async function getUserOrderHistory(
       createdAt: "desc",
     },
   });
+
+  const member = await prisma.member.findFirst({
+    where: { userId },
+    select: { canViewGlobalSplit: true }
+  });
+  const canViewGlobalSplit = member?.canViewGlobalSplit || false;
   return orders.map((order) => ({
     ...order,
+    canViewGlobalSplit,
     items: order.items.map((item) => ({
       ...item,
       menuItem: {
@@ -137,26 +169,18 @@ export async function getUserOrderHistory(
     })),
     orderWindow: {
       ...order.orderWindow,
-      orders: (() => {
-        const seenUsers = new Set<string>();
-        return (order.orderWindow.orders || [])
-          .filter((o) => {
-            if (seenUsers.has(o.user.id)) return false;
-            seenUsers.add(o.user.id);
-            return true;
-          })
-          .map((o) => ({
-            ...o,
-            items: o.items.map((i) => ({
-              ...i,
-              menuItem: {
-                ...i.menuItem,
-                price: i.menuItem.price.toString(),
-              },
-            })),
-          }))
-          .sort((a, b) => a.user.name.localeCompare(b.user.name));
-      })(),
+      orders: (order.orderWindow.orders || [])
+        .map((o) => ({
+          ...o,
+          items: o.items.map((i) => ({
+            ...i,
+            menuItem: {
+              ...i.menuItem,
+              price: i.menuItem.price.toString(),
+            },
+          })),
+        }))
+        .sort((a, b) => a.user.name.localeCompare(b.user.name)),
     },
   }));
 }

@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Info } from "lucide-react";
 
 import {
   Table,
@@ -14,11 +14,15 @@ import {
 } from "@/components/ui/table";
 
 import { Button } from "@/components/ui/button";
+import { ShopBreakdownInfo } from "@/components/orders/ShopBreakdownInfo";
 
 import { usePagination } from "@/hooks/use-pagination";
 import { DataPagination } from "@/components/ui/data-pagination";
 
-import { UserOrderHistory } from "@/modules/orders/user-history-queries";
+import {
+  UserOrderHistory,
+} from "@/modules/orders/user-history-queries";
+import { AdminWindowHistory } from "@/modules/orders/admin-history-queries";
 
 import {
   HistoryPeriod,
@@ -31,6 +35,7 @@ import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderHistoryDetails } from "@/components/orders/OrderHistoryDetails";
 import { Badge } from "@/components/ui/badge";
 import { OrderWindowUserSummaryDialog } from "../../../admin/history/_components/OrderWindowUserSummaryDialog";
+import { OrderWindowSummaryDialog } from "@/app/admin/history/_components/OrderWindowSummaryDialog";
 
 type UserHistoryTableProps = {
   orders: UserOrderHistory;
@@ -82,6 +87,46 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
         onStatusChange={setStatusFilter}
       />
 
+      {filteredOrders.length > 0 && (
+        <div className='flex items-center h-10 px-3 border bg-muted/10 text-sm w-fit mb-4 mt-2'>
+          <span className='text-muted-foreground mr-1.5'>Total Spend:</span>
+          <span className='font-semibold'>
+            {formatCurrency(
+              filteredOrders.reduce(
+                (sum, order) =>
+                  sum +
+                  order.items
+                    .filter((i) => !i.replacementApplied)
+                    .reduce(
+                      (itemSum, item) =>
+                        itemSum + Number(item.menuItem.price) * item.quantity,
+                      0,
+                    ),
+                0,
+              ),
+            )}
+          </span>
+          <ShopBreakdownInfo
+            breakdown={(() => {
+              const shopTotals: Record<string, number> = {};
+              filteredOrders.forEach((order) => {
+                order.items
+                  .filter((item) => !item.replacementApplied)
+                  .forEach((item) => {
+                    const itemTotal =
+                      Number(item.menuItem.price) * item.quantity;
+                    const shopName = item.menuItem.shop?.name || "Unknown Shop";
+                    shopTotals[shopName] =
+                      (shopTotals[shopName] || 0) + itemTotal;
+                  });
+              });
+              return shopTotals;
+            })()}
+            className='ml-1.5'
+          />
+        </div>
+      )}
+
       <div className='border overflow-x-auto'>
         <Table>
           <TableHeader className='bg-muted'>
@@ -99,13 +144,17 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
               const hasReplacements = order.items.some(
                 (item) => item.replacementApplied,
               );
-              const total = order.items
+              const shopTotals: Record<string, number> = {};
+              let total = 0;
+              order.items
                 .filter((item) => !item.replacementApplied)
-                .reduce(
-                  (sum, item) =>
-                    sum + Number(item.menuItem.price) * item.quantity,
-                  0,
-                );
+                .forEach((item) => {
+                  const itemTotal = Number(item.menuItem.price) * item.quantity;
+                  total += itemTotal;
+                  const shopName = item.menuItem.shop?.name || "Unknown Shop";
+                  shopTotals[shopName] =
+                    (shopTotals[shopName] || 0) + itemTotal;
+                });
 
               const expanded = expandedOrderId === order.id;
 
@@ -151,6 +200,18 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                               />
                             </div>
                           )}
+                          {(order.canViewGlobalSplit ||
+                            order.orderWindow.winnerUserId ===
+                              order.userId) && (
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <OrderWindowSummaryDialog
+                                window={
+                                  order.orderWindow as unknown as AdminWindowHistory[number]
+                                }
+                                isUserView={true}
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
                       <span className='text-muted-foreground text-xs mx-1'></span>
@@ -166,7 +227,15 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                     </TableCell>
 
                     <TableCell className='px-3 py-0.5'>
-                      {formatCurrency(total)}
+                      <div className='flex items-center gap-1.5'>
+                        <span className='font-medium'>
+                          {formatCurrency(total)}
+                        </span>
+                        <ShopBreakdownInfo
+                          breakdown={shopTotals}
+                          className='-ml-0.5'
+                        />
+                      </div>
                     </TableCell>
 
                     <TableCell className='px-3 py-0.5'>

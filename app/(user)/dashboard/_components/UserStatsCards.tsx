@@ -1,14 +1,18 @@
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
+import { ShopBreakdownInfo } from "@/components/orders/ShopBreakdownInfo";
 
 type UserStatsCardsProps = {
   stats: {
     totalOrders: number;
     totalSpent: number;
+    totalSpentShopBreakdown: Record<string, number>;
     averageOrderValue: number;
     currentRank: { rank: number } | null;
     allTimeSpent: number;
+    allTimeSpentShopBreakdown: Record<string, number>;
     todaySpent: number | null;
+    todaySpentShopBreakdown: Record<string, number>;
   };
   periodLabel: string;
 };
@@ -20,17 +24,20 @@ export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
       value:
         stats.todaySpent !== null ? `${formatCurrency(stats.todaySpent)}` : formatCurrency(0),
       color: "from-amber-500 to-amber-600",
+      breakdown: stats.todaySpentShopBreakdown,
     },
 
     {
       title: `${periodLabel} Spent`,
       value: `${formatCurrency(stats.totalSpent)}`,
       color: "from-chart-2 to-chart-2/80",
+      breakdown: stats.totalSpentShopBreakdown,
     },
     {
       title: "All Time Spent",
       value: `${formatCurrency(stats.allTimeSpent)}`,
       color: "from-orange-500 to-orange-600",
+      breakdown: stats.allTimeSpentShopBreakdown,
     },
     {
       title: `${periodLabel} Orders`,
@@ -65,10 +72,15 @@ export function UserStatsCards({ stats, periodLabel }: UserStatsCardsProps) {
           <div className='p-2.5'>
             <div>
               <p className='text-sm text-muted-foreground'>{stat.title}</p>
-
-              <p className='text-2xl font-bold tracking-tight mt-0.5'>
-                {stat.value}
-              </p>
+              
+              <div className='flex items-center gap-1.5 mt-0.5'>
+                <p className='text-2xl font-bold tracking-tight'>
+                  {stat.value}
+                </p>
+                {stat.breakdown && Object.keys(stat.breakdown).length > 0 && (
+                  <ShopBreakdownInfo breakdown={stat.breakdown} />
+                )}
+              </div>
             </div>
           </div>
         </Card>

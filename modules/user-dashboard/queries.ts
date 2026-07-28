@@ -38,22 +38,25 @@ export async function getUserStats(
         where: { replacementApplied: false },
         select: {
           quantity: true,
-          menuItem: { select: { price: true } },
+          menuItem: {
+            select: { price: true, shop: { select: { name: true } } },
+          },
         },
       },
     },
   });
 
-  const totalSpent = orders.reduce(
-    (sum, order) =>
-      sum +
-      order.items.reduce(
-        (itemSum, item) =>
-          itemSum + Number(item.menuItem.price) * item.quantity,
-        0,
-      ),
-    0,
-  );
+  let totalSpent = 0;
+  const totalSpentShopBreakdown: Record<string, number> = {};
+  orders.forEach((order) => {
+    order.items.forEach((item) => {
+      const amt = Number(item.menuItem.price) * item.quantity;
+      const shopName = item.menuItem.shop?.name || "Unknown Shop";
+      totalSpent += amt;
+      totalSpentShopBreakdown[shopName] =
+        (totalSpentShopBreakdown[shopName] || 0) + amt;
+    });
+  });
 
   const totalOrders = orders.length;
   const averageOrderValue = totalOrders === 0 ? 0 : totalSpent / totalOrders;
@@ -88,24 +91,28 @@ export async function getUserStats(
         where: { replacementApplied: false },
         select: {
           quantity: true,
-          menuItem: { select: { price: true } },
+          menuItem: {
+            select: { price: true, shop: { select: { name: true } } },
+          },
         },
       },
     },
   });
 
-  const allTimeSpent = allTimeOrders.reduce(
-    (sum, order) =>
-      sum +
-      order.items.reduce(
-        (itemSum, item) =>
-          itemSum + Number(item.menuItem.price) * item.quantity,
-        0,
-      ),
-    0,
-  );
+  let allTimeSpent = 0;
+  const allTimeSpentShopBreakdown: Record<string, number> = {};
+  allTimeOrders.forEach((order) => {
+    order.items.forEach((item) => {
+      const amt = Number(item.menuItem.price) * item.quantity;
+      const shopName = item.menuItem.shop?.name || "Unknown Shop";
+      allTimeSpent += amt;
+      allTimeSpentShopBreakdown[shopName] =
+        (allTimeSpentShopBreakdown[shopName] || 0) + amt;
+    });
+  });
 
-  let todaySpent = null;
+  let todaySpent: number | null = null;
+  const todaySpentShopBreakdown: Record<string, number> = {};
   if (includesToday) {
     const todayOrders = await prisma.order.findMany({
       where: {
@@ -122,31 +129,36 @@ export async function getUserStats(
           where: { replacementApplied: false },
           select: {
             quantity: true,
-            menuItem: { select: { price: true } },
+            menuItem: {
+              select: { price: true, shop: { select: { name: true } } },
+            },
           },
         },
       },
     });
 
-    todaySpent = todayOrders.reduce(
-      (sum, order) =>
-        sum +
-        order.items.reduce(
-          (itemSum, item) =>
-            itemSum + Number(item.menuItem.price) * item.quantity,
-          0,
-        ),
-      0,
-    );
+    todaySpent = 0;
+    todayOrders.forEach((order) => {
+      order.items.forEach((item) => {
+        const amt = Number(item.menuItem.price) * item.quantity;
+        const shopName = item.menuItem.shop?.name || "Unknown Shop";
+        todaySpent! += amt;
+        todaySpentShopBreakdown[shopName] =
+          (todaySpentShopBreakdown[shopName] || 0) + amt;
+      });
+    });
   }
 
   return {
     totalOrders,
     totalSpent,
+    totalSpentShopBreakdown,
     averageOrderValue,
     currentRank: currentUserRank,
     allTimeSpent,
+    allTimeSpentShopBreakdown,
     todaySpent,
+    todaySpentShopBreakdown,
   };
 }
 

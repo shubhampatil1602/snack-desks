@@ -106,10 +106,11 @@ model Member {
   id             String       @id
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role           String
-  createdAt      DateTime
+  userId               String
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role                 String
+  canViewGlobalSplit   Boolean      @default(false)
+  createdAt            DateTime
 
   @@unique([organizationId, userId])
   @@index([userId])
@@ -150,6 +151,7 @@ model OrderWindow {
   winnerUser   User?        @relation("OrderWindowWinner", fields: [winnerUserId], references: [id])
   lastSpunAt   DateTime?
   paid         Boolean      @default(false)
+  shops        Shop[]
 
   @@index([organizationId])
   @@index([status])
@@ -278,6 +280,7 @@ model Shop {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   menuItems    MenuItem[]
+  orderWindows OrderWindow[]
 
   @@unique([organizationId, name])
   @@index([organizationId])

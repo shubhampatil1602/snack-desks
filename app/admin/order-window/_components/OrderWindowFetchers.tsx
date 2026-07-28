@@ -1,4 +1,5 @@
 import { getActiveWindow, getTodaysWindows } from "@/modules/order-window/queries";
+import { getShops } from "@/modules/menu/queries";
 import { getLiveOrders } from "@/modules/orders/admin-queries";
 import { ActiveWindowCard } from "./ActiveWindowCard";
 import { CreateWindowForm } from "./CreateWindowForm";
@@ -8,9 +9,10 @@ import { LiveOrdersTable } from "./LiveOrdersTable";
 import { LiveOrdersSSE } from "./LiveOrdersSSE";
 
 export async function OrderWindowContentFetcher({ organizationId }: { organizationId: string }) {
-  const [activeWindow, todaysWindows] = await Promise.all([
+  const [activeWindow, todaysWindows, shops] = await Promise.all([
     getActiveWindow(organizationId),
     getTodaysWindows(organizationId),
+    getShops(organizationId),
   ]);
 
   const liveOrders = activeWindow ? await getLiveOrders(activeWindow.id) : [];
@@ -39,7 +41,7 @@ export async function OrderWindowContentFetcher({ organizationId }: { organizati
         </>
       ) : (
         <>
-          <CreateWindowForm />
+          <CreateWindowForm shops={shops} />
           <h2 className='text-sm font-medium mb-3'>Recent Windows</h2>
           <TodaysWindowsList windows={todaysWindows} />
         </>

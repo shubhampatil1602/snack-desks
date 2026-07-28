@@ -6,6 +6,9 @@ export async function getActiveWindowWithMenu(organizationId: string) {
       organizationId,
       status: "active",
     },
+    include: {
+      shops: { select: { id: true } },
+    },
   });
 
   // lazy close fallback
@@ -23,6 +26,9 @@ export async function getActiveWindowWithMenu(organizationId: string) {
     where: {
       organizationId,
       isAvailable: true,
+      ...(window.shops.length > 0 && {
+        shopId: { in: window.shops.map((s) => s.id) },
+      }),
     },
     include: { menuCategory: true, shop: true },
     orderBy: { createdAt: "asc" },

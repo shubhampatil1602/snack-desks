@@ -3,6 +3,12 @@ import { Copy, Check, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { BreakdownItemData } from "./types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type ItemBreakdownListProps = {
   title?: string;
@@ -12,7 +18,7 @@ type ItemBreakdownListProps = {
     total: number;
     items: [string, BreakdownItemData][];
   }[];
-  onCopy?: () => void;
+  onCopy?: (withAlternatives: boolean) => void;
   onDeleteItem?: (item: { name: string; data: BreakdownItemData }) => void;
 };
 
@@ -25,9 +31,9 @@ export function ItemBreakdownList({
 }: ItemBreakdownListProps) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = async (withAlternatives: boolean) => {
     if (!onCopy) return;
-    await onCopy();
+    await onCopy(withAlternatives);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -38,26 +44,44 @@ export function ItemBreakdownList({
         <div className='flex items-center gap-3'>
           <h4 className='font-medium'>{title}</h4>
         </div>
-        {onCopy && (
-          <Button
-            variant='ghost'
-            size='sm'
-            onClick={handleCopy}
-            className='gap-2 text-xs px-1 py-0.5'
-          >
-            {copied ? (
-              <>
-                <Check className='size-3 text-green-500' />
-                <span className='text-green-500'>Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className='size-3' />
-                Copy List
-              </>
-            )}
-          </Button>
-        )}
+        {onCopy &&
+          (copied ? (
+            <Button
+              variant='ghost'
+              size='sm'
+              className='gap-2 text-xs px-1 py-0.5 pointer-events-none'
+            >
+              <Check className='size-3 text-green-500' />
+              <span className='text-green-500'>Copied!</span>
+            </Button>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className='gap-2 text-xs px-1 py-0.5'
+                >
+                  <Copy className='size-3' />
+                  Copy List
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end'>
+                <DropdownMenuItem
+                  className='text-[10px]'
+                  onClick={() => handleCopy(true)}
+                >
+                  With Alternatives
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='text-[10px]'
+                  onClick={() => handleCopy(false)}
+                >
+                  Without Alternatives
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ))}
       </div>
 
       <div className='space-y-2'>
@@ -79,30 +103,46 @@ export function ItemBreakdownList({
                 </div>
                 <div className='space-y-0.5'>
                   {group.items.map(([name, value]) => (
-                    <div
-                      key={name}
-                      className='flex justify-between text-sm items-center py-0.5 px-1'
-                    >
-                      <div className='flex items-center gap-2 text-muted-foreground'>
-                        <span>
-                          {value.quantity} &times; {name}
-                        </span>
-                        {onDeleteItem && (
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            className='h-5 w-5 rounded-none'
-                            onClick={() => onDeleteItem({ name, data: value })}
-                          >
-                            <Trash2 className='h-3 w-3 text-destructive hover:bg-destructive hover:text-destructive-foreground' />
-                          </Button>
-                        )}
+                    <div key={name} className='flex flex-col'>
+                      <div className='flex justify-between text-sm items-center py-0.5 px-1'>
+                        <div className='flex items-center gap-2 text-muted-foreground'>
+                          <span>
+                            {value.quantity} &times; {name}
+                          </span>
+                          {onDeleteItem && (
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-5 w-5 rounded-none'
+                              onClick={() =>
+                                onDeleteItem({ name, data: value })
+                              }
+                            >
+                              <Trash2 className='h-3 w-3 text-destructive hover:bg-destructive hover:text-destructive-foreground' />
+                            </Button>
+                          )}
+                        </div>
+                        <div className='flex items-center gap-2'>
+                          <span className='font-medium text-foreground tabular-nums'>
+                            {formatCurrency(value.total)}
+                          </span>
+                        </div>
                       </div>
-                      <div className='flex items-center gap-2'>
-                        <span className='font-medium text-foreground tabular-nums'>
-                          {formatCurrency(value.total)}
-                        </span>
-                      </div>
+                      {value.alternatives && (
+                        <div className='pl-4 pr-1 py-0.5 space-y-0.5'>
+                          {value.alternatives.map((alt, idx) => (
+                            <div
+                              key={`${alt.itemName}-${idx}`}
+                              className='flex justify-between text-xs text-muted-foreground/80'
+                            >
+                              <span>
+                                ↳ [{alt.userName}] Alt: {alt.quantity} &times;{" "}
+                                {alt.itemName}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -116,30 +156,44 @@ export function ItemBreakdownList({
         ) : (
           <div className='space-y-0.5'>
             {items.map(([name, value]) => (
-              <div
-                key={name}
-                className='flex justify-between text-sm items-center py-0.5 px-1'
-              >
-                <div className='flex items-center gap-2 text-muted-foreground'>
-                  <span>
-                    {value.quantity} &times; {name}
-                  </span>
-                  {onDeleteItem && (
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='h-5 w-5 rounded-none text-destructive hover:bg-destructive hover:text-destructive-foreground'
-                      onClick={() => onDeleteItem({ name, data: value })}
-                    >
-                      <Trash2 className='h-3 w-3' />
-                    </Button>
-                  )}
+              <div key={name} className='flex flex-col'>
+                <div className='flex justify-between text-sm items-center py-0.5 px-1'>
+                  <div className='flex items-center gap-2 text-muted-foreground'>
+                    <span>
+                      {value.quantity} &times; {name}
+                    </span>
+                    {onDeleteItem && (
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className='h-5 w-5 rounded-none text-destructive hover:bg-destructive hover:text-destructive-foreground'
+                        onClick={() => onDeleteItem({ name, data: value })}
+                      >
+                        <Trash2 className='h-3 w-3' />
+                      </Button>
+                    )}
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <span className='font-medium text-foreground tabular-nums'>
+                      {formatCurrency(value.total)}
+                    </span>
+                  </div>
                 </div>
-                <div className='flex items-center gap-2'>
-                  <span className='font-medium text-foreground tabular-nums'>
-                    {formatCurrency(value.total)}
-                  </span>
-                </div>
+                {value.alternatives && (
+                  <div className='pl-4 pr-1 py-0.5 space-y-0.5'>
+                    {value.alternatives.map((alt, idx) => (
+                      <div
+                        key={`${alt.itemName}-${idx}`}
+                        className='flex justify-between text-xs text-muted-foreground/80'
+                      >
+                        <span>
+                          {alt.userName} ↳ Alt: {alt.quantity} &times;{" "}
+                          {alt.itemName}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

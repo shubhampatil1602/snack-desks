@@ -1,14 +1,18 @@
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
+import { ShopBreakdownInfo } from "@/components/orders/ShopBreakdownInfo";
 
 type DashboardStatsProps = {
   stats: {
     totalRevenue: number;
+    totalRevenueShopBreakdown: Record<string, number>;
     totalOrders: number;
     approvedOrders: number;
     avgOrderValue: number;
     allTimeRevenue: number;
+    allTimeRevenueShopBreakdown: Record<string, number>;
     todayRevenue: number | null;
+    todayRevenueShopBreakdown: Record<string, number>;
   };
   periodLabel: string;
 };
@@ -23,18 +27,21 @@ export function DashboardStats({ stats, periodLabel }: DashboardStatsProps) {
           : formatCurrency(0),
       color: "from-chart-1 to-chart-1/80",
       gradient: "via-chart-1/50",
+      breakdown: stats.todayRevenueShopBreakdown,
     },
     {
       title: `${periodLabel} Revenue`,
       value: `${formatCurrency(stats.totalRevenue)}`,
       color: "from-chart-2 to-chart-2/80",
       gradient: "via-chart-2/50",
+      breakdown: stats.totalRevenueShopBreakdown,
     },
     {
       title: "All Time Revenue",
       value: `${formatCurrency(stats.allTimeRevenue)}`,
       color: "from-chart-3 to-chart-3/80",
       gradient: "via-chart-3/50",
+      breakdown: stats.allTimeRevenueShopBreakdown,
     },
 
     {
@@ -76,9 +83,14 @@ export function DashboardStats({ stats, periodLabel }: DashboardStatsProps) {
               <div className='flex items-center justify-between'>
                 <div>
                   <p className='text-sm text-muted-foreground'>{stat.title}</p>
-                  <p className='text-2xl font-bold tracking-tight mt-0.5'>
-                    {stat.value}
-                  </p>
+                  <div className='flex items-center gap-1.5 mt-0.5'>
+                    <p className='text-2xl font-bold tracking-tight'>
+                      {stat.value}
+                    </p>
+                    {stat.breakdown && Object.keys(stat.breakdown).length > 0 && (
+                      <ShopBreakdownInfo breakdown={stat.breakdown} />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

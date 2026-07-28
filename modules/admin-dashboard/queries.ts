@@ -87,7 +87,7 @@ export async function getDashboardStats(organizationId: string, period: string) 
     _sum: { quantity: true },
   });
 
-  // Get all unique menu items involved to fetch prices once
+  // Get all unique menu items involved to fetch prices and shop names once
   const menuItemIds = new Set([
     ...rawAllTime.map((i) => i.menuItemId),
     ...currentMonthRaw.map((i) => i.menuItemId),
@@ -96,22 +96,30 @@ export async function getDashboardStats(organizationId: string, period: string) 
 
   const menuItems = await prisma.menuItem.findMany({
     where: { id: { in: Array.from(menuItemIds) } },
-    select: { id: true, price: true },
+    select: { id: true, price: true, shop: { select: { name: true } } },
   });
   
-  const menuLookup = new Map(menuItems.map((m) => [m.id, Number(m.price)]));
+  const menuLookup = new Map(menuItems.map((m) => [m.id, { price: Number(m.price), shopName: m.shop?.name || "Unknown Shop" }]));
 
-  const totalRevenue = rawAllTime.reduce(
-    (sum, item) =>
-      sum + (item._sum.quantity ?? 0) * (menuLookup.get(item.menuItemId) ?? 0),
-    0
-  );
+  let totalRevenue = 0;
+  const totalRevenueShopBreakdown: Record<string, number> = {};
+  rawAllTime.forEach((item) => {
+    const qty = item._sum.quantity ?? 0;
+    const menuInfo = menuLookup.get(item.menuItemId) ?? { price: 0, shopName: "Unknown Shop" };
+    const amt = qty * menuInfo.price;
+    totalRevenue += amt;
+    totalRevenueShopBreakdown[menuInfo.shopName] = (totalRevenueShopBreakdown[menuInfo.shopName] || 0) + amt;
+  });
   
-  const allTimeRevenue = allTimeRaw.reduce(
-    (sum, item) =>
-      sum + (item._sum.quantity ?? 0) * (menuLookup.get(item.menuItemId) ?? 0),
-    0
-  );
+  let allTimeRevenue = 0;
+  const allTimeRevenueShopBreakdown: Record<string, number> = {};
+  allTimeRaw.forEach((item) => {
+    const qty = item._sum.quantity ?? 0;
+    const menuInfo = menuLookup.get(item.menuItemId) ?? { price: 0, shopName: "Unknown Shop" };
+    const amt = qty * menuInfo.price;
+    allTimeRevenue += amt;
+    allTimeRevenueShopBreakdown[menuInfo.shopName] = (allTimeRevenueShopBreakdown[menuInfo.shopName] || 0) + amt;
+  });
 
   let includesToday = false;
   const { year: currentYear, month: currentMonth } = getISTDateParts();
@@ -126,25 +134,32 @@ export async function getDashboardStats(organizationId: string, period: string) 
       Number(year) === currentYear && Number(month) === currentMonth + 1;
   }
 
-  const todayRevenue = includesToday
-    ? currentMonthRaw.reduce(
-        (sum, item) =>
-          sum +
-          (item._sum.quantity ?? 0) * (menuLookup.get(item.menuItemId) ?? 0),
-        0
-      )
-    : null;
+  let todayRevenue: number | null = null;
+  const todayRevenueShopBreakdown: Record<string, number> = {};
+  if (includesToday) {
+    todayRevenue = 0;
+    currentMonthRaw.forEach((item) => {
+      const qty = item._sum.quantity ?? 0;
+      const menuInfo = menuLookup.get(item.menuItemId) ?? { price: 0, shopName: "Unknown Shop" };
+      const amt = qty * menuInfo.price;
+      todayRevenue! += amt;
+      todayRevenueShopBreakdown[menuInfo.shopName] = (todayRevenueShopBreakdown[menuInfo.shopName] || 0) + amt;
+    });
+  }
 
   const avgOrderValue =
     approvedOrdersCount === 0 ? 0 : totalRevenue / approvedOrdersCount;
 
   return {
     totalRevenue,
+    totalRevenueShopBreakdown,
     totalOrders: allOrdersCount,
     approvedOrders: approvedOrdersCount,
     avgOrderValue,
     allTimeRevenue,
+    allTimeRevenueShopBreakdown,
     todayRevenue,
+    todayRevenueShopBreakdown,
   };
 }
 

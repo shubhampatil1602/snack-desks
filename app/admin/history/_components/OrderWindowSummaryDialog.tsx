@@ -29,11 +29,13 @@ import { UpdateOrderItemsModal } from "./UpdateOrderItemsModal";
 type OrderWindowSummaryDialogProps = {
   window: AdminWindowHistoryType[number];
   trigger?: React.ReactNode;
+  isUserView?: boolean;
 };
 
 export function OrderWindowSummaryDialog({
   window,
   trigger,
+  isUserView,
 }: OrderWindowSummaryDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedShop, setSelectedShop] = useState<string>("all");
@@ -54,6 +56,12 @@ export function OrderWindowSummaryDialog({
   // Shop-specific breakdown
   const shopsMap = new Map<string, ShopBreakdown>();
 
+  type AltItem = { itemName: string; quantity: number; userName: string };
+  const mergeAlternatives = (target: AltItem[] | undefined, source: AltItem[]) => {
+    if (source.length === 0) return target;
+    return [...(target || []), ...source];
+  };
+
   for (const order of approvedOrders) {
     for (const item of order.items) {
       if (item.replacementApplied) continue;
@@ -62,11 +70,23 @@ export function OrderWindowSummaryDialog({
       const itemTotal = item.quantity * Number(item.menuItem.price);
       const shopName = item.menuItem.shop?.name || "Unknown";
 
+      const itemAlternatives: AltItem[] = [];
+      if (item.replacementPreferences) {
+        for (const pref of item.replacementPreferences) {
+          itemAlternatives.push({
+            itemName: pref.menuItem.name,
+            quantity: pref.quantity,
+            userName: order.user.name,
+          });
+        }
+      }
+
       // 1. Combined Map Update
       const existing = combinedBreakdown.get(itemName);
       if (existing) {
         existing.quantity += item.quantity;
         existing.total += itemTotal;
+        existing.alternatives = mergeAlternatives(existing.alternatives, itemAlternatives);
         const userEntry = existing.users.find((u) => u.userId === order.userId);
         if (userEntry) userEntry.quantity += item.quantity;
         else
@@ -81,6 +101,7 @@ export function OrderWindowSummaryDialog({
           menuItemId: item.menuItem.id,
           quantity: item.quantity,
           total: itemTotal,
+          alternatives: itemAlternatives.length > 0 ? itemAlternatives : undefined,
           users: [
             {
               orderId: order.id,
@@ -107,6 +128,7 @@ export function OrderWindowSummaryDialog({
       if (shopItem) {
         shopItem.quantity += item.quantity;
         shopItem.total += itemTotal;
+        shopItem.alternatives = mergeAlternatives(shopItem.alternatives, itemAlternatives);
         const userEntry = shopItem.users.find((u) => u.userId === order.userId);
         if (userEntry) userEntry.quantity += item.quantity;
         else
@@ -121,6 +143,7 @@ export function OrderWindowSummaryDialog({
           menuItemId: item.menuItem.id,
           quantity: item.quantity,
           total: itemTotal,
+          alternatives: itemAlternatives.length > 0 ? itemAlternatives : undefined,
           users: [
             {
               orderId: order.id,
@@ -218,6 +241,7 @@ export function OrderWindowSummaryDialog({
     date: string,
     shops: ShopBreakdown[],
     total: number,
+    includeAlternatives: boolean,
   ) {
     let text = `${title} (${date})\n\n`;
     text += `Total: ${formatCurrency(total)}\n\n`;
@@ -229,7 +253,14 @@ export function OrderWindowSummaryDialog({
       );
       text += `\n*${shop.shopName}* (${formatCurrency(shop.total)})\n`;
       text += sortedItems
-        .map(([name, value]) => `  ${name} × ${value.quantity}`)
+        .map(([name, value]) => {
+          let line = `  ${name} × ${value.quantity}`;
+          if (includeAlternatives && value.alternatives && value.alternatives.length > 0) {
+            const altLines = value.alternatives.map(alt => `    ↳ [${alt.userName}] Alt: ${alt.quantity} × ${alt.itemName}`).join("\n");
+            line += `\n${altLines}`;
+          }
+          return line;
+        })
         .join("\n");
     }
     return text;
@@ -238,8 +269,9 @@ export function OrderWindowSummaryDialog({
   function formatSummary(
     title: string,
     date: string,
-    breakdown: [string, { quantity: number; total: number }][],
+    breakdown: [string, BreakdownItemData][],
     total: number,
+    includeAlternatives: boolean,
     shopName?: string,
   ) {
     const header = shopName
@@ -247,13 +279,20 @@ export function OrderWindowSummaryDialog({
       : `${title} (${date})`;
 
     const items = breakdown
-      .map(([name, value]) => `  ${name} × ${value.quantity}`)
+      .map(([name, value]) => {
+        let line = `  ${name} × ${value.quantity}`;
+        if (includeAlternatives && value.alternatives && value.alternatives.length > 0) {
+          const altLines = value.alternatives.map(alt => `    ↳ [${alt.userName}] Alt: ${alt.quantity} × ${alt.itemName}`).join("\n");
+          line += `\n${altLines}`;
+        }
+        return line;
+      })
       .join("\n");
 
     return `${header}\n\nTotal: ${formatCurrency(total)}\n\nItem Breakdown:\n${items}`;
   }
 
-  async function copyCurrent() {
+  async function copyCurrent(includeAlternatives: boolean = true) {
     const displayDate = new Date(window.createdAt).toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
@@ -267,6 +306,7 @@ export function OrderWindowSummaryDialog({
         displayDate,
         sortedShops,
         combinedTotal,
+        includeAlternatives
       );
     } else {
       text = formatSummary(
@@ -274,6 +314,7 @@ export function OrderWindowSummaryDialog({
         displayDate,
         currentData.breakdown,
         currentData.total,
+        includeAlternatives,
         currentData.shopName,
       );
     }
@@ -350,24 +391,26 @@ export function OrderWindowSummaryDialog({
                 ),
               }))}
               onCopy={copyCurrent}
-              onDeleteItem={setDeletingItem}
+              onDeleteItem={!isUserView ? setDeletingItem : undefined}
             />
           ) : (
             <ItemBreakdownList
               items={currentData.breakdown}
               onCopy={copyCurrent}
-              onDeleteItem={setDeletingItem}
+              onDeleteItem={!isUserView ? setDeletingItem : undefined}
             />
           )}
         </div>
       </DialogContent>
 
       {/* Delete/Update Modal */}
-      <UpdateOrderItemsModal
-        windowId={window.id}
-        deletingItem={deletingItem}
-        onClose={() => setDeletingItem(null)}
-      />
+      {!isUserView && (
+        <UpdateOrderItemsModal
+          windowId={window.id}
+          deletingItem={deletingItem}
+          onClose={() => setDeletingItem(null)}
+        />
+      )}
     </Dialog>
   );
 }
