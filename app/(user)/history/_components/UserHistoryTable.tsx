@@ -187,33 +187,33 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                           Alternative Used
                         </Badge>
                       )}
-                      {order.orderWindow.winnerUserId && (
-                        <div className='inline-flex items-center gap-1.5 align-middle'>
+                      <div className='inline-flex items-center gap-1.5 align-middle'>
+                        {order.orderWindow.winnerUserId && (
                           <span className='bg-linear-to-r from-amber-400 via-yellow-500 to-amber-500 text-white hover:from-amber-500 hover:via-yellow-600 hover:to-amber-600 border border-amber-600 shadow-md dark:from-amber-600 dark:via-yellow-600 dark:to-amber-700 dark:border-amber-500 p-0.5 px-2 text-xs font-bold rounded-3xl'>
                             SPLIT MASTER:{" "}
                             {order.orderWindow.winnerUser?.name.toUpperCase()}
                           </span>
-                          {order.orderWindow.winnerUserId === order.userId && (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <OrderWindowUserSummaryDialog
-                                window={order.orderWindow}
-                              />
-                            </div>
-                          )}
-                          {(order.canViewGlobalSplit ||
-                            order.orderWindow.winnerUserId ===
-                              order.userId) && (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <OrderWindowSummaryDialog
-                                window={
-                                  order.orderWindow as unknown as AdminWindowHistory[number]
-                                }
-                                isUserView={true}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        )}
+                        {order.orderWindow.winnerUserId === order.userId && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <OrderWindowUserSummaryDialog
+                              window={order.orderWindow}
+                            />
+                          </div>
+                        )}
+                        {(!order.orderWindow.winnerUserId ||
+                          order.orderWindow.winnerUserId === order.userId ||
+                          order.canViewGlobalSplit) && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <OrderWindowSummaryDialog
+                              window={
+                                order.orderWindow as unknown as AdminWindowHistory[number]
+                              }
+                              isUserView={true}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <span className='text-muted-foreground text-xs mx-1'></span>
                       {order.orderWindow.paid ? (
                         <Badge className='bg-linear-to-r from-emerald-400 via-green-500 to-emerald-500 text-white hover:from-emerald-500 hover:via-emerald-600 hover:to-emerald-600 border border-emerald-600 shadow-md dark:from-emerald-600 dark:via-emerald-600 dark:to-emerald-700 dark:border-emerald-500 rounded-full py-0.5 px-2'>

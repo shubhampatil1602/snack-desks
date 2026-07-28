@@ -150,35 +150,35 @@ export async function getUserOrderHistory(
     select: { canViewGlobalSplit: true }
   });
   const canViewGlobalSplit = member?.canViewGlobalSplit || false;
+  
+  const formatOrderItems = <T extends {
+    menuItem: { price: { toString(): string } };
+    replacementPreferences: { menuItem: { price: { toString(): string } } }[];
+  }>(items: T[]) => items.map(item => ({
+    ...item,
+    menuItem: {
+      ...item.menuItem,
+      price: item.menuItem.price.toString(),
+    },
+    replacementPreferences: item.replacementPreferences.map(rep => ({
+      ...rep,
+      menuItem: {
+        ...rep.menuItem,
+        price: rep.menuItem.price.toString(),
+      },
+    })),
+  }));
+
   return orders.map((order) => ({
     ...order,
     canViewGlobalSplit,
-    items: order.items.map((item) => ({
-      ...item,
-      menuItem: {
-        ...item.menuItem,
-        price: item.menuItem.price.toString(),
-      },
-      replacementPreferences: item.replacementPreferences.map((rep) => ({
-        ...rep,
-        menuItem: {
-          ...rep.menuItem,
-          price: rep.menuItem.price.toString(),
-        },
-      })),
-    })),
+    items: formatOrderItems(order.items),
     orderWindow: {
       ...order.orderWindow,
       orders: (order.orderWindow.orders || [])
-        .map((o) => ({
+        .map(o => ({
           ...o,
-          items: o.items.map((i) => ({
-            ...i,
-            menuItem: {
-              ...i.menuItem,
-              price: i.menuItem.price.toString(),
-            },
-          })),
+          items: formatOrderItems(o.items)
         }))
         .sort((a, b) => a.user.name.localeCompare(b.user.name)),
     },

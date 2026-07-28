@@ -13,3 +13,5 @@ export function formatCurrency(amount: number | string): string {
     maximumFractionDigits: 2,
   })}`;
 }
+
+
