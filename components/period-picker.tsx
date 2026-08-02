@@ -1,6 +1,6 @@
 "use client";
 
-import { setPeriodCookie } from "@/actions/period-cookie";
+import { setPeriodCookie, clearPeriodCookie } from "@/actions/period-cookie";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -45,10 +45,17 @@ export function PeriodPicker({ period, startDate, basePath }: Props) {
   const activePeriod = getActivePeriod(period);
 
   const handlePeriodChange = async (value: string) => {
-    await setPeriodCookie(value);
-    
+    const currentMonthString = getActivePeriod(undefined);
     const params = new URLSearchParams(searchParams.toString());
-    params.set("period", value);
+
+    if (value === currentMonthString) {
+      await clearPeriodCookie();
+      params.delete("period");
+    } else {
+      await setPeriodCookie(value);
+      params.set("period", value);
+    }
+    
     const queryString = params.toString();
     router.push(`${basePath}${queryString ? `?${queryString}` : ""}`);
   };
