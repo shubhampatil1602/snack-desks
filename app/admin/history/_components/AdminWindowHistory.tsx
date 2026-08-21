@@ -162,7 +162,7 @@ export function AdminWindowHistory({
 
   sortedWindows.forEach((window) => {
     window.orders
-      .filter((o) => o.status !== "cancelled" && o.status !== "rejected")
+      .filter((o) => o.status === "approved")
       .forEach((order) => {
         order.items
           .filter((item) => !item.replacementApplied)
@@ -295,7 +295,7 @@ export function AdminWindowHistory({
           let windowRevenue = 0;
 
           window.orders
-            .filter((o) => o.status !== "cancelled" && o.status !== "rejected")
+            .filter((o) => o.status === "approved")
             .forEach((order) => {
               order.items
                 .filter((item) => !item.replacementApplied)
@@ -444,9 +444,7 @@ export function AdminWindowHistory({
                               <span className='font-normal text-muted-foreground text-xs'>
                                 {
                                   window.orders.filter(
-                                    (o) =>
-                                      o.status !== "cancelled" &&
-                                      o.status !== "rejected",
+                                    (o) => o.status === "approved"
                                   ).length
                                 }{" "}
                                 orders

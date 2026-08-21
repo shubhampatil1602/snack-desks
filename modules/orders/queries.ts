@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { closeWindowInternal } from "@/actions/order-window";
 
 export async function getActiveWindowWithMenu(organizationId: string) {
   const window = await prisma.orderWindow.findFirst({
@@ -13,10 +14,7 @@ export async function getActiveWindowWithMenu(organizationId: string) {
 
   // lazy close fallback
   if (window && window.endsAt && window.endsAt < new Date()) {
-    await prisma.orderWindow.update({
-      where: { id: window.id },
-      data: { status: "closed" },
-    });
+    await closeWindowInternal(window.id);
     return null;
   }
 

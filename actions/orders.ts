@@ -6,6 +6,7 @@ import { notify } from "@/lib/sse/pg-notify";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { closeWindowInternal } from "./order-window";
 
 const orderItemSchema = z.object({
   menuItemId: z.string().min(1),
@@ -53,10 +54,7 @@ export async function placeOrderAction(
 
   // check if window has expired
   if (window.endsAt && window.endsAt < new Date()) {
-    await prisma.orderWindow.update({
-      where: { id: windowId },
-      data: { status: "closed" },
-    });
+    await closeWindowInternal(windowId);
     return { success: false, error: "Order window has expired" };
   }
 
@@ -85,22 +83,36 @@ export async function placeOrderAction(
   }
 
   // create order + items in a transaction
-  const order = await prisma.$transaction(async (tx) => {
-    const newOrder = await tx.order.create({
-      data: {
-        id: nanoid(),
-        organizationId: member.organizationId,
-        userId: session.user.id,
-        windowId,
-        status: "pending",
-        updatedAt: new Date(),
-      },
+  let order;
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      // re-verify window inside transaction to prevent race conditions
+      const currentWindow = await tx.orderWindow.findUnique({
+        where: { id: windowId },
+      });
+
+      if (!currentWindow || currentWindow.status !== "active") {
+        throw new Error("Order window is no longer active");
+      }
+
+      const newOrder = await tx.order.create({
+        data: {
+          id: nanoid(),
+          organizationId: member.organizationId,
+          userId: session.user.id,
+          windowId,
+          status: "pending",
+          updatedAt: new Date(),
+        },
+      });
+
+      await createOrderItems(tx, newOrder.id, items);
+
+      return newOrder;
     });
-
-    await createOrderItems(tx, newOrder.id, items);
-
-    return newOrder;
-  });
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 
   // notify admin via SSE
   await notify({
@@ -849,15 +861,17 @@ export async function bulkDeleteOrderItemFromWindowAction(
           await tx.order.delete({
             where: { id: orderId },
           });
-          const window = await tx.orderWindow.findUnique({ where: { id: order.windowId } });
+          const window = await tx.orderWindow.findUnique({
+            where: { id: order.windowId },
+          });
           if (window?.winnerUserId === order.userId) {
             await tx.orderWindow.update({
               where: { id: order.windowId },
-              data: { winnerUserId: null }
+              data: { winnerUserId: null },
             });
           }
         }
-        
+
         await notify({
           type: "order_cancelled",
           orgId: member.organizationId,
@@ -868,7 +882,7 @@ export async function bulkDeleteOrderItemFromWindowAction(
           where: { id: orderId },
           data: { updatedAt: new Date() },
         });
-        
+
         await notify({
           type: "order_updated",
           orgId: member.organizationId,
