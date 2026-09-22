@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { TodaysWindow } from "@/modules/order-window/queries";
+import { truncateText } from "@/lib/utils";
 
 interface TodaysWindowsListProps {
   windows: TodaysWindow[];
@@ -21,7 +22,9 @@ export function TodaysWindowsList({ windows }: TodaysWindowsListProps) {
               >
                 {w.status === "active" ? "Active" : "Closed"}
               </Badge>
-              <span className='text-sm font-medium'>{w.label}</span>
+              <span className='text-sm font-medium'>
+                {truncateText(w.label, 15)}
+              </span>
             </div>
             <div className='flex items-center gap-4 text-xs text-muted-foreground'>
               <span>{w._count.orders} orders</span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, truncateText } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Package, IndianRupee } from "lucide-react";
 import Link from "next/link";
@@ -82,7 +82,9 @@ export function RecentWindowsCard({ windows }: RecentWindowsCardProps) {
               <div className='flex items-center justify-between pt-1 pb-2'>
                 <div className='flex-1'>
                   <div className='flex items-center gap-2 mb-0.5'>
-                    <p className='font-medium'>{window.label}</p>
+                    <p className='font-medium'>
+                      {truncateText(window.label, 15)}
+                    </p>
                     <Badge
                       variant={getStatusVariant(window.status)}
                       className={getStatusColor(window.status)}

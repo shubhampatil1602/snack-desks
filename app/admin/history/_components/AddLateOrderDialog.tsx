@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, truncateText } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 import {
   createLateOrderAction,
@@ -97,10 +97,9 @@ export function AddLateOrderDialog({
   const filteredUsers = eligibleUsers.filter(
     (u) =>
       u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.email.toLowerCase().includes(userSearch.toLowerCase())
+      u.email.toLowerCase().includes(userSearch.toLowerCase()),
   );
   const selectedUser = eligibleUsers.find((u) => u.id === selectedUserId);
-
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -113,7 +112,9 @@ export function AddLateOrderDialog({
 
       <DialogContent className='max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0'>
         <DialogHeader className='p-6 pb-4 border-b'>
-          <DialogTitle>Add Late Order - {windowLabel}</DialogTitle>
+          <DialogTitle>
+            Add Late Order - {truncateText(windowLabel, 20)}
+          </DialogTitle>
         </DialogHeader>
 
         {open && (
@@ -136,61 +137,65 @@ export function AddLateOrderDialog({
                   All users have placed an order for this window.
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className='space-y-3'>
                   <Input
-                    placeholder="Search for a user by name or email..."
+                    placeholder='Search for a user by name or email...'
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
                     disabled={pending}
                   />
 
                   {selectedUser && !userSearch.trim() && (
-                    <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
-                      <div className="text-sm truncate mr-4">
-                        <span className="font-medium text-foreground">{selectedUser.name}</span>{" "}
-                        <span className="text-muted-foreground">({selectedUser.email})</span>
+                    <div className='flex items-center justify-between p-3 border rounded-md bg-muted/30'>
+                      <div className='text-sm truncate mr-4'>
+                        <span className='font-medium text-foreground'>
+                          {selectedUser.name}
+                        </span>{" "}
+                        <span className='text-muted-foreground'>
+                          ({selectedUser.email})
+                        </span>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground" 
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground'
                         onClick={() => setSelectedUserId("")}
                       >
-                        <X className="h-4 w-4" />
+                        <X className='h-4 w-4' />
                       </Button>
                     </div>
                   )}
 
                   {userSearch.trim() && (
-                    <div className="border divide-y max-h-48 overflow-y-auto mt-2">
+                    <div className='border divide-y max-h-48 overflow-y-auto mt-2'>
                       {filteredUsers.length === 0 ? (
-                        <div className="p-3 text-sm text-muted-foreground text-center">
+                        <div className='p-3 text-sm text-muted-foreground text-center'>
                           No users found.
                         </div>
                       ) : (
                         filteredUsers.map((user) => (
                           <button
                             key={user.id}
-                            type="button"
+                            type='button'
                             className={cn(
                               "w-full flex items-center justify-between p-3 text-left hover:bg-muted text-sm",
                               selectedUserId === user.id
                                 ? "bg-muted font-medium"
-                                : ""
+                                : "",
                             )}
                             onClick={() => {
                               setSelectedUserId(user.id);
                               setUserSearch("");
                             }}
                           >
-                            <div className="flex-1 truncate">
+                            <div className='flex-1 truncate'>
                               <span>{user.name}</span>{" "}
-                              <span className="text-muted-foreground text-xs font-normal">
+                              <span className='text-muted-foreground text-xs font-normal'>
                                 ({user.email})
                               </span>
                             </div>
                             {selectedUserId === user.id && (
-                              <Check className="h-4 w-4 text-primary shrink-0 ml-2" />
+                              <Check className='h-4 w-4 text-primary shrink-0 ml-2' />
                             )}
                           </button>
                         ))

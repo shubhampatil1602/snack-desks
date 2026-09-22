@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, truncateText } from "@/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import {
@@ -133,7 +133,7 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
               <TableHead>Window</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className='w-[80px]'>Expand</TableHead>
+              <TableHead className='w-20'>Expand</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -168,7 +168,9 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                     </TableCell>
 
                     <TableCell className='px-3 py-0.5'>
-                      <span className='mr-3'>{order.orderWindow.label}</span>
+                      <span className='mr-3'>
+                        {truncateText(order.orderWindow.label, 15)}
+                      </span>
                       {order.createdByAdmin && (
                         <Badge
                           variant='outline'

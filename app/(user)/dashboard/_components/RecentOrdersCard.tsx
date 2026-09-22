@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, truncateText } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays } from "lucide-react";
 import Link from "next/link";
@@ -74,7 +74,9 @@ export function RecentOrdersCard({ orders }: RecentOrdersCardProps) {
               <div className='flex items-center justify-between pt-1 pb-2'>
                 <div className='flex-1'>
                   <div className='flex items-center gap-2 mb-0.5'>
-                    <p className='font-medium'>{order.windowLabel}</p>
+                    <p className='font-medium'>
+                      {truncateText(order.windowLabel, 15)}
+                    </p>
 
                     <Badge variant={getStatusVariant(order.status)}>
                       {order.status}

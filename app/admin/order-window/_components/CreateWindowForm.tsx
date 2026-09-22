@@ -20,7 +20,10 @@ import { createWindowAction } from "@/actions/order-window";
 import type { Shop } from "@/lib/generated/prisma/client";
 
 const schema = z.object({
-  label: z.string().min(1, "Label is required"),
+  label: z
+    .string()
+    .min(1, "Label is required")
+    .max(25, "Backxhodi mat kar bhai..."),
   hasDuration: z.boolean().default(false),
   duration: z.coerce.number().min(1).optional(),
   shopIds: z.array(z.string()).min(1, "Select at least one shop"),
