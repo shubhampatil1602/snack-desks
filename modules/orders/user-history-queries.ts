@@ -81,6 +81,7 @@ export async function getUserOrderHistory(
           label: true,
           paid: true,
           createdAt: true,
+          endsAt: true,
           winnerUserId: true,
           winnerUser: {
             select: {

@@ -3,6 +3,7 @@ import { AppSidebar } from "./_components/app-sidebar";
 import { SiteHeader } from "./_components/site-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { requireSuperAdmin } from "@/actions/user";
+import { AppFooter } from "@/components/app-footer";
 
 export default async function SuperAdminLayout({
   children,
@@ -26,8 +27,9 @@ export default async function SuperAdminLayout({
             <SiteHeader />
             <div className='flex flex-1 flex-col'>
               <div className='@container/main flex flex-1 flex-col gap-2'>
-                <div className='flex flex-col gap-4 py-4 md:gap-6 md:py-5 h-full px-3'>
+                <div className='flex flex-col gap-4 py-4 md:gap-6 md:py-5 h-full'>
                   {children}
+                  <AppFooter />
                 </div>
               </div>
             </div>

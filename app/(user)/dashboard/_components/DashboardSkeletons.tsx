@@ -154,3 +154,16 @@ export function ProfileHeaderSkeleton() {
     </div>
   );
 }
+
+export function UserChartsSkeleton() {
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>Loading chart</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-[280px] w-full" />
+      </CardContent>
+    </Card>
+  );
+}

@@ -12,10 +12,19 @@ import {
   signUpSchema,
   SignUpSchema,
 } from "@/types/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function signUpAction(
   formData: SignUpSchema,
 ): Promise<ActionResult> {
+  const rateLimit = await checkRateLimit("auth:signup", 5, 10 * 60 * 1000);
+  if (!rateLimit.success) {
+    return {
+      success: false,
+      error: `Too many registration attempts. Please try again in ${rateLimit.retryAfterSec ?? 60} seconds.`,
+    };
+  }
+
   // 1. Validate input
   const parsed = signUpSchema.safeParse(formData);
   if (!parsed.success) {
@@ -69,6 +78,14 @@ export async function signUpAction(
 export async function signInAction(
   formData: SignInSchema,
 ): Promise<ActionResult> {
+  const rateLimit = await checkRateLimit("auth:signin", 10, 5 * 60 * 1000);
+  if (!rateLimit.success) {
+    return {
+      success: false,
+      error: `Too many sign-in attempts. Please try again in ${rateLimit.retryAfterSec ?? 60} seconds.`,
+    };
+  }
+
   const parsed = signInSchema.safeParse(formData);
   if (!parsed.success) {
     return {

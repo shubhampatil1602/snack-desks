@@ -93,6 +93,48 @@ export function HeatmapSkeleton() {
   );
 }
 
+export function ChartsSkeleton() {
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>Loading chart</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-[280px] w-full" />
+      </CardContent>
+    </Card>
+  );
+}
+
+export function TopWindowWinnersSkeleton() {
+  return (
+    <Card size="sm" className="justify-between">
+      <CardHeader>
+        <CardTitle>Most Order Window Winners</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex min-h-[190px] items-end justify-center gap-4 py-4">
+          <div className="flex flex-col items-center gap-2">
+            <Skeleton className="size-16 sm:size-20 rounded-full" />
+            <Skeleton className="h-3 w-14 mt-1" />
+            <Skeleton className="h-2.5 w-10" />
+          </div>
+          <div className="flex flex-col items-center gap-2 -translate-y-3">
+            <Skeleton className="size-20 sm:size-24 rounded-full" />
+            <Skeleton className="h-3 w-16 mt-1" />
+            <Skeleton className="h-2.5 w-12" />
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <Skeleton className="size-16 sm:size-20 rounded-full" />
+            <Skeleton className="h-3 w-14 mt-1" />
+            <Skeleton className="h-2.5 w-10" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function RecentWindowsSkeleton() {
   return (
     <Card size='sm'>

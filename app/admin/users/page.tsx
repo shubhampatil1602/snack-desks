@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { requireAdmin } from "@/actions/user";
 import { Suspense } from "react";
+
+export const metadata: Metadata = {
+  title: "User Management",
+  description:
+    "View organization members, reset passwords, and manage team permissions.",
+};
 import { UsersTableFetcher } from "./_components/UserFetchers";
 import { UsersTableSkeleton } from "./_components/UserSkeletons";
 

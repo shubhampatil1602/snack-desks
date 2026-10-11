@@ -176,7 +176,11 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                           variant='outline'
                           className='text-[10px] border-cyan-500 text-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 rounded-full py-0 px-1.5'
                         >
-                          Late Order
+                          {order.orderWindow.endsAt &&
+                          new Date(order.createdAt) >
+                            new Date(order.orderWindow.endsAt)
+                            ? "Late Order"
+                            : "By Admin"}
                         </Badge>
                       )}
                       {hasReplacements && (

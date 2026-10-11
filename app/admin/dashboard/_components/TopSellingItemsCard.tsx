@@ -1,6 +1,13 @@
-// app/admin/dashboard/_components/TopSellingItemsCard.tsx
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 type TopSellingItem = {
@@ -20,6 +27,15 @@ export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
     <Card size='sm'>
       <CardHeader>
         <CardTitle>Top Selling Items</CardTitle>
+        <CardAction>
+          <Link
+            href="/admin/menus"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            View menus
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </CardAction>
       </CardHeader>
 
       <CardContent>

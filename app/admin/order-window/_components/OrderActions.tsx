@@ -6,13 +6,33 @@ import { updateOrderStatusAction } from "@/actions/orders";
 import { useTransition } from "react";
 import { IconCheck } from "@tabler/icons-react";
 import { X } from "lucide-react";
+import { AdminEditOrderDialog } from "@/app/admin/history/_components/AdminEditOrderDialog";
+import type { MenuItem } from "@/types/menu";
+
+type OrderItem = {
+  menuItemId: string;
+  quantity: number;
+  menuItem: {
+    name: string;
+    price: string;
+  };
+};
 
 type OrderActionsProps = {
   orderId: string;
   status: string;
+  userName?: string;
+  items?: OrderItem[];
+  menuItems?: MenuItem[];
 };
 
-export function OrderActions({ orderId, status }: OrderActionsProps) {
+export function OrderActions({
+  orderId,
+  status,
+  userName,
+  items,
+  menuItems,
+}: OrderActionsProps) {
   const [pending, startTransition] = useTransition();
 
   function updateStatus(nextStatus: "approved" | "rejected" | "pending") {
@@ -28,9 +48,23 @@ export function OrderActions({ orderId, status }: OrderActionsProps) {
     });
   }
 
+  const isRejected = status === "rejected";
+  const editDisabled = pending || isRejected;
+
+  const editDialog = menuItems && userName && items && (
+    <AdminEditOrderDialog
+      orderId={orderId}
+      userName={userName}
+      items={items}
+      menuItems={menuItems}
+      triggerVariant='outline'
+      disabled={editDisabled}
+    />
+  );
+
   if (status === "pending") {
     return (
-      <div className='flex gap-2'>
+      <div className='flex items-center gap-2'>
         <Button
           size='sm'
           onClick={() => updateStatus("approved")}
@@ -47,13 +81,15 @@ export function OrderActions({ orderId, status }: OrderActionsProps) {
         >
           <X />
         </Button>
+
+        {editDialog}
       </div>
     );
   }
 
   if (status === "approved") {
     return (
-      <div className='flex gap-2'>
+      <div className='flex items-center gap-2'>
         <Button
           size='sm'
           variant='outline'
@@ -71,13 +107,15 @@ export function OrderActions({ orderId, status }: OrderActionsProps) {
         >
           <X />
         </Button>
+
+        {editDialog}
       </div>
     );
   }
 
   if (status === "rejected") {
     return (
-      <div className='flex gap-2'>
+      <div className='flex items-center gap-2'>
         <Button
           size='sm'
           variant='outline'
@@ -94,6 +132,8 @@ export function OrderActions({ orderId, status }: OrderActionsProps) {
         >
           <IconCheck stroke={2} />
         </Button>
+
+        {editDialog}
       </div>
     );
   }

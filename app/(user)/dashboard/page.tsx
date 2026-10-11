@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description:
+    "View your personal snacking stats, recent orders, rankings, and active order windows.",
+};
 import {
   getPeriodLabel,
   generateMonthsFromDate,
@@ -19,6 +26,7 @@ import {
   UserHeatmapSkeleton,
   UserFavoriteItemsSkeleton,
   ProfileHeaderSkeleton,
+  UserChartsSkeleton,
 } from "./_components/DashboardSkeletons";
 import {
   UserStatsFetcher,
@@ -27,6 +35,8 @@ import {
   UserHeatmapFetcher,
   UserFavoriteItemsFetcher,
   ProfileHeaderFetcher,
+  UserSpendingTrendFetcher,
+  UserCategorySpendingFetcher,
 } from "./_components/DashboardFetchers";
 
 interface UserDashboardProps {
@@ -110,6 +120,25 @@ export default async function UserDashboard({
           periodLabel={periodLabel}
         />
       </Suspense>
+
+      <div className='grid gap-3 lg:grid-cols-2'>
+        <Suspense fallback={<UserChartsSkeleton />}>
+          <UserSpendingTrendFetcher
+            organizationId={member.organizationId}
+            userId={session.user.id}
+            period={period}
+            periodLabel={periodLabel}
+          />
+        </Suspense>
+        <Suspense fallback={<UserChartsSkeleton />}>
+          <UserCategorySpendingFetcher
+            organizationId={member.organizationId}
+            userId={session.user.id}
+            period={period}
+            periodLabel={periodLabel}
+          />
+        </Suspense>
+      </div>
 
       <div className='grid gap-3 lg:grid-cols-2'>
         <Suspense fallback={<UserRankSkeleton />}>

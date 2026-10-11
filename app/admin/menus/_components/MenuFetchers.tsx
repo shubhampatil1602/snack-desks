@@ -1,6 +1,7 @@
 import {
   getMenuCategories,
   getMenuItems,
+  getMenuItemsSoldCounts,
   getShops,
 } from "@/modules/menu/queries";
 import { MenuTable } from "./MenuTable";
@@ -9,10 +10,11 @@ import { MenuFormDialog } from "./MenuFormDialog";
 import { ShopManager } from "./ShopManager";
 
 export async function MenuContentFetcher({ organizationId }: { organizationId: string }) {
-  const [items, categories, shops] = await Promise.all([
+  const [items, categories, shops, soldByMenuItemId] = await Promise.all([
     getMenuItems(organizationId),
     getMenuCategories(organizationId),
     getShops(organizationId),
+    getMenuItemsSoldCounts(organizationId),
   ]);
 
   return (
@@ -29,7 +31,12 @@ export async function MenuContentFetcher({ organizationId }: { organizationId: s
           <ShopManager shops={shops} />
         </div>
       </div>
-      <MenuTable data={items} categories={categories} shops={shops} />
+      <MenuTable
+        data={items}
+        categories={categories}
+        shops={shops}
+        soldByMenuItemId={Object.fromEntries(soldByMenuItemId)}
+      />
     </>
   );
 }

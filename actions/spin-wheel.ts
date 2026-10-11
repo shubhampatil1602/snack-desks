@@ -14,6 +14,7 @@ export async function spinWheelAction(windowId: string) {
     select: {
       winnerUserId: true,
       originalWinnerUserId: true,
+      lastSpunAt: true,
     },
   });
 
@@ -51,6 +52,7 @@ export async function spinWheelAction(windowId: string) {
         windowId,
         status: { not: "cancelled" },
         createdByAdmin: true,
+        ...(window.lastSpunAt ? { createdAt: { gt: window.lastSpunAt } } : {}),
       },
       distinct: ["userId"],
       select: { user: { select: { id: true, name: true } } },

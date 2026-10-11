@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
+
+export const metadata: Metadata = {
+  title: "Admin Dashboard",
+  description:
+    "Organization overview, order volume, revenue analytics, and top snackers.",
+};
 import {
   getPeriodLabel,
   generateMonthsFromDate,
@@ -17,6 +24,9 @@ import {
   RecentWindowsFetcher,
   TopEmployeesFetcher,
   TopSellingItemsFetcher,
+  RevenueTrendFetcher,
+  CategoryRevenueFetcher,
+  TopWindowWinnersFetcher,
 } from "./_components/DashboardFetchers";
 import {
   ActiveWindowSkeleton,
@@ -25,6 +35,8 @@ import {
   StatsSkeleton,
   TopEmployeesSkeleton,
   TopItemsSkeleton,
+  ChartsSkeleton,
+  TopWindowWinnersSkeleton,
 } from "./_components/DashboardSkeletons";
 
 interface AdminDashboardProps {
@@ -79,39 +91,74 @@ export default async function AdminDashboard({
       </div>
 
       <DashboardSSE />
-      
+
       <Suspense fallback={<ActiveWindowSkeleton />}>
         <ActiveWindowFetcher organizationId={member.organizationId} />
       </Suspense>
 
       <Suspense fallback={<StatsSkeleton />}>
-        <DashboardStatsFetcher 
-          organizationId={member.organizationId} 
-          period={period} 
-          periodLabel={periodLabel} 
+        <DashboardStatsFetcher
+          organizationId={member.organizationId}
+          period={period}
+          periodLabel={periodLabel}
         />
       </Suspense>
 
       <div className='grid gap-3 lg:grid-cols-2'>
-        <Suspense fallback={<TopItemsSkeleton />}>
-          <TopSellingItemsFetcher organizationId={member.organizationId} period={period} />
+        <Suspense fallback={<ChartsSkeleton />}>
+          <RevenueTrendFetcher
+            organizationId={member.organizationId}
+            period={period}
+            periodLabel={periodLabel}
+          />
         </Suspense>
-        
-        <Suspense fallback={<TopEmployeesSkeleton />}>
-          <TopEmployeesFetcher organizationId={member.organizationId} period={period} />
+        <Suspense fallback={<ChartsSkeleton />}>
+          <CategoryRevenueFetcher
+            organizationId={member.organizationId}
+            period={period}
+            periodLabel={periodLabel}
+          />
         </Suspense>
       </div>
-      
+
       <Suspense fallback={<HeatmapSkeleton />}>
-        <HeatmapFetcher 
-          organizationId={member.organizationId} 
-          joinedAt={organization.createdAt} 
+        <HeatmapFetcher
+          organizationId={member.organizationId}
+          joinedAt={organization.createdAt}
         />
       </Suspense>
 
-      <Suspense fallback={<RecentWindowsSkeleton />}>
-        <RecentWindowsFetcher organizationId={member.organizationId} period={period} />
-      </Suspense>
+      <div className='grid gap-3 lg:grid-cols-2'>
+        <Suspense fallback={<TopEmployeesSkeleton />}>
+          <TopEmployeesFetcher
+            organizationId={member.organizationId}
+            period={period}
+          />
+        </Suspense>
+
+        <Suspense fallback={<TopWindowWinnersSkeleton />}>
+          <TopWindowWinnersFetcher
+            organizationId={member.organizationId}
+            period={period}
+          />
+        </Suspense>
+      </div>
+
+      <div className='grid gap-3 lg:grid-cols-2'>
+        <Suspense fallback={<TopItemsSkeleton />}>
+          <TopSellingItemsFetcher
+            organizationId={member.organizationId}
+            period={period}
+          />
+        </Suspense>
+
+        <Suspense fallback={<RecentWindowsSkeleton />}>
+          <RecentWindowsFetcher
+            organizationId={member.organizationId}
+            period={period}
+          />
+        </Suspense>
+      </div>
     </div>
   );
 }

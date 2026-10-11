@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { Suspense } from "react";
 import { OrderWindowFetcher } from "./_components/OrderWindowFetchers";
 import { OrderWindowSkeleton } from "./_components/OrderWindowSkeletons";
+
+export const metadata: Metadata = {
+  title: "Order Window",
+  description:
+    "Browse menu items, select snacks, and place orders during the active order window.",
+};
 
 export default async function OrderWindowPage() {
   const session = await authIsRequired();

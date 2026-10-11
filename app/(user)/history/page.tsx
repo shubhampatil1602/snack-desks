@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { authIsRequired } from "@/actions/user";
 import { PaymentQR } from "@/components/payment-qr";
+
+export const metadata: Metadata = {
+  title: "Order History",
+  description:
+    "View your past snack orders, statuses, alternatives, and spending summary.",
+};
 import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { CartSync } from "../_components/cart-sync";
 import { prisma } from "@/lib/db";

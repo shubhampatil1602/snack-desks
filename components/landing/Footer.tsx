@@ -85,8 +85,16 @@ export function Footer() {
           </div>
         </div>
 
-        <div className='mt-10 border-t pt-6 text-sm text-muted-foreground'>
-          © 2026 SnackDesk. All rights reserved.
+        <div className='mt-10 border-t pt-6 text-sm text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-4'>
+          <p>© 2026 SnackDesk. All rights reserved.</p>
+          <div className='flex gap-4 text-xs'>
+            <Link href='/terms' className='hover:text-foreground transition-colors'>
+              Terms & Conditions
+            </Link>
+            <Link href='/privacy' className='hover:text-foreground transition-colors'>
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

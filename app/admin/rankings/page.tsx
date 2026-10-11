@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { requireAdmin } from "@/actions/user";
 import { Suspense } from "react";
+
+export const metadata: Metadata = {
+  title: "Admin Rankings",
+  description:
+    "Detailed employee snack rankings, win frequencies, and spending metrics.",
+};
 import { prisma } from "@/lib/db";
 import { PeriodPicker } from "@/components/period-picker";
 import { getPeriodCookie } from "@/actions/period-cookie";

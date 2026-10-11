@@ -10,7 +10,11 @@ import {
   getUserRecentOrders,
   getUserHeatmapData,
   getUserSplitMasterWins,
+  getUserSpendingTimeSeries,
+  getUserSpendingByCategory,
 } from "@/modules/user-dashboard/queries";
+import { RevenueTrendChart } from "@/app/admin/dashboard/_components/RevenueTrendChart";
+import { CategoryRevenueChart } from "@/app/admin/dashboard/_components/CategoryRevenueChart";
 import { prisma } from "@/lib/db";
 
 export async function UserStatsFetcher({
@@ -106,6 +110,51 @@ export async function ProfileHeaderFetcher({
       user={user} 
       member={member} 
       splitMasterWins={splitMasterWins} 
+    />
+  );
+}
+
+export async function UserSpendingTrendFetcher({
+  organizationId,
+  userId,
+  period,
+  periodLabel,
+}: {
+  organizationId: string;
+  userId: string;
+  period: string;
+  periodLabel: string;
+}) {
+  const data = await getUserSpendingTimeSeries(organizationId, userId, period);
+  return (
+    <RevenueTrendChart
+      data={data}
+      periodLabel={periodLabel}
+      title="Spending trend"
+      description={`Your approved order spend and volume · ${periodLabel}`}
+      valueLabel="Spent"
+    />
+  );
+}
+
+export async function UserCategorySpendingFetcher({
+  organizationId,
+  userId,
+  period,
+  periodLabel,
+}: {
+  organizationId: string;
+  userId: string;
+  period: string;
+  periodLabel: string;
+}) {
+  const data = await getUserSpendingByCategory(organizationId, userId, period);
+  return (
+    <CategoryRevenueChart
+      data={data}
+      periodLabel={periodLabel}
+      title="Spending by category"
+      description={`Your share of approved spend · ${periodLabel}`}
     />
   );
 }

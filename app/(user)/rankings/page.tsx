@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
+
+export const metadata: Metadata = {
+  title: "Team Rankings",
+  description: "Check the top snackers and leaderboards in your organization.",
+};
 import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { CartSync } from "../_components/cart-sync";
 import { Suspense } from "react";

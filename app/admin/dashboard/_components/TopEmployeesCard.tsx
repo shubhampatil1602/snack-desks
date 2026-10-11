@@ -1,4 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
 type TopEmployee = {
@@ -54,6 +63,15 @@ export function TopEmployeesCard({ employees }: TopEmployeesCardProps) {
     <Card size='sm' className='justify-between'>
       <CardHeader>
         <CardTitle>Most Active Employees</CardTitle>
+        <CardAction>
+          <Link
+            href="/admin/rankings"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            View all rankings
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </CardAction>
       </CardHeader>
 
       <CardContent>

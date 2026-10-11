@@ -8,6 +8,7 @@ import { nanoid } from "nanoid";
 import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const EXPIRY_MINUTES = {
   1: 1,
@@ -114,6 +115,14 @@ export async function resetPasswordAction(input: {
   token: string;
   newPassword: string;
 }) {
+  const rateLimit = await checkRateLimit("auth:reset-password", 5, 10 * 60 * 1000);
+  if (!rateLimit.success) {
+    return {
+      success: false,
+      error: `Too many password reset attempts. Please try again in ${rateLimit.retryAfterSec ?? 60} seconds.`,
+    };
+  }
+
   // Validate input
   if (!input.email || !input.token || !input.newPassword) {
     return {

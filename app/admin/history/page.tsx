@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
+
+export const metadata: Metadata = {
+  title: "Order History & Settlement",
+  description:
+    "View past order windows, settle bills, export orders, and manage late orders.",
+};
 import { Suspense } from "react";
 
 import { ExportOrdersDialog } from "./_components/ExportOrdersDialog";

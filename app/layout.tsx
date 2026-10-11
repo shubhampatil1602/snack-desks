@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeColorProvider } from "@/components/theme/theme-color-provider";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import { CookieConsent } from "@/components/cookie-consent";
+import { AnalyticsProvider } from "@/components/analytics-provider";
 
 const instrumentSerifHeading = Instrument_Serif({
   subsets: ["latin"],
@@ -32,8 +32,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SnackDesk",
-  description: "Snack ordering platform for modern teams.",
+  title: {
+    default: "SnackDesk - Office Snack Ordering Platform",
+    template: "%s | SnackDesk",
+  },
+  description:
+    "Office snack ordering platform for modern teams. Live order windows, gamified spin-the-wheel rewards, detailed analytics, and seamless group snacking.",
+  keywords: [
+    "snack ordering",
+    "office snacks",
+    "team food ordering",
+    "workplace treats",
+    "snack desk",
+    "group orders",
+  ],
+  authors: [{ name: "SnackDesk Team" }],
 };
 
 export default function RootLayout({
@@ -79,10 +92,10 @@ export default function RootLayout({
           <ThemeColorProvider>
           {children}
           <Toaster position='bottom-right' />
+          <CookieConsent />
           </ThemeColorProvider>
         </ThemeProvider>
-        <Analytics />
-        <SpeedInsights />
+        <AnalyticsProvider />
       </body>
     </html>
   );

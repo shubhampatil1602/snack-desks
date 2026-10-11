@@ -35,6 +35,19 @@ export async function UsersTableFetcher({ organizationId }: { organizationId: st
 
   if (!organization) return null;
 
+  const winCounts = await prisma.orderWindow.groupBy({
+    by: ["winnerUserId"],
+    where: {
+      organizationId,
+      winnerUserId: { not: null },
+    },
+    _count: { _all: true },
+  });
+
+  const winsByUserId = new Map(
+    winCounts.map((row) => [row.winnerUserId!, row._count._all]),
+  );
+
   return (
     <UsersTable
       organization={{
@@ -44,7 +57,10 @@ export async function UsersTableFetcher({ organizationId }: { organizationId: st
         createdAt: organization.createdAt,
         memberCount: organization.members.length,
       }}
-      members={organization.members}
+      members={organization.members.map((member) => ({
+        ...member,
+        orderWindowWins: winsByUserId.get(member.user.id) ?? 0,
+      }))}
     />
   );
 }

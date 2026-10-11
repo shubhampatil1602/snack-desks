@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { Suspense } from "react";
 import { OrderWindowContentFetcher } from "./_components/OrderWindowFetchers";
 import { OrderWindowContentSkeleton } from "./_components/OrderWindowSkeletons";
+
+export const metadata: Metadata = {
+  title: "Order Window Management",
+  description:
+    "Open new snack order windows, monitor live orders, and order on behalf of users.",
+};
 
 export default async function AdminOrderWindowPage() {
   const { session } = await requireAdmin();

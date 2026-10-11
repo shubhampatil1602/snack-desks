@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { Suspense } from "react";
 import { MenuContentFetcher } from "./_components/MenuFetchers";
 import { MenuTableSkeleton } from "./_components/MenuSkeletons";
+
+export const metadata: Metadata = {
+  title: "Menu Management",
+  description:
+    "Manage snack items, shops, categories, and item availability.",
+};
 
 export default async function MenusPage() {
   const { session } = await requireAdmin();

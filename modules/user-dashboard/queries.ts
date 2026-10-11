@@ -6,6 +6,11 @@ import {
 } from "@/lib/date-utils";
 import { getHeatmapData } from "@/lib/get-heatmap-data";
 import { getEmployeeRankings } from "@/modules/rankings/queries";
+import { format, subYears } from "date-fns";
+import type {
+  RevenueTimeSeriesPoint,
+  CategoryRevenueSlice,
+} from "@/modules/admin-dashboard/queries";
 
 function getDateFilter(period: string) {
   const { startDate, endDate } = parsePeriod(period);
@@ -272,4 +277,91 @@ export async function getUserSplitMasterWins(
       winnerUserId: userId,
     },
   });
+}
+
+function getPeriodRange(period: string) {
+  if (period === "all") {
+    const rangeEnd = new Date();
+    return { rangeStart: subYears(rangeEnd, 1), rangeEnd };
+  }
+  const { startDate, endDate } = parsePeriod(period);
+  return { rangeStart: startDate!, rangeEnd: endDate! };
+}
+
+export async function getUserSpendingTimeSeries(
+  organizationId: string,
+  userId: string,
+  period: string,
+): Promise<RevenueTimeSeriesPoint[]> {
+  const { rangeStart, rangeEnd } = getPeriodRange(period);
+  const trunc = period.length === 7 ? "day" : "month";
+
+  const rows = await prisma.$queryRaw<
+    { bucket: Date; revenue: number; orders: bigint }[]
+  >`
+    SELECT
+      DATE_TRUNC(${trunc}, o."createdAt" AT TIME ZONE 'Asia/Kolkata') AS bucket,
+      COALESCE(SUM(oi.quantity * m.price), 0)::float AS revenue,
+      COUNT(DISTINCT o.id)::bigint AS orders
+    FROM "order" o
+    INNER JOIN "order_item" oi ON o.id = oi."orderId"
+    INNER JOIN "menu_item" m ON oi."menuItemId" = m.id
+    WHERE o."organizationId" = ${organizationId}
+      AND o."userId" = ${userId}
+      AND o.status = 'approved'
+      AND oi."replacementApplied" = false
+      AND o."createdAt" >= ${rangeStart}
+      AND o."createdAt" <= ${rangeEnd}
+    GROUP BY 1
+    ORDER BY 1 ASC
+  `;
+
+  const labelFormat =
+    trunc === "day"
+      ? (d: Date) => format(d, "d MMM")
+      : (d: Date) => format(d, "MMM yyyy");
+
+  return rows.map((row) => ({
+    label: labelFormat(row.bucket),
+    revenue: Number(row.revenue),
+    orders: Number(row.orders),
+  }));
+}
+
+export async function getUserSpendingByCategory(
+  organizationId: string,
+  userId: string,
+  period: string,
+): Promise<CategoryRevenueSlice[]> {
+  const { rangeStart, rangeEnd } =
+    period === "all"
+      ? { rangeStart: new Date(0), rangeEnd: new Date() }
+      : getPeriodRange(period);
+
+  const rows = await prisma.$queryRaw<{ category: string; revenue: number }[]>`
+    SELECT
+      mc.name AS category,
+      COALESCE(SUM(oi.quantity * m.price), 0)::float AS revenue
+    FROM "order" o
+    INNER JOIN "order_item" oi ON o.id = oi."orderId"
+    INNER JOIN "menu_item" m ON oi."menuItemId" = m.id
+    INNER JOIN "menu_category" mc ON m."menuCategoryId" = mc.id
+    WHERE o."organizationId" = ${organizationId}
+      AND o."userId" = ${userId}
+      AND o.status = 'approved'
+      AND oi."replacementApplied" = false
+      AND o."createdAt" >= ${rangeStart}
+      AND o."createdAt" <= ${rangeEnd}
+    GROUP BY mc.name
+    ORDER BY revenue DESC
+  `;
+
+  const total = rows.reduce((sum, row) => sum + Number(row.revenue), 0);
+  if (total === 0) return [];
+
+  return rows.map((row) => ({
+    category: row.category,
+    revenue: Number(row.revenue),
+    share: Math.round((Number(row.revenue) / total) * 100),
+  }));
 }

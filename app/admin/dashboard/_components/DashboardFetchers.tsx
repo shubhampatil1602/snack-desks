@@ -1,10 +1,13 @@
-import { 
-  getDashboardActiveWindow, 
-  getDashboardStats, 
-  getTopSellingItems, 
-  getTopEmployeesData, 
-  getRecentWindows, 
-  getDashboardHeatmap 
+import {
+  getDashboardActiveWindow,
+  getDashboardStats,
+  getTopSellingItems,
+  getTopEmployeesData,
+  getRecentWindows,
+  getDashboardHeatmap,
+  getRevenueTimeSeries,
+  getRevenueByCategory,
+  getTopWindowWinners,
 } from "@/modules/admin-dashboard/queries";
 import { DashboardStats } from "./DashboardStats";
 import { ActiveWindowCard } from "./ActiveWindowCard";
@@ -12,6 +15,9 @@ import { TopSellingItemsCard } from "./TopSellingItemsCard";
 import { TopEmployeesCard } from "./TopEmployeesCard";
 import { RecentWindowsCard } from "./RecentWindowsCard";
 import { SnackHeatmap } from "@/components/SnackHeatMap";
+import { RevenueTrendChart } from "./RevenueTrendChart";
+import { CategoryRevenueChart } from "./CategoryRevenueChart";
+import { TopWindowWinnersCard } from "./TopWindowWinnersCard";
 
 export async function ActiveWindowFetcher({ organizationId }: { organizationId: string }) {
   const activeWindow = await getDashboardActiveWindow(organizationId);
@@ -49,4 +55,41 @@ export async function HeatmapFetcher({ organizationId, joinedAt }: { organizatio
       description='Total spending across the organization over time'
     />
   );
+}
+
+export async function RevenueTrendFetcher({
+  organizationId,
+  period,
+  periodLabel,
+}: {
+  organizationId: string;
+  period: string;
+  periodLabel: string;
+}) {
+  const data = await getRevenueTimeSeries(organizationId, period);
+  return <RevenueTrendChart data={data} periodLabel={periodLabel} />;
+}
+
+export async function CategoryRevenueFetcher({
+  organizationId,
+  period,
+  periodLabel,
+}: {
+  organizationId: string;
+  period: string;
+  periodLabel: string;
+}) {
+  const data = await getRevenueByCategory(organizationId, period);
+  return <CategoryRevenueChart data={data} periodLabel={periodLabel} />;
+}
+
+export async function TopWindowWinnersFetcher({
+  organizationId,
+  period,
+}: {
+  organizationId: string;
+  period: string;
+}) {
+  const winners = await getTopWindowWinners(organizationId, period);
+  return <TopWindowWinnersCard winners={winners} />;
 }

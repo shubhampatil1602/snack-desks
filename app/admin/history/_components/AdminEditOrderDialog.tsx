@@ -29,6 +29,18 @@ type Props = {
   userName: string;
   items: OrderItem[];
   menuItems: MenuItem[];
+  triggerVariant?:
+    | "default"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "destructive"
+    | "summary"
+    | "split"
+    | "delete"
+    | "winner"
+    | "lateOrder";
+  disabled?: boolean;
 };
 
 export function AdminEditOrderDialog({
@@ -36,6 +48,8 @@ export function AdminEditOrderDialog({
   userName,
   items,
   menuItems,
+  triggerVariant = "summary",
+  disabled = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -73,8 +87,8 @@ export function AdminEditOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button size='sm' variant='summary'>
+      <DialogTrigger asChild disabled={disabled}>
+        <Button size='sm' variant={triggerVariant} disabled={disabled}>
           Edit
         </Button>
       </DialogTrigger>

@@ -541,7 +541,11 @@ export function AdminWindowHistory({
                                         variant='outline'
                                         className='text-[10px] border-cyan-500 text-cyan-600 bg-cyan-50 dark:bg-cyan-950/20 rounded-full py-0 px-1.5'
                                       >
-                                        Late Order
+                                        {window.endsAt &&
+                                        new Date(order.createdAt) >
+                                          new Date(window.endsAt)
+                                          ? "Late Order"
+                                          : "On Behalf"}
                                       </Badge>
                                     )}
                                     {hasReplacements ? (

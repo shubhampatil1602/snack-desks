@@ -1,4 +1,5 @@
-import { getActiveWindow, getTodaysWindows } from "@/modules/order-window/queries";
+import { getTodaysWindows } from "@/modules/order-window/queries";
+import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { getShops } from "@/modules/menu/queries";
 import { getLiveOrders } from "@/modules/orders/admin-queries";
 import { ActiveWindowCard } from "./ActiveWindowCard";
@@ -9,12 +10,14 @@ import { LiveOrdersTable } from "./LiveOrdersTable";
 import { LiveOrdersSSE } from "./LiveOrdersSSE";
 
 export async function OrderWindowContentFetcher({ organizationId }: { organizationId: string }) {
-  const [activeWindow, todaysWindows, shops] = await Promise.all([
-    getActiveWindow(organizationId),
+  const [activeWindowData, todaysWindows, shops] = await Promise.all([
+    getActiveWindowWithMenu(organizationId),
     getTodaysWindows(organizationId),
     getShops(organizationId),
   ]);
 
+  const activeWindow = activeWindowData?.window ?? null;
+  const menuItems = activeWindowData?.menuItems ?? [];
   const liveOrders = activeWindow ? await getLiveOrders(activeWindow.id) : [];
   const serverNow = new Date().getTime();
 
@@ -22,7 +25,10 @@ export async function OrderWindowContentFetcher({ organizationId }: { organizati
     <>
       {activeWindow ? (
         <>
-          <ActiveWindowCard window={activeWindow} serverNow={serverNow} />
+          <ActiveWindowCard
+            window={activeWindow}
+            serverNow={serverNow}
+          />
           <Tabs defaultValue='active-orders'>
             <TabsList className='w-full mb-1'>
               <TabsTrigger value='active-orders'>Active Orders</TabsTrigger>
@@ -31,7 +37,12 @@ export async function OrderWindowContentFetcher({ organizationId }: { organizati
 
             <TabsContent value='active-orders'>
               <LiveOrdersSSE />
-              <LiveOrdersTable orders={liveOrders} />
+              <LiveOrdersTable
+                orders={liveOrders}
+                windowId={activeWindow.id}
+                windowLabel={activeWindow.label}
+                menuItems={menuItems}
+              />
             </TabsContent>
 
             <TabsContent value='recent-windows'>

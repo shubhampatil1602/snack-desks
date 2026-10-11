@@ -163,6 +163,139 @@ export async function getDashboardStats(organizationId: string, period: string) 
   };
 }
 
+export type RevenueTimeSeriesPoint = {
+  label: string;
+  revenue: number;
+  orders: number;
+};
+
+function getPeriodRange(period: string) {
+  if (period === "all") {
+    const rangeEnd = new Date();
+    return { rangeStart: subYears(rangeEnd, 1), rangeEnd };
+  }
+  const { startDate, endDate } = parsePeriod(period);
+  return { rangeStart: startDate!, rangeEnd: endDate! };
+}
+
+export async function getRevenueTimeSeries(
+  organizationId: string,
+  period: string,
+): Promise<RevenueTimeSeriesPoint[]> {
+  const { rangeStart, rangeEnd } = getPeriodRange(period);
+  const trunc = period.length === 7 ? "day" : "month";
+
+  const rows = await prisma.$queryRaw<
+    { bucket: Date; revenue: number; orders: bigint }[]
+  >`
+    SELECT
+      DATE_TRUNC(${trunc}, o."createdAt" AT TIME ZONE 'Asia/Kolkata') AS bucket,
+      COALESCE(SUM(oi.quantity * m.price), 0)::float AS revenue,
+      COUNT(DISTINCT o.id)::bigint AS orders
+    FROM "order" o
+    INNER JOIN "order_item" oi ON o.id = oi."orderId"
+    INNER JOIN "menu_item" m ON oi."menuItemId" = m.id
+    WHERE o."organizationId" = ${organizationId}
+      AND o.status = 'approved'
+      AND oi."replacementApplied" = false
+      AND o."createdAt" >= ${rangeStart}
+      AND o."createdAt" <= ${rangeEnd}
+    GROUP BY 1
+    ORDER BY 1 ASC
+  `;
+
+  const labelFormat =
+    trunc === "day"
+      ? (d: Date) => format(d, "d MMM")
+      : (d: Date) => format(d, "MMM yyyy");
+
+  return rows.map((row) => ({
+    label: labelFormat(row.bucket),
+    revenue: Number(row.revenue),
+    orders: Number(row.orders),
+  }));
+}
+
+export type CategoryRevenueSlice = {
+  category: string;
+  revenue: number;
+  share: number;
+};
+
+export async function getRevenueByCategory(
+  organizationId: string,
+  period: string,
+): Promise<CategoryRevenueSlice[]> {
+  const { rangeStart, rangeEnd } =
+    period === "all"
+      ? { rangeStart: new Date(0), rangeEnd: new Date() }
+      : getPeriodRange(period);
+
+  const rows = await prisma.$queryRaw<{ category: string; revenue: number }[]>`
+    SELECT
+      mc.name AS category,
+      COALESCE(SUM(oi.quantity * m.price), 0)::float AS revenue
+    FROM "order" o
+    INNER JOIN "order_item" oi ON o.id = oi."orderId"
+    INNER JOIN "menu_item" m ON oi."menuItemId" = m.id
+    INNER JOIN "menu_category" mc ON m."menuCategoryId" = mc.id
+    WHERE o."organizationId" = ${organizationId}
+      AND o.status = 'approved'
+      AND oi."replacementApplied" = false
+      AND o."createdAt" >= ${rangeStart}
+      AND o."createdAt" <= ${rangeEnd}
+    GROUP BY mc.name
+    ORDER BY revenue DESC
+  `;
+
+  const total = rows.reduce((sum, row) => sum + Number(row.revenue), 0);
+  if (total === 0) return [];
+
+  return rows.map((row) => ({
+    category: row.category,
+    revenue: Number(row.revenue),
+    share: Math.round((Number(row.revenue) / total) * 100),
+  }));
+}
+
+export async function getTopWindowWinners(
+  organizationId: string,
+  period: string,
+) {
+  const dateFilter = getDateFilter(period);
+
+  const grouped = await prisma.orderWindow.groupBy({
+    by: ["winnerUserId"],
+    where: {
+      organizationId,
+      winnerUserId: { not: null },
+      ...dateFilter,
+    },
+    _count: { _all: true },
+    orderBy: { _count: { winnerUserId: "desc" } },
+    take: 5,
+  });
+
+  const userIds = grouped
+    .map((row) => row.winnerUserId)
+    .filter((id): id is string => id !== null);
+
+  if (userIds.length === 0) return [];
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, name: true },
+  });
+  const nameById = new Map(users.map((user) => [user.id, user.name]));
+
+  return grouped.map((row, index) => ({
+    userId: row.winnerUserId!,
+    name: nameById.get(row.winnerUserId!) ?? "Unknown",
+    wins: row._count._all,
+    rank: index + 1,
+  }));
+}
+
 export async function getTopSellingItems(
   organizationId: string,
   period: string
@@ -220,7 +353,7 @@ export async function getRecentWindows(
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 5,
+    take: 4,
   });
 
   return recentWindows.map((window) => {

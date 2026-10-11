@@ -28,8 +28,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+import { AddOrderOnBehalfDialog } from "./AddOrderOnBehalfDialog";
+import type { MenuItem } from "@/types/menu";
+
 type LiveOrdersTableProps = {
   orders: LiveOrder[];
+  windowId?: string;
+  windowLabel?: string;
+  menuItems?: MenuItem[];
 };
 
 function getStatusVariant(status: string) {
@@ -45,11 +51,39 @@ function getStatusVariant(status: string) {
   }
 }
 
-export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
+export function LiveOrdersTable({
+  orders,
+  windowId,
+  windowLabel,
+  menuItems,
+}: LiveOrdersTableProps) {
   if (orders.length === 0) {
     return (
-      <div className='border p-6 text-sm text-muted-foreground'>
-        No orders yet
+      <div className='border'>
+        <div className='flex items-center justify-between p-4 flex-wrap gap-4'>
+          <div className='flex items-center gap-6'>
+            <div>
+              <p className='text-xs text-muted-foreground'>Orders</p>
+              <p className='text-xl font-semibold'>0</p>
+            </div>
+
+            <div>
+              <p className='text-xs text-muted-foreground'>Bill</p>
+              <p className='text-xl font-semibold'>{formatCurrency(0)}</p>
+            </div>
+          </div>
+
+          {windowId && menuItems && (
+            <AddOrderOnBehalfDialog
+              windowId={windowId}
+              windowLabel={windowLabel ?? "Active Window"}
+              menuItems={menuItems}
+            />
+          )}
+        </div>
+        <div className='border-t p-8 text-center text-sm text-muted-foreground'>
+          No orders yet
+        </div>
       </div>
     );
   }
@@ -61,16 +95,26 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
 
   return (
     <div className='border overflow-x-auto'>
-      <div className='flex items-center gap-6 p-4'>
-        <div>
-          <p className='text-xs text-muted-foreground'>Orders</p>
-          <p className='text-xl font-semibold'>{activeOrders.length}</p>
+      <div className='flex items-center justify-between p-4 flex-wrap gap-4'>
+        <div className='flex items-center gap-6'>
+          <div>
+            <p className='text-xs text-muted-foreground'>Orders</p>
+            <p className='text-xl font-semibold'>{activeOrders.length}</p>
+          </div>
+
+          <div>
+            <p className='text-xs text-muted-foreground'>Bill</p>
+            <p className='text-xl font-semibold'>{formatCurrency(bill)}</p>
+          </div>
         </div>
 
-        <div>
-          <p className='text-xs text-muted-foreground'>Bill</p>
-          <p className='text-xl font-semibold'>{formatCurrency(bill)}</p>
-        </div>
+        {windowId && menuItems && (
+          <AddOrderOnBehalfDialog
+            windowId={windowId}
+            windowLabel={windowLabel ?? "Active Window"}
+            menuItems={menuItems}
+          />
+        )}
       </div>
       <Table>
         <TableHeader className='bg-muted border-t'>
@@ -94,7 +138,7 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
                       variant='outline'
                       className='text-[10px] border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-950/20 rounded-full py-0 px-1.5'
                     >
-                      Late Order
+                      On Behalf
                     </Badge>
                   )}
                 </div>
@@ -166,7 +210,15 @@ export function LiveOrdersTable({ orders }: LiveOrdersTableProps) {
               </TableCell>
 
               <TableCell>
-                <OrderActions orderId={order.id} status={order.status} />
+                <OrderActions
+                  orderId={order.id}
+                  status={order.status}
+                  userName={order.user.name}
+                  items={order.items.filter(
+                    (item) => !item.replacementApplied,
+                  )}
+                  menuItems={menuItems}
+                />
               </TableCell>
             </TableRow>
           ))}

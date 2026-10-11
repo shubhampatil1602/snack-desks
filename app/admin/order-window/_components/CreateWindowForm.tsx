@@ -22,6 +22,7 @@ import type { Shop } from "@/lib/generated/prisma/client";
 const schema = z.object({
   label: z
     .string()
+    .trim()
     .min(1, "Label is required")
     .max(25, "Backxhodi mat kar bhai..."),
   hasDuration: z.boolean().default(false),
@@ -61,7 +62,7 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
 
   async function onSubmit(values: FormValues) {
     const result = await createWindowAction({
-      label: values.label,
+      label: values.label.trim(),
       duration: values.hasDuration ? values.duration : undefined,
       shopIds: values.shopIds,
     });

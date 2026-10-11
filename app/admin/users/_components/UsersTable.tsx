@@ -13,8 +13,12 @@ import {
 } from "@/components/ui/table";
 import { DeleteUserButton } from "@/components/admins/DeleteUserButton";
 import { OrganizationHeader } from "@/components/admins/OrganizationHeader";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import {
+  SortableTableHead,
+  useColumnSort,
+} from "@/components/ui/sortable-table-head";
 import { Input } from "@/components/ui/input";
 import { ResetTokenCountdown } from "@/components/admins/ResetTokenCountdown";
 import { GenerateResetTokenDialog } from "@/components/admins/GenerateResetTokenDialog";
@@ -33,6 +37,7 @@ type UsersTableProps = {
     id: string;
     createdAt: Date;
     canViewGlobalSplit: boolean;
+    orderWindowWins: number;
     user: {
       id: string;
       name: string;
@@ -41,8 +46,12 @@ type UsersTableProps = {
     };
   }[];
 };
+type UsersSortKey = "orderWindowWins";
+
 export function UsersTable({ organization, members }: UsersTableProps) {
   const [search, setSearch] = useState("");
+  const { sort, toggleSort } = useColumnSort<UsersSortKey>();
+
   const filteredMembers = members.filter((member) => {
     const query = search.toLowerCase();
 
@@ -51,8 +60,20 @@ export function UsersTable({ organization, members }: UsersTableProps) {
       member.user.email.toLowerCase().includes(query)
     );
   });
+
+  const sortedMembers = useMemo(() => {
+    if (!sort) return filteredMembers;
+
+    const copy = [...filteredMembers];
+    copy.sort((a, b) => {
+      const delta = a.orderWindowWins - b.orderWindowWins;
+      return sort.desc ? -delta : delta;
+    });
+    return copy;
+  }, [filteredMembers, sort]);
+
   const pagination = usePagination({
-    data: filteredMembers,
+    data: sortedMembers,
     itemsPerPage: 10,
   });
 
@@ -85,6 +106,12 @@ export function UsersTable({ organization, members }: UsersTableProps) {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Joined</TableHead>
+              <SortableTableHead
+                label="Order window wins"
+                sortKey="orderWindowWins"
+                sort={sort}
+                onSort={toggleSort}
+              />
               <TableHead>Show Summary</TableHead>
               <TableHead>Reset Token</TableHead>
               <TableHead>Actions</TableHead>
@@ -95,7 +122,7 @@ export function UsersTable({ organization, members }: UsersTableProps) {
             {pagination.paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={7}
                   className='text-center text-muted-foreground py-8'
                 >
                   No users found
@@ -118,6 +145,10 @@ export function UsersTable({ organization, members }: UsersTableProps) {
                       month: "short",
                       year: "numeric",
                     })}
+                  </TableCell>
+
+                  <TableCell className='tabular-nums'>
+                    {member.orderWindowWins}
                   </TableCell>
 
                   <TableCell>

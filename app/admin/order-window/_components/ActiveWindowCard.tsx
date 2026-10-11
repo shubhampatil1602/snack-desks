@@ -28,7 +28,10 @@ interface ActiveWindowCardProps {
   serverNow: number;
 }
 
-export function ActiveWindowCard({ window, serverNow }: ActiveWindowCardProps) {
+export function ActiveWindowCard({
+  window,
+  serverNow,
+}: ActiveWindowCardProps) {
   const router = useRouter();
   const [closing, setClosing] = useState(false);
   const [closed, setClosed] = useState(false);

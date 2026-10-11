@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { closeWindowInternal } from "./order-window";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const orderItemSchema = z.object({
   menuItemId: z.string().min(1),
@@ -34,6 +35,14 @@ export type ActionResult =
 export async function placeOrderAction(
   input: PlaceOrderInput,
 ): Promise<ActionResult> {
+  const rateLimit = await checkRateLimit("order:place", 15, 60_000);
+  if (!rateLimit.success) {
+    return {
+      success: false,
+      error: "Too many order requests. Please wait a moment before trying again.",
+    };
+  }
+
   const session = await authIsRequired();
 
   const parsed = placeOrderSchema.safeParse(input);
@@ -403,10 +412,10 @@ export async function updateAdminOrderAction(
     };
   }
 
-  if (order.status !== "approved") {
+  if (order.status === "cancelled") {
     return {
       success: false,
-      error: "Only approved orders can be edited",
+      error: "Cancelled orders cannot be edited",
     };
   }
 
@@ -472,6 +481,8 @@ export async function updateAdminOrderAction(
 
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
+  revalidatePath("/order-window");
+  revalidatePath("/dashboard");
 
   return {
     success: true,
@@ -726,6 +737,168 @@ export async function getEligibleUsersForLateOrderAction(windowId: string) {
     where: {
       organizationId: member.organizationId,
       role: "member", // exclude admins and owners
+      user: {
+        orders: {
+          none: {
+            windowId,
+            status: {
+              not: "cancelled",
+            },
+          },
+        },
+      },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      user: {
+        name: "asc",
+      },
+    },
+  });
+
+  return { success: true, users: members.map((m) => m.user) };
+}
+
+const createOrderOnBehalfSchema = z.object({
+  windowId: z.string().min(1),
+  userId: z.string().min(1),
+  items: z.array(orderItemSchema).min(1, "Add at least one item"),
+});
+
+export type CreateOrderOnBehalfInput = z.infer<typeof createOrderOnBehalfSchema>;
+
+export async function createOrderOnBehalfAction(
+  input: CreateOrderOnBehalfInput,
+): Promise<ActionResult> {
+  const { session } = await requireAdmin();
+
+  const parsed = createOrderOnBehalfSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.message };
+  }
+
+  const { windowId, userId, items } = parsed.data;
+
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  const window = await prisma.orderWindow.findUnique({
+    where: { id: windowId },
+  });
+
+  if (!window || window.status !== "active") {
+    return { success: false, error: "Order window is no longer active" };
+  }
+
+  if (window.organizationId !== member.organizationId) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  if (window.endsAt && window.endsAt < new Date()) {
+    await closeWindowInternal(windowId);
+    return { success: false, error: "Order window has expired" };
+  }
+
+  const targetMember = await prisma.member.findFirst({
+    where: { userId, organizationId: member.organizationId },
+    include: { user: true },
+  });
+
+  if (!targetMember) {
+    return { success: false, error: "User is not a member of your organization" };
+  }
+
+  const existingOrder = await prisma.order.findFirst({
+    where: {
+      windowId,
+      userId,
+      status: { not: "cancelled" },
+    },
+  });
+
+  if (existingOrder) {
+    return {
+      success: false,
+      error: `${targetMember.user.name} already has an order for this window.`,
+    };
+  }
+
+  let order;
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      const currentWindow = await tx.orderWindow.findUnique({
+        where: { id: windowId },
+      });
+
+      if (!currentWindow || currentWindow.status !== "active") {
+        throw new Error("Order window is no longer active");
+      }
+
+      const newOrder = await tx.order.create({
+        data: {
+          id: nanoid(),
+          organizationId: member.organizationId,
+          userId,
+          windowId,
+          status: "approved",
+          updatedAt: new Date(),
+          createdByAdmin: true,
+          createdByUserId: session.user.id,
+        },
+      });
+
+      await createOrderItems(tx, newOrder.id, items);
+
+      return newOrder;
+    });
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+
+  await notify({
+    type: "order_placed",
+    orgId: member.organizationId,
+    payload: {
+      orderId: order.id,
+      userId,
+      userName: `${targetMember.user.name} (by Admin)`,
+    },
+  });
+
+  revalidatePath("/admin/order-window");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/(user)/order-window");
+  revalidatePath("/(user)/dashboard");
+  return { success: true, orderId: order.id };
+}
+
+export async function getEligibleUsersForActiveWindowAction(windowId: string) {
+  const { session } = await requireAdmin();
+
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  const members = await prisma.member.findMany({
+    where: {
+      organizationId: member.organizationId,
       user: {
         orders: {
           none: {

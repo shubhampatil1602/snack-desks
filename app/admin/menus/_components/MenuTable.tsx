@@ -21,6 +21,10 @@ import { toggleMenuItemAvailabilityAction } from "@/actions/menu";
 import type { MenuCategory, MenuItem, ShopCategory } from "@/types/menu";
 import { cn } from "@/lib/utils";
 import { Search, X } from "lucide-react";
+import {
+  SortableTableHead,
+  useColumnSort,
+} from "@/components/ui/sortable-table-head";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,19 +35,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type MenuSortKey = "price" | "itemsSold";
+
 interface MenuTableProps {
   data: MenuItem[];
   categories: MenuCategory[];
   shops: ShopCategory[];
+  soldByMenuItemId: Record<string, number>;
 }
 
-export function MenuTable({ data, categories, shops }: MenuTableProps) {
+export function MenuTable({
+  data,
+  categories,
+  shops,
+  soldByMenuItemId,
+}: MenuTableProps) {
   const [search, setSearch] = useState("");
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [toggledItems, setToggledItems] = useState<Record<string, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedShop, setSelectedShop] = useState<string | null>(null);
   const [availability, setAvailability] = useState<string>("all");
+  const { sort, toggleSort } = useColumnSort<MenuSortKey>();
 
   const isFiltered =
     search !== "" ||
@@ -90,7 +103,22 @@ export function MenuTable({ data, categories, shops }: MenuTableProps) {
     );
   }, [itemsWithoutCategoryFilter, selectedCategory]);
 
-  const pagination = usePagination({ data: items, itemsPerPage: 10 });
+  const sortedItems = useMemo(() => {
+    if (!sort) return items;
+
+    const copy = [...items];
+    copy.sort((a, b) => {
+      const delta =
+        sort.key === "price"
+          ? Number(a.price) - Number(b.price)
+          : (soldByMenuItemId[a.id] ?? 0) - (soldByMenuItemId[b.id] ?? 0);
+
+      return sort.desc ? -delta : delta;
+    });
+    return copy;
+  }, [items, sort, soldByMenuItemId]);
+
+  const pagination = usePagination({ data: sortedItems, itemsPerPage: 10 });
 
   async function handleToggle(id: string, current: boolean) {
     // optimistic update
@@ -218,10 +246,21 @@ export function MenuTable({ data, categories, shops }: MenuTableProps) {
           <TableHeader className='bg-muted'>
             <TableRow>
               <TableHead>Item</TableHead>
-              <TableHead>Price</TableHead>
+              <SortableTableHead
+                label="Price"
+                sortKey="price"
+                sort={sort}
+                onSort={toggleSort}
+              />
               <TableHead>Unit</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Shop</TableHead>
+              <SortableTableHead
+                label="Items sold"
+                sortKey="itemsSold"
+                sort={sort}
+                onSort={toggleSort}
+              />
               <TableHead>Available</TableHead>
               <TableHead className='w-[100px]' />
             </TableRow>
@@ -230,7 +269,7 @@ export function MenuTable({ data, categories, shops }: MenuTableProps) {
             {pagination.paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={8}
                   className='text-center text-muted-foreground py-8'
                 >
                   No menu items found for{" "}
@@ -258,6 +297,10 @@ export function MenuTable({ data, categories, shops }: MenuTableProps) {
                     ) : (
                       <span className='text-xs text-muted-foreground'>—</span>
                     )}
+                  </TableCell>
+
+                  <TableCell className='tabular-nums'>
+                    {soldByMenuItemId[item.id] ?? 0}
                   </TableCell>
 
                   <TableCell>

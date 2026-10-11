@@ -65,33 +65,28 @@ export function DashboardStats({ stats, periodLabel }: DashboardStatsProps) {
   ];
 
   return (
-    <div className='grid gap-3 md:grid-cols-2 lg:grid-cols-3'>
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
       {statsConfig.map((stat, idx) => {
         return (
           <Card
             key={idx}
-            className='group relative overflow-hidden transition-all duration-300 hover:shadow-md py-3 px-3'
+            className="group relative overflow-hidden py-3 px-3 transition-all duration-300 hover:shadow-md"
           >
-            {/* Shimmer effect */}
-            <div className='absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out'>
+            <div className="absolute inset-0 -translate-x-full transition-transform duration-1000 ease-in-out group-hover:translate-x-full">
               <div
-                className={`absolute inset-0 bg-linear-to-r ${stat.color} opacity-20 w-full h-full blur-3xl`}
+                className={`absolute inset-0 bg-linear-to-r ${stat.color} h-full w-full opacity-20 blur-3xl`}
               />
             </div>
 
-            <div className='p-2.5'>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <p className='text-sm text-muted-foreground'>{stat.title}</p>
-                  <div className='flex items-center gap-1.5 mt-0.5'>
-                    <p className='text-2xl font-bold tracking-tight'>
-                      {stat.value}
-                    </p>
-                    {stat.breakdown && Object.keys(stat.breakdown).length > 0 && (
-                      <ShopBreakdownInfo breakdown={stat.breakdown} />
-                    )}
-                  </div>
-                </div>
+            <div className="p-2.5">
+              <p className="text-sm text-muted-foreground">{stat.title}</p>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <p className="text-2xl font-bold tracking-tight">
+                  {stat.value}
+                </p>
+                {stat.breakdown && Object.keys(stat.breakdown).length > 0 && (
+                  <ShopBreakdownInfo breakdown={stat.breakdown} />
+                )}
               </div>
             </div>
           </Card>

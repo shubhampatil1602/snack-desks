@@ -27,3 +27,18 @@ export async function getShops(organizationId: string) {
     orderBy: { createdAt: "asc" },
   });
 }
+
+export async function getMenuItemsSoldCounts(organizationId: string) {
+  const grouped = await prisma.orderItem.groupBy({
+    by: ["menuItemId"],
+    where: {
+      replacementApplied: false,
+      order: { organizationId, status: "approved" },
+    },
+    _sum: { quantity: true },
+  });
+
+  return new Map(
+    grouped.map((row) => [row.menuItemId, row._sum.quantity ?? 0]),
+  );
+}

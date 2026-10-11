@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { authSession } from "@/actions/user";
 import { GradientPatternEffect } from "@/components/gradient-pattern-effect";
+
+export const metadata: Metadata = {
+  title: "SnackDesk - Office Snack Ordering Platform",
+  description:
+    "The modern snack ordering and team engagement platform. Live order windows, gamified treats, group order coordination, and spending insights.",
+};
 import { BenefitsSection } from "@/components/landing/BenefitsSection";
 import { CTASection } from "@/components/landing/CTASection";
 import { DashboardPreview } from "@/components/landing/DashboardPreview";
