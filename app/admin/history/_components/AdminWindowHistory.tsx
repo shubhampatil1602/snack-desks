@@ -97,7 +97,7 @@ export type ParticipantOrder = {
   rawItems?: AdminWindowHistoryType[number]["orders"][number]["items"];
   isCoSplitOnly?: boolean;
   hasSplit?: boolean;
-  splitInitiatorName?: string;
+  splitInitiatorNames?: string[];
 };
 
 function buildWindowParticipantOrders(
@@ -256,6 +256,15 @@ function buildWindowParticipantOrders(
         const existing = userOrderMap.get(splitUserId)!;
         existing.items.push(...splitItems);
         existing.hasSplit = true;
+        if (
+          order.user.name &&
+          !existing.splitInitiatorNames?.includes(order.user.name)
+        ) {
+          existing.splitInitiatorNames = [
+            ...(existing.splitInitiatorNames || []),
+            order.user.name,
+          ];
+        }
       } else {
         userOrderMap.set(splitUserId, {
           ...order,
@@ -269,7 +278,7 @@ function buildWindowParticipantOrders(
           rawItems: undefined,
           isCoSplitOnly: true,
           hasSplit: true,
-          splitInitiatorName: order.user.name,
+          splitInitiatorNames: order.user.name ? [order.user.name] : [],
         });
       }
     }
@@ -859,7 +868,10 @@ export function AdminWindowHistory({
                                       )}
                                     {order.isCoSplitOnly && (
                                       <span className='text-xs text-muted-foreground'>
-                                        Split with {order.splitInitiatorName}
+                                        Split with{" "}
+                                        {order.splitInitiatorNames?.join(
+                                          ", ",
+                                        ) || "others"}
                                       </span>
                                     )}
                                   </div>

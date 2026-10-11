@@ -42,8 +42,14 @@ type ParticipantLiveOrder = LiveOrder & {
   rawItems?: LiveOrder["items"];
   isCoSplitOnly?: boolean;
   hasSplit?: boolean;
-  splitInitiatorName?: string;
+  splitInitiatorNames?: string[];
 };
+
+function getItemShareCost(item: LiveOrder["items"][number]): number {
+  const participantCount =
+    item.splits && item.splits.length > 0 ? item.splits.length + 1 : 1;
+  return (Number(item.menuItem.price) * item.quantity) / participantCount;
+}
 
 function processLiveOrders(rawOrders: LiveOrder[]): ParticipantLiveOrder[] {
   const userOrderMap = new Map<string, ParticipantLiveOrder>();
@@ -69,28 +75,15 @@ function processLiveOrders(rawOrders: LiveOrder[]): ParticipantLiveOrder[] {
       if (splits.length > 0) {
         orderHasSplit = true;
         const participantCount = splits.length + 1;
-        const perPersonPrice = (
-          Number(item.menuItem.price) / participantCount
-        ).toFixed(2);
 
-        // 1. Owner's item
-        ownerItems.push({
-          ...item,
-          menuItem: {
-            ...item.menuItem,
-            price: perPersonPrice,
-          },
-        });
+        // 1. Owner's item - keep original menu item price
+        ownerItems.push(item);
 
-        // 2. Co-splitters' items
+        // 2. Co-splitters' items - keep original menu item price
         for (const split of splits) {
           const coSplitItem: LiveOrder["items"][number] = {
             ...item,
             id: `${item.id}-split-${split.userId}`,
-            menuItem: {
-              ...item.menuItem,
-              price: perPersonPrice,
-            },
             splits: [
               {
                 id: `owner-${order.userId}`,
@@ -126,7 +119,7 @@ function processLiveOrders(rawOrders: LiveOrder[]): ParticipantLiveOrder[] {
 
     const ownerTotal = ownerItems
       .filter((i) => !i.replacementApplied)
-      .reduce((sum, i) => sum + Number(i.menuItem.price) * i.quantity, 0);
+      .reduce((sum, i) => sum + getItemShareCost(i), 0);
 
     if (!userOrderMap.has(order.userId)) {
       userOrderMap.set(order.userId, {
@@ -158,13 +151,22 @@ function processLiveOrders(rawOrders: LiveOrder[]): ParticipantLiveOrder[] {
 
       const splitUserTotal = splitItems
         .filter((i) => !i.replacementApplied)
-        .reduce((sum, i) => sum + Number(i.menuItem.price) * i.quantity, 0);
+        .reduce((sum, i) => sum + getItemShareCost(i), 0);
 
       if (userOrderMap.has(splitUserId)) {
         const existing = userOrderMap.get(splitUserId)!;
         existing.items.push(...splitItems);
         existing.total += splitUserTotal;
         existing.hasSplit = true;
+        if (
+          order.user.name &&
+          !existing.splitInitiatorNames?.includes(order.user.name)
+        ) {
+          existing.splitInitiatorNames = [
+            ...(existing.splitInitiatorNames || []),
+            order.user.name,
+          ];
+        }
       } else {
         userOrderMap.set(splitUserId, {
           ...order,
@@ -181,7 +183,7 @@ function processLiveOrders(rawOrders: LiveOrder[]): ParticipantLiveOrder[] {
           rawItems: undefined,
           isCoSplitOnly: true,
           hasSplit: true,
-          splitInitiatorName: order.user.name,
+          splitInitiatorNames: order.user.name ? [order.user.name] : [],
           createdByAdmin: false,
         });
       }
@@ -404,7 +406,8 @@ export function LiveOrdersTable({
                   />
                 ) : (
                   <span className='text-xs text-muted-foreground'>
-                    Split with {order.splitInitiatorName}
+                    Split with{" "}
+                    {order.splitInitiatorNames?.join(", ") || "others"}
                   </span>
                 )}
               </TableCell>
