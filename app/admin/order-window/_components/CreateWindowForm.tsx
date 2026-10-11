@@ -46,7 +46,7 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
       label: "",
       hasDuration: false,
       duration: 15,
-      shopIds: shops.map((s) => s.id),
+      shopIds: [],
     },
   });
 
