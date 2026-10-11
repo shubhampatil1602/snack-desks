@@ -12,6 +12,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 const orderItemSchema = z.object({
   menuItemId: z.string().min(1),
   quantity: z.number().min(1),
+  splitUserIds: z.array(z.string()).optional(),
   replacements: z
     .array(
       z.object({
@@ -382,6 +383,7 @@ export async function updateAdminOrderAction(
   items: {
     menuItemId: string;
     quantity: number;
+    splitUserIds?: string[];
   }[],
 ): Promise<ActionResult> {
   const { session } = await requireAdmin();
@@ -450,16 +452,7 @@ export async function updateAdminOrderAction(
       },
     });
 
-    for (const item of items) {
-      await tx.orderItem.create({
-        data: {
-          id: nanoid(),
-          orderId,
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-        },
-      });
-    }
+    await createOrderItems(tx, orderId, items);
 
     await tx.order.update({
       where: {
@@ -480,6 +473,7 @@ export async function updateAdminOrderAction(
   });
 
   revalidatePath("/admin/order-window");
+  revalidatePath("/admin/history");
   revalidatePath("/admin/dashboard");
   revalidatePath("/order-window");
   revalidatePath("/dashboard");
@@ -630,6 +624,7 @@ export async function getActiveMenuItemsAction() {
       unit: item.unit,
       menuCategoryName: item.menuCategory.name,
       shopName: item.shop?.name || null,
+      isGroupOrderEnabled: item.shop?.isGroupOrderEnabled ?? false,
     })),
   };
 }
@@ -929,6 +924,132 @@ export async function getEligibleUsersForActiveWindowAction(windowId: string) {
   return { success: true, users: members.map((m) => m.user) };
 }
 
+export async function getOrganizationMembersForSplitAction(
+  excludeUserId?: string,
+) {
+  const session = await authIsRequired();
+
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  const excludedUserIds = [session.user.id];
+  if (excludeUserId && !excludedUserIds.includes(excludeUserId)) {
+    excludedUserIds.push(excludeUserId);
+  }
+
+  const members = await prisma.member.findMany({
+    where: {
+      organizationId: member.organizationId,
+      userId: { notIn: excludedUserIds },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      user: {
+        name: "asc",
+      },
+    },
+  });
+
+  return { success: true, users: members.map((m) => m.user) };
+}
+
+export async function getUserActiveSharedSplitsAction() {
+  const session = await authIsRequired();
+
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Member not found" };
+  }
+
+  const activeWindow = await prisma.orderWindow.findFirst({
+    where: {
+      organizationId: member.organizationId,
+      status: "active",
+    },
+  });
+
+  if (!activeWindow) {
+    return { success: true, splits: [] };
+  }
+
+  const splits = await prisma.orderItemSplit.findMany({
+    where: {
+      userId: session.user.id,
+      orderItem: {
+        order: {
+          windowId: activeWindow.id,
+          status: { not: "cancelled" },
+        },
+      },
+    },
+    include: {
+      orderItem: {
+        include: {
+          menuItem: true,
+          order: {
+            include: {
+              user: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
+          splits: {
+            include: {
+              user: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    success: true,
+    splits: splits.map((split) => {
+      const item = split.orderItem;
+      const participantCount = item.splits.length + 1;
+      const itemTotal = Number(item.menuItem.price) * item.quantity;
+      const userShare = itemTotal / participantCount;
+
+      return {
+        id: split.id,
+        orderId: item.order.id,
+        orderStatus: item.order.status,
+        initiatorName: item.order.user.name,
+        menuItemId: item.menuItemId,
+        name: item.menuItem.name,
+        unitPrice: item.menuItem.price.toString(),
+        quantity: item.quantity,
+        participantCount,
+        splitFraction: `1/${participantCount}`,
+        userShare,
+        coSplitterNames: item.splits
+          .filter((s) => s.userId !== session.user.id)
+          .map((s) => s.user.name),
+      };
+    }),
+  };
+}
+
 // Helper to DRY order item creation
 async function createOrderItems(
   tx: any,
@@ -936,6 +1057,7 @@ async function createOrderItems(
   items: {
     menuItemId: string;
     quantity: number;
+    splitUserIds?: string[];
     replacements?: { menuItemId: string; quantity: number }[];
   }[],
 ) {
@@ -949,6 +1071,26 @@ async function createOrderItems(
         quantity: item.quantity,
       },
     });
+
+    if (item.splitUserIds && item.splitUserIds.length > 0) {
+      const uniqueSplitUserIds = Array.from(
+        new Set(item.splitUserIds.filter(Boolean)),
+      );
+      if (uniqueSplitUserIds.length > 0) {
+        const totalParticipants = uniqueSplitUserIds.length + 1;
+        const shareRatio = 1 / totalParticipants;
+
+        await tx.orderItemSplit.createMany({
+          data: uniqueSplitUserIds.map((userId) => ({
+            id: nanoid(),
+            orderItemId,
+            userId,
+            shareRatio,
+            status: "accepted",
+          })),
+        });
+      }
+    }
 
     if (item.replacements && item.replacements.length > 0) {
       await tx.orderItemReplacement.createMany({

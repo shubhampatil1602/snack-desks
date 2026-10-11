@@ -9,7 +9,22 @@ export async function getLiveOrders(windowId: string) {
       user: true,
       items: {
         include: {
-          menuItem: true,
+          menuItem: {
+            include: {
+              shop: true,
+            },
+          },
+          splits: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
           replacementPreferences: {
             include: {
               menuItem: true,

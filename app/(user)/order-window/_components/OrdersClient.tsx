@@ -23,6 +23,7 @@ import type {
 import { toast } from "sonner";
 import { ORDER_STATUS } from "@/lib/constants";
 import { useSSEEvent } from "@/providers/sse-provider";
+import { getUserActiveSharedSplitsAction } from "@/actions/orders";
 import { X } from "lucide-react";
 
 type OrdersClientProps = {
@@ -61,6 +62,15 @@ export function OrdersClient({
   const setWindowId = useCartStore((state) => state.setWindowId);
   const hasPlacedOrder = useCartStore((state) => state.hasPlacedOrder);
   const currentWindowId = useCartStore((state) => state.windowId);
+  const setSharedItems = useCartStore((state) => state.setSharedItems);
+
+  useEffect(() => {
+    getUserActiveSharedSplitsAction().then((result) => {
+      if (result.success && result.splits) {
+        setSharedItems(result.splits);
+      }
+    });
+  }, [setSharedItems]);
 
   // Get unique shops from menu items (excluding null/undefined)
   const shops = useMemo(() => {
@@ -113,13 +123,20 @@ export function OrdersClient({
     loadExistingOrder({
       orderId: existingOrder.id,
       status: existingOrder.status,
-      items: existingOrder.items.map((item) => ({
+      items: existingOrder.items.map((item: any) => ({
         menuItemId: item.menuItem.id,
         name: item.menuItem.name,
         price: item.menuItem.price.toString(),
         quantity: item.quantity,
+        isGroupOrderEnabled: item.menuItem.shop?.isGroupOrderEnabled ?? false,
+        splitUsers:
+          item.splits?.map((s: any) => ({
+            id: s.user.id,
+            name: s.user.name,
+            email: s.user.email,
+          })) || [],
         replacements:
-          item.replacementPreferences?.map((rep) => ({
+          item.replacementPreferences?.map((rep: any) => ({
             menuItemId: rep.menuItemId,
             name: rep.menuItem.name,
             price: rep.menuItem.price.toString(),

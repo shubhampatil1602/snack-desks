@@ -15,13 +15,27 @@ type OrderItem = {
   menuItem: {
     name: string;
     price: string;
+    shop?: {
+      isGroupOrderEnabled?: boolean;
+      [key: string]: any;
+    } | null;
   };
+  splits?: {
+    userId: string;
+    user: {
+      id?: string;
+      name: string;
+      email?: string;
+      [key: string]: any;
+    };
+  }[];
 };
 
 type OrderActionsProps = {
   orderId: string;
   status: string;
   userName?: string;
+  userId?: string;
   items?: OrderItem[];
   menuItems?: MenuItem[];
 };
@@ -30,6 +44,7 @@ export function OrderActions({
   orderId,
   status,
   userName,
+  userId,
   items,
   menuItems,
 }: OrderActionsProps) {
@@ -55,6 +70,7 @@ export function OrderActions({
     <AdminEditOrderDialog
       orderId={orderId}
       userName={userName}
+      userId={userId}
       items={items}
       menuItems={menuItems}
       triggerVariant='outline'

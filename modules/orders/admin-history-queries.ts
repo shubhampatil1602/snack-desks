@@ -61,6 +61,16 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
                   shop: true,
                 },
               },
+              splits: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
               replacementPreferences: {
                 include: {
                   menuItem: {

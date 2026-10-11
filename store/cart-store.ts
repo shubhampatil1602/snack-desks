@@ -8,23 +8,47 @@ export type CartReplacementItem = {
   quantity: number;
 };
 
+export type CartSplitUser = {
+  id: string;
+  name: string;
+  email?: string;
+};
+
+export type CartSharedItem = {
+  id: string;
+  orderId: string;
+  orderStatus: string;
+  initiatorName: string;
+  menuItemId: string;
+  name: string;
+  unitPrice: string;
+  quantity: number;
+  participantCount: number;
+  splitFraction: string;
+  userShare: number;
+  coSplitterNames: string[];
+};
+
 export type CartItem = {
   menuItemId: string;
   name: string;
   price: string;
   quantity: number;
+  isGroupOrderEnabled?: boolean;
   replacements?: CartReplacementItem[];
+  splitUsers?: CartSplitUser[];
 };
 
 type CartStore = {
   items: CartItem[];
+  sharedItems: CartSharedItem[];
   orderId: string | null;
   hasPlacedOrder: boolean;
   windowId: string | null;
   savedItems: CartItem[];
   orderStatus: string | null;
 
-  addItem: (item: Omit<CartItem, "quantity" | "replacements">) => void;
+  addItem: (item: Omit<CartItem, "quantity" | "replacements" | "splitUsers">) => void;
   removeItem: (menuItemId: string) => void;
 
   increment: (menuItemId: string) => void;
@@ -34,6 +58,9 @@ type CartStore = {
   addReplacementItem: (originalMenuItemId: string, replacement: CartReplacementItem) => void;
   removeReplacementItem: (originalMenuItemId: string, replacementMenuItemId: string) => void;
   updateReplacementItemQuantity: (originalMenuItemId: string, replacementMenuItemId: string, quantity: number) => void;
+
+  setSplitUsers: (menuItemId: string, splitUsers: CartSplitUser[]) => void;
+  setSharedItems: (sharedItems: CartSharedItem[]) => void;
 
   clearCart: () => void;
 
@@ -50,6 +77,7 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set) => ({
       items: [],
+      sharedItems: [],
       orderId: null,
       hasPlacedOrder: false,
       windowId: null,
@@ -193,9 +221,24 @@ export const useCartStore = create<CartStore>()(
           }),
         })),
 
+      setSplitUsers: (menuItemId, splitUsers) =>
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.menuItemId === menuItemId
+              ? { ...item, splitUsers }
+              : item,
+          ),
+        })),
+
+      setSharedItems: (sharedItems) =>
+        set({
+          sharedItems,
+        }),
+
       clearCart: () =>
         set({
           items: [],
+          sharedItems: [],
           orderId: null,
           orderStatus: null,
           hasPlacedOrder: false,
@@ -225,6 +268,7 @@ export const useCartStore = create<CartStore>()(
       name: "snackdesk-cart",
       partialize: (state) => ({
         items: state.items,
+        sharedItems: state.sharedItems,
         orderId: state.orderId,
         orderStatus: state.orderStatus,
         hasPlacedOrder: state.hasPlacedOrder,
@@ -235,15 +279,27 @@ export const useCartStore = create<CartStore>()(
 );
 
 export const useCartCount = () =>
-  useCartStore((state) =>
-    state.items.reduce((total, item) => total + item.quantity, 0),
+  useCartStore(
+    (state) =>
+      state.items.reduce((total, item) => total + item.quantity, 0) +
+      (state.sharedItems || []).length,
   );
 
 export function useCartSubtotal() {
-  return useCartStore((state) =>
-    state.items.reduce(
-      (total, item) => total + Number(item.price) * item.quantity,
+  return useCartStore((state) => {
+    const personalTotal = state.items.reduce((total, item) => {
+      const itemTotal = Number(item.price) * item.quantity;
+      if (item.splitUsers && item.splitUsers.length > 0) {
+        return total + itemTotal / (item.splitUsers.length + 1);
+      }
+      return total + itemTotal;
+    }, 0);
+
+    const sharedTotal = (state.sharedItems || []).reduce(
+      (total, item) => total + item.userShare,
       0,
-    ),
-  );
+    );
+
+    return personalTotal + sharedTotal;
+  });
 }

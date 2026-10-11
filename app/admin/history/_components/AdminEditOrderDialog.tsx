@@ -21,12 +21,26 @@ type OrderItem = {
   menuItem: {
     name: string;
     price: string;
+    shop?: {
+      isGroupOrderEnabled?: boolean;
+      [key: string]: any;
+    } | null;
   };
+  splits?: {
+    userId: string;
+    user: {
+      id?: string;
+      name: string;
+      email?: string;
+      [key: string]: any;
+    };
+  }[];
 };
 
 type Props = {
   orderId: string;
   userName: string;
+  userId?: string;
   items: OrderItem[];
   menuItems: MenuItem[];
   triggerVariant?:
@@ -46,6 +60,7 @@ type Props = {
 export function AdminEditOrderDialog({
   orderId,
   userName,
+  userId,
   items,
   menuItems,
   triggerVariant = "summary",
@@ -55,14 +70,31 @@ export function AdminEditOrderDialog({
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  const initialItems = items.map((item) => ({
-    menuItemId: item.menuItemId,
-    quantity: item.quantity,
-    name: item.menuItem.name,
-    price: item.menuItem.price,
-  }));
+  const initialItems = items.map((item) => {
+    const matchedMenu = menuItems.find((m) => m.id === item.menuItemId);
+    const isGroupOrderEnabled =
+      Boolean((item.menuItem as any)?.shop?.isGroupOrderEnabled) ||
+      Boolean((matchedMenu?.shop as any)?.isGroupOrderEnabled) ||
+      Boolean(item.splits && item.splits.length > 0);
 
-  function handleSave(updatedItems: { menuItemId: string; quantity: number }[]) {
+    return {
+      menuItemId: item.menuItemId,
+      quantity: item.quantity,
+      name: item.menuItem.name,
+      price: item.menuItem.price,
+      isGroupOrderEnabled,
+      splitUserIds: item.splits?.map((s) => s.userId) ?? [],
+      splitUserNames: item.splits?.map((s) => s.user.name) ?? [],
+    };
+  });
+
+  function handleSave(
+    updatedItems: {
+      menuItemId: string;
+      quantity: number;
+      splitUserIds?: string[];
+    }[],
+  ) {
     startTransition(async () => {
       const result = await updateAdminOrderAction(orderId, updatedItems);
 
@@ -106,6 +138,7 @@ export function AdminEditOrderDialog({
             onCancel={() => setOpen(false)}
             isPending={pending}
             saveLabel="Save Changes"
+            currentUserId={userId}
           />
         )}
       </DialogContent>

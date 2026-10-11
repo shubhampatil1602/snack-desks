@@ -25,6 +25,7 @@ type MenuItem = {
   shop?: {
     id: string;
     name: string;
+    isGroupOrderEnabled?: boolean;
   } | null;
   imageUrl?: string | null;
 };
@@ -75,7 +76,12 @@ export function MenuGrid({ items }: MenuGridProps) {
               {/* Text Content Layer */}
               <div className='absolute inset-0 p-3 flex flex-col pointer-events-none z-10'>
                 {/* Badges at Top */}
-                <div className='flex justify-end items-start'>
+                <div className='flex justify-end items-start gap-1'>
+                  {item.shop?.isGroupOrderEnabled && (
+                    <span className='text-[10px] uppercase tracking-wider bg-emerald-600 text-white font-bold px-1.5 py-0.5 shadow-sm'>
+                      Group Split
+                    </span>
+                  )}
                   {item.shop && (
                     <span className='text-[10px] uppercase tracking-wider bg-accent text-primary font-bold px-2 py-1 shadow-sm border'>
                       {item.shop.name}
@@ -145,6 +151,8 @@ export function MenuGrid({ items }: MenuGridProps) {
                         menuItemId: item.id,
                         name: item.name,
                         price: item.price,
+                        isGroupOrderEnabled:
+                          item.shop?.isGroupOrderEnabled ?? false,
                       })
                     }
                   >

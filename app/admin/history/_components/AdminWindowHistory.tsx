@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, useMemo } from "react";
 import { formatCurrency, truncateText } from "@/lib/utils";
 import {
   ChevronDown,
@@ -8,7 +8,6 @@ import {
   Dot,
   Search,
   CalendarDays,
-  Info,
 } from "lucide-react";
 
 import {
@@ -52,7 +51,234 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { markAsPaidAction } from "@/actions/spin-wheel";
 import { AddLateOrderDialog } from "./AddLateOrderDialog";
-import { TruncatedLabel } from "@/components/truncated-label";
+
+export type ParticipantOrder = {
+  id: string;
+  userId: string;
+  status: string;
+  createdAt: Date;
+  createdByAdmin: boolean;
+  user: {
+    id: string;
+    name: string;
+  };
+  items: {
+    id: string;
+    quantity: number;
+    menuItemId: string;
+    replacementApplied: boolean;
+    originalOrderItemId: string | null;
+    splitFraction?: string;
+    menuItem: {
+      name: string;
+      price: string;
+      shop: {
+        name: string;
+      } | null;
+    };
+    splits: {
+      id?: string;
+      userId: string;
+      shareRatio?: number;
+      user: {
+        id?: string;
+        name: string;
+      };
+    }[];
+    replacementPreferences: {
+      id: string;
+      quantity: number;
+      menuItem: {
+        name: string;
+        price: string;
+      };
+    }[];
+  }[];
+  rawItems?: AdminWindowHistoryType[number]["orders"][number]["items"];
+  isCoSplitOnly?: boolean;
+  hasSplit?: boolean;
+  splitInitiatorName?: string;
+};
+
+function buildWindowParticipantOrders(
+  rawOrders: AdminWindowHistoryType[number]["orders"],
+): ParticipantOrder[] {
+  const userOrderMap = new Map<string, ParticipantOrder>();
+  const otherOrders: ParticipantOrder[] = [];
+
+  for (const order of rawOrders) {
+    if (order.status !== "approved") {
+      otherOrders.push({
+        ...order,
+        rawItems: order.items,
+        isCoSplitOnly: false,
+      });
+      continue;
+    }
+
+    const ownerItems: ParticipantOrder["items"] = [];
+    const coSplitItemsMap = new Map<string, ParticipantOrder["items"]>();
+    let orderHasSplit = false;
+
+    for (const item of order.items) {
+      const splits = item.splits || [];
+      if (splits.length > 0) {
+        orderHasSplit = true;
+        const participantCount = splits.length + 1;
+        const perPersonPrice = (
+          Number(item.menuItem.price) / participantCount
+        ).toFixed(2);
+        const splitFraction = `1/${participantCount}`;
+
+        // 1. Owner's item
+        ownerItems.push({
+          ...item,
+          splitFraction,
+          menuItem: {
+            ...item.menuItem,
+            price: perPersonPrice,
+          },
+          splits: splits.map((s) => ({
+            id: s.id,
+            userId: s.userId,
+            shareRatio: s.shareRatio,
+            user: {
+              id: s.user.id,
+              name: s.user.name,
+            },
+          })),
+          replacementPreferences: (item.replacementPreferences || []).map(
+            (rep) => ({
+              ...rep,
+              menuItem: {
+                ...rep.menuItem,
+                price: rep.menuItem.price.toString(),
+              },
+            }),
+          ),
+        });
+
+        // 2. Co-splitters' items
+        for (const split of splits) {
+          const coSplitItem: ParticipantOrder["items"][number] = {
+            ...item,
+            id: `${item.id}-split-${split.userId}`,
+            splitFraction,
+            menuItem: {
+              ...item.menuItem,
+              price: perPersonPrice,
+            },
+            splits: [
+              {
+                id: `owner-${order.userId}`,
+                userId: order.userId,
+                user: {
+                  id: order.user.id,
+                  name: order.user.name,
+                },
+              },
+              ...splits
+                .filter((s) => s.userId !== split.userId)
+                .map((s) => ({
+                  id: s.id,
+                  userId: s.userId,
+                  shareRatio: s.shareRatio,
+                  user: {
+                    id: s.user.id,
+                    name: s.user.name,
+                  },
+                })),
+            ],
+            replacementPreferences: (item.replacementPreferences || []).map(
+              (rep) => ({
+                ...rep,
+                menuItem: {
+                  ...rep.menuItem,
+                  price: rep.menuItem.price.toString(),
+                },
+              }),
+            ),
+          };
+
+          if (!coSplitItemsMap.has(split.userId)) {
+            coSplitItemsMap.set(split.userId, []);
+          }
+          coSplitItemsMap.get(split.userId)!.push(coSplitItem);
+        }
+      } else {
+        ownerItems.push({
+          ...item,
+          splitFraction: undefined,
+          menuItem: {
+            ...item.menuItem,
+            price: item.menuItem.price.toString(),
+          },
+          splits: [],
+          replacementPreferences: (item.replacementPreferences || []).map(
+            (rep) => ({
+              ...rep,
+              menuItem: {
+                ...rep.menuItem,
+                price: rep.menuItem.price.toString(),
+              },
+            }),
+          ),
+        });
+      }
+    }
+
+    if (!userOrderMap.has(order.userId)) {
+      userOrderMap.set(order.userId, {
+        ...order,
+        rawItems: order.items,
+        items: ownerItems,
+        isCoSplitOnly: false,
+        hasSplit: orderHasSplit,
+      });
+    } else {
+      const existing = userOrderMap.get(order.userId)!;
+      existing.items.push(...ownerItems);
+      if (orderHasSplit) existing.hasSplit = true;
+      if (order.items) {
+        existing.rawItems = [...(existing.rawItems || []), ...order.items];
+      }
+    }
+
+    for (const [splitUserId, splitItems] of coSplitItemsMap.entries()) {
+      const splitUserObj = order.items
+        .flatMap((i) => i.splits || [])
+        .find((s) => s.userId === splitUserId)?.user || {
+        id: splitUserId,
+        name: "Unknown User",
+      };
+
+      if (userOrderMap.has(splitUserId)) {
+        const existing = userOrderMap.get(splitUserId)!;
+        existing.items.push(...splitItems);
+        existing.hasSplit = true;
+      } else {
+        userOrderMap.set(splitUserId, {
+          ...order,
+          id: `split-${order.id}-${splitUserId}`,
+          userId: splitUserId,
+          user: {
+            id: splitUserId,
+            name: splitUserObj.name,
+          },
+          items: splitItems,
+          rawItems: undefined,
+          isCoSplitOnly: true,
+          hasSplit: true,
+          splitInitiatorName: order.user.name,
+        });
+      }
+    }
+  }
+
+  const result = [...userOrderMap.values(), ...otherOrders];
+  result.sort((a, b) => a.user.name.localeCompare(b.user.name));
+  return result;
+}
 
 type AdminWindowHistoryProps = {
   windows: AdminWindowHistoryType;
@@ -90,42 +316,50 @@ export function AdminWindowHistory({
     "newest" | "oldest" | "revenue" | "orders"
   >("newest");
 
-  const processedWindows = windows
-    .map((window) => ({
-      ...window,
-      orders: window.orders.filter((order) => {
-        // filter out legacy 0-item cancelled orders
-        if (order.status === "cancelled" && order.items.length === 0) {
-          return false;
-        }
+  const processedWindows = useMemo(() => {
+    return windows
+      .map((window) => {
+        const participantOrders = buildWindowParticipantOrders(window.orders);
+        const filteredOrders = participantOrders.filter((order) => {
+          // filter out legacy 0-item cancelled orders
+          if (order.status === "cancelled" && order.items.length === 0) {
+            return false;
+          }
 
-        if (
-          search &&
-          !order.user.name.toLowerCase().includes(search.toLowerCase())
-        ) {
-          return false;
+          if (
+            search &&
+            !order.user.name.toLowerCase().includes(search.toLowerCase())
+          ) {
+            return false;
+          }
+          if (statusFilter !== "all" && order.status !== statusFilter) {
+            return false;
+          }
+          return true;
+        });
+
+        return {
+          ...window,
+          rawOrders: window.orders,
+          orders: filteredOrders,
+        };
+      })
+      .filter((window) => window.orders.length > 0)
+      .filter((window) => {
+        if (period === "all") return true;
+        const windowDate = new Date(window.createdAt);
+        const now = new Date();
+        if (period === "today") {
+          return windowDate.toDateString() === now.toDateString();
         }
-        if (statusFilter !== "all" && order.status !== statusFilter) {
-          return false;
+        if (period === "week") {
+          const weekAgo = new Date();
+          weekAgo.setDate(now.getDate() - 7);
+          return windowDate >= weekAgo;
         }
         return true;
-      }),
-    }))
-    .filter((window) => window.orders.length > 0)
-    .filter((window) => {
-      if (period === "all") return true;
-      const windowDate = new Date(window.createdAt);
-      const now = new Date();
-      if (period === "today") {
-        return windowDate.toDateString() === now.toDateString();
-      }
-      if (period === "week") {
-        const weekAgo = new Date();
-        weekAgo.setDate(now.getDate() - 7);
-        return windowDate >= weekAgo;
-      }
-      return true;
-    });
+      });
+  }, [windows, search, statusFilter, period]);
 
   const sortedWindows = [...processedWindows];
   sortedWindows.sort((a, b) => {
@@ -430,8 +664,18 @@ export function AdminWindowHistory({
                       winnerName={window.winnerUser?.name ?? null}
                       hasUnspunLateOrders={hasUnspunLateOrders}
                     />
-                    <OrderWindowSummaryDialog window={window} />
-                    <OrderWindowUserSummaryDialog window={window} />
+                    <OrderWindowSummaryDialog
+                      window={{
+                        ...window,
+                        orders: window.rawOrders || window.orders,
+                      }}
+                    />
+                    <OrderWindowUserSummaryDialog
+                      window={{
+                        ...window,
+                        orders: window.rawOrders || window.orders,
+                      }}
+                    />
                     {!isLocked && (
                       <AddLateOrderDialog
                         windowId={window.id}
@@ -536,6 +780,14 @@ export function AdminWindowHistory({
                                 >
                                   <div className='flex items-center gap-2'>
                                     <span>{order.user.name}</span>
+                                    {(order.isCoSplitOnly || order.hasSplit) && (
+                                      <Badge
+                                        variant='outline'
+                                        className='text-[10px] border-primary/30 text-primary bg-primary/5 rounded-full py-0 px-1.5'
+                                      >
+                                        Split
+                                      </Badge>
+                                    )}
                                     {order.createdByAdmin && (
                                       <Badge
                                         variant='outline'
@@ -581,18 +833,23 @@ export function AdminWindowHistory({
 
                                 <TableCell className='py-2 text-center'>
                                   <div className='flex items-center justify-center gap-3'>
-                                    {!isLocked &&
+                                    {!order.isCoSplitOnly &&
+                                      !isLocked &&
                                       order.status === "approved" && (
                                         <AdminEditOrderDialog
                                           orderId={order.id}
                                           userName={order.user.name}
-                                          items={order.items.filter(
+                                          userId={order.user.id || order.userId}
+                                          items={(
+                                            order.rawItems || order.items
+                                          ).filter(
                                             (item) => !item.replacementApplied,
                                           )}
                                           menuItems={menuItems}
                                         />
                                       )}
-                                    {!isLocked &&
+                                    {!order.isCoSplitOnly &&
+                                      !isLocked &&
                                       (order.status === "approved" ||
                                         order.status === "rejected") && (
                                         <HistoryOrderActions
@@ -600,6 +857,11 @@ export function AdminWindowHistory({
                                           status={order.status}
                                         />
                                       )}
+                                    {order.isCoSplitOnly && (
+                                      <span className='text-xs text-muted-foreground'>
+                                        Split with {order.splitInitiatorName}
+                                      </span>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>

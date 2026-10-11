@@ -37,6 +37,18 @@ export function hasCartChanged(
         return true;
       }
     }
+
+    // Compare splitUsers
+    const currentSplits = (item.splitUsers || []).map((u) => u.id).sort();
+    const savedSplits = (savedItem.splitUsers || []).map((u) => u.id).sort();
+    if (currentSplits.length !== savedSplits.length) {
+      return true;
+    }
+    for (let i = 0; i < currentSplits.length; i++) {
+      if (currentSplits[i] !== savedSplits[i]) {
+        return true;
+      }
+    }
   }
 
   return false;

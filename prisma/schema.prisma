@@ -27,6 +27,7 @@ model User {
 
   wonWindows OrderWindow[] @relation("OrderWindowWinner")
   adminCreatedOrders Order[] @relation("AdminCreatedOrders")
+  orderItemSplits OrderItemSplit[]
 
   @@unique([email])
   @@map("user")
@@ -211,6 +212,9 @@ model OrderItem {
   // Configured preferences
   replacementPreferences OrderItemReplacement[]
 
+  // Shared / Group order splits
+  splits OrderItemSplit[]
+
   @@index([orderId])
   @@index([menuItemId])
   @@map("order_item")
@@ -229,6 +233,22 @@ model OrderItemReplacement {
   @@index([orderItemId])
   @@index([menuItemId])
   @@map("order_item_replacement")
+}
+
+model OrderItemSplit {
+  id          String   @id
+  orderItemId String
+  userId      String
+  shareRatio  Float    @default(0.5)
+  status      String   @default("accepted")
+  createdAt   DateTime @default(now())
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orderItemId])
+  @@index([userId])
+  @@map("order_item_split")
 }
 
 model MenuItem {
@@ -277,6 +297,7 @@ model Shop {
 
   name       String
   paymentUpi String?
+  isGroupOrderEnabled Boolean @default(false)
   createdAt  DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)

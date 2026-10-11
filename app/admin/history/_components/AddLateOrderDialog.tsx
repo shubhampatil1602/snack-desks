@@ -75,7 +75,13 @@ export function AddLateOrderDialog({
     }
   }
 
-  function handleSave(items: { menuItemId: string; quantity: number }[]) {
+  function handleSave(
+    items: {
+      menuItemId: string;
+      quantity: number;
+      splitUserIds?: string[];
+    }[],
+  ) {
     startTransition(async () => {
       const result = await createLateOrderAction({
         windowId,
@@ -120,6 +126,7 @@ export function AddLateOrderDialog({
         {open && (
           <OrderItemsForm
             menuItems={menuItems}
+            currentUserId={selectedUserId}
             onSave={handleSave}
             onCancel={() => setOpen(false)}
             isPending={pending}

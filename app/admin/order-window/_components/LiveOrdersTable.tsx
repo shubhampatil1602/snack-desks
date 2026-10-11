@@ -1,7 +1,7 @@
 "use client";
 
 import type { LiveOrder } from "@/modules/orders/admin-queries";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatSplitNames } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OrderActions } from "./OrderActions";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { toast } from "sonner";
 import { applyReplacementAction } from "@/actions/orders";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,161 @@ type LiveOrdersTableProps = {
   menuItems?: MenuItem[];
 };
 
+type ParticipantLiveOrder = LiveOrder & {
+  rawItems?: LiveOrder["items"];
+  isCoSplitOnly?: boolean;
+  hasSplit?: boolean;
+  splitInitiatorName?: string;
+};
+
+function processLiveOrders(rawOrders: LiveOrder[]): ParticipantLiveOrder[] {
+  const userOrderMap = new Map<string, ParticipantLiveOrder>();
+  const otherOrders: ParticipantLiveOrder[] = [];
+
+  for (const order of rawOrders) {
+    if (order.status === "cancelled") {
+      otherOrders.push({
+        ...order,
+        rawItems: order.items,
+        isCoSplitOnly: false,
+        hasSplit: false,
+      });
+      continue;
+    }
+
+    const ownerItems: LiveOrder["items"] = [];
+    const coSplitItemsMap = new Map<string, LiveOrder["items"]>();
+    let orderHasSplit = false;
+
+    for (const item of order.items) {
+      const splits = item.splits || [];
+      if (splits.length > 0) {
+        orderHasSplit = true;
+        const participantCount = splits.length + 1;
+        const perPersonPrice = (
+          Number(item.menuItem.price) / participantCount
+        ).toFixed(2);
+
+        // 1. Owner's item
+        ownerItems.push({
+          ...item,
+          menuItem: {
+            ...item.menuItem,
+            price: perPersonPrice,
+          },
+        });
+
+        // 2. Co-splitters' items
+        for (const split of splits) {
+          const coSplitItem: LiveOrder["items"][number] = {
+            ...item,
+            id: `${item.id}-split-${split.userId}`,
+            menuItem: {
+              ...item.menuItem,
+              price: perPersonPrice,
+            },
+            splits: [
+              {
+                id: `owner-${order.userId}`,
+                orderItemId: item.id,
+                userId: order.userId,
+                shareRatio: 1 / participantCount,
+                status: "accepted",
+                createdAt: new Date(),
+                user: {
+                  id: order.user.id,
+                  name: order.user.name,
+                  email: order.user.email,
+                },
+              },
+              ...splits
+                .filter((s) => s.userId !== split.userId)
+                .map((s) => ({
+                  ...s,
+                  shareRatio: 1 / participantCount,
+                })),
+            ],
+          };
+
+          if (!coSplitItemsMap.has(split.userId)) {
+            coSplitItemsMap.set(split.userId, []);
+          }
+          coSplitItemsMap.get(split.userId)!.push(coSplitItem);
+        }
+      } else {
+        ownerItems.push(item);
+      }
+    }
+
+    const ownerTotal = ownerItems
+      .filter((i) => !i.replacementApplied)
+      .reduce((sum, i) => sum + Number(i.menuItem.price) * i.quantity, 0);
+
+    if (!userOrderMap.has(order.userId)) {
+      userOrderMap.set(order.userId, {
+        ...order,
+        rawItems: order.items,
+        items: ownerItems,
+        total: ownerTotal,
+        isCoSplitOnly: false,
+        hasSplit: orderHasSplit,
+      });
+    } else {
+      const existing = userOrderMap.get(order.userId)!;
+      existing.items.push(...ownerItems);
+      existing.total += ownerTotal;
+      if (orderHasSplit) existing.hasSplit = true;
+      if (order.items) {
+        existing.rawItems = [...(existing.rawItems || []), ...order.items];
+      }
+    }
+
+    for (const [splitUserId, splitItems] of coSplitItemsMap.entries()) {
+      const splitUserObj = order.items
+        .flatMap((i) => i.splits || [])
+        .find((s) => s.userId === splitUserId)?.user || {
+        id: splitUserId,
+        name: "Unknown User",
+        email: "",
+      };
+
+      const splitUserTotal = splitItems
+        .filter((i) => !i.replacementApplied)
+        .reduce((sum, i) => sum + Number(i.menuItem.price) * i.quantity, 0);
+
+      if (userOrderMap.has(splitUserId)) {
+        const existing = userOrderMap.get(splitUserId)!;
+        existing.items.push(...splitItems);
+        existing.total += splitUserTotal;
+        existing.hasSplit = true;
+      } else {
+        userOrderMap.set(splitUserId, {
+          ...order,
+          id: `split-${order.id}-${splitUserId}`,
+          userId: splitUserId,
+          user: {
+            ...order.user,
+            id: splitUserId,
+            name: splitUserObj.name,
+            email: splitUserObj.email,
+          },
+          items: splitItems,
+          total: splitUserTotal,
+          rawItems: undefined,
+          isCoSplitOnly: true,
+          hasSplit: true,
+          splitInitiatorName: order.user.name,
+          createdByAdmin: false,
+        });
+      }
+    }
+  }
+
+  const result = [...userOrderMap.values(), ...otherOrders];
+  result.sort((a, b) => a.user.name.localeCompare(b.user.name));
+  return result;
+}
+
 function getStatusVariant(status: string) {
   switch (status) {
     case "approved":
@@ -57,6 +212,8 @@ export function LiveOrdersTable({
   windowLabel,
   menuItems,
 }: LiveOrdersTableProps) {
+  const processedOrders = useMemo(() => processLiveOrders(orders), [orders]);
+
   if (orders.length === 0) {
     return (
       <div className='border'>
@@ -128,11 +285,19 @@ export function LiveOrdersTable({
         </TableHeader>
 
         <TableBody>
-          {orders.map((order) => (
+          {processedOrders.map((order) => (
             <TableRow key={order.id}>
               <TableCell className='font-medium'>
                 <div className='flex items-center gap-2'>
                   <span>{order.user.name}</span>
+                  {(order.isCoSplitOnly || order.hasSplit) && (
+                    <Badge
+                      variant='outline'
+                      className='text-[10px] border-primary/30 text-primary bg-primary/5 rounded-full py-0 px-1.5'
+                    >
+                      Split
+                    </Badge>
+                  )}
                   {order.createdByAdmin && (
                     <Badge
                       variant='outline'
@@ -168,6 +333,22 @@ export function LiveOrdersTable({
                           <Badge variant='secondary' className='text-[10px]'>
                             ({formatCurrency(item.menuItem.price)} each)
                           </Badge>
+
+                          {item.splits && item.splits.length > 0 && (
+                            <div className='inline-flex items-center gap-1.5 flex-wrap'>
+                              <Badge
+                                variant='outline'
+                                className='text-[10px] border-primary/30 text-primary bg-primary/5 rounded-md py-0.5 px-2 font-medium normal-case tracking-normal'
+                                title={`Split with: ${item.splits.map((s) => s.user.name).join(", ")}`}
+                              >
+                                1/{item.splits.length + 1} Split • {formatSplitNames(item.splits.map((s) => s.user.name))}
+                              </Badge>
+
+                              <span className='text-[10px] text-muted-foreground font-medium'>
+                                ({formatCurrency(Number(item.menuItem.price) / (item.splits.length + 1))}/person)
+                              </span>
+                            </div>
+                          )}
 
                           {hasReplacements && !isReplaced && (
                             <UseAlternativeButton
@@ -210,15 +391,22 @@ export function LiveOrdersTable({
               </TableCell>
 
               <TableCell>
-                <OrderActions
-                  orderId={order.id}
-                  status={order.status}
-                  userName={order.user.name}
-                  items={order.items.filter(
-                    (item) => !item.replacementApplied,
-                  )}
-                  menuItems={menuItems}
-                />
+                {!order.isCoSplitOnly ? (
+                  <OrderActions
+                    orderId={order.id}
+                    status={order.status}
+                    userName={order.user.name}
+                    userId={order.user.id || order.userId}
+                    items={(order.rawItems || order.items).filter(
+                      (item) => !item.replacementApplied,
+                    )}
+                    menuItems={menuItems}
+                  />
+                ) : (
+                  <span className='text-xs text-muted-foreground'>
+                    Split with {order.splitInitiatorName}
+                  </span>
+                )}
               </TableCell>
             </TableRow>
           ))}

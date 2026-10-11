@@ -117,7 +117,7 @@ export function MenuFormDialog({
         price: values.price,
         unit: values.unit,
         categoryId: values.categoryId,
-        shopId: values.shopId || null,
+        shopId: values.shopId,
         imageUrl: values.imageUrl || null,
       };
 
@@ -145,12 +145,6 @@ export function MenuFormDialog({
     }
   }
 
-  const handleClearShop = () => {
-    setValue("shopId", "", {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-  };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -264,44 +258,27 @@ export function MenuFormDialog({
 
             <Field>
               <FieldLabel htmlFor='shop'>Shop</FieldLabel>
-              <div className='relative'>
-                <Select
-                  value={shopValue}
-                  onValueChange={(val) =>
-                    setValue("shopId", val, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    })
-                  }
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger id='shop' className={shopValue ? "pr-16" : ""}>
-                    <SelectValue placeholder='Select shop (optional)' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {shops.map((shop) => (
-                      <SelectItem key={shop.id} value={shop.id}>
-                        {shop.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {shopValue && (
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='icon'
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleClearShop();
-                    }}
-                    className='absolute right-8 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted rounded-md z-10'
-                  >
-                    <X className='h-4 w-4 text-muted-foreground' />
-                  </Button>
-                )}
-              </div>
+              <Select
+                value={shopValue}
+                onValueChange={(val) =>
+                  setValue("shopId", val, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+                disabled={isSubmitting}
+              >
+                <SelectTrigger id='shop'>
+                  <SelectValue placeholder='Select shop' />
+                </SelectTrigger>
+                <SelectContent>
+                  {shops.map((shop) => (
+                    <SelectItem key={shop.id} value={shop.id}>
+                      {shop.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FieldError>{errors.shopId?.message}</FieldError>
             </Field>
           </div>

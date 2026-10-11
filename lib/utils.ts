@@ -20,3 +20,13 @@ export function truncateText(text: string, maxLength: number = 24): string {
   }
   return text;
 }
+
+export function formatSplitNames(names: string[], maxVisible: number = 2): string {
+  if (!names || names.length === 0) return "";
+  if (names.length <= maxVisible) {
+    return names.join(", ");
+  }
+  const visible = names[0];
+  const remaining = names.length - 1;
+  return `${visible} +${remaining} other${remaining > 1 ? "s" : ""}`;
+}

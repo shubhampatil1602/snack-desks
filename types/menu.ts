@@ -15,7 +15,7 @@ export const menuItemSchema = z.object({
     }),
   unit: z.string().min(1, "Unit is required"),
   categoryId: z.string().min(1, "Category is required"),
-  shopId: z.string().optional().nullable(),
+  shopId: z.string().min(1, "Shop is required"),
   imageUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
 });
 
@@ -64,6 +64,7 @@ export const shopSchema = z.object({
     .trim()
     .optional()
     .nullable(),
+  isGroupOrderEnabled: z.boolean().optional(),
 });
 
 export type ShopInput = z.infer<typeof shopSchema>;

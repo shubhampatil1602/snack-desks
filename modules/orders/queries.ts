@@ -51,7 +51,16 @@ export async function getUserActiveOrder(windowId: string, userId: string) {
     include: {
       items: {
         include: {
-          menuItem: true,
+          menuItem: {
+            include: { shop: true },
+          },
+          splits: {
+            include: {
+              user: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
           replacementPreferences: {
             include: {
               menuItem: true,

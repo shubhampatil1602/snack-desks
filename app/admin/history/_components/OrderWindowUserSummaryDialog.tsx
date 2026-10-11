@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCurrency, truncateText } from "@/lib/utils";
+import { formatCurrency, formatSplitNames, truncateText } from "@/lib/utils";
 import { Copy, Users, Check, ArrowUpDown } from "lucide-react";
 
 import {
@@ -28,9 +28,17 @@ type OrderWindowUserSummaryDialogProps = {
         quantity: number;
         replacementApplied: boolean;
         menuItem: {
+          name?: string;
           price: string;
           shop?: { name: string } | null;
         };
+        splits?: {
+          userId: string;
+          user: {
+            id: string;
+            name: string;
+          };
+        }[];
       }[];
     }[];
   };
@@ -49,11 +57,24 @@ export function OrderWindowUserSummaryDialog({
   let approvedCount = 0;
   let rejectedCount = 0;
   let cancelledCount = 0;
+  type SplitNoteItem = {
+    fraction: string;
+    itemName: string;
+    withNames: string[];
+  };
+
   const shopTotals: Record<string, number> = {};
   const userTotals: Record<
     string,
-    { id: string; name: string; total: number }
+    { id: string; name: string; total: number; splitNotes: SplitNoteItem[] }
   > = {};
+
+  const ensureUser = (id: string, name: string) => {
+    if (!userTotals[id]) {
+      userTotals[id] = { id, name, total: 0, splitNotes: [] };
+    }
+    return userTotals[id];
+  };
 
   window.orders.forEach((order) => {
     if (order.status === "approved") approvedCount++;
@@ -61,29 +82,53 @@ export function OrderWindowUserSummaryDialog({
     else if (order.status === "cancelled") cancelledCount++;
 
     if (order.status === "approved") {
-      let orderTotal = 0;
       order.items.forEach((item) => {
         if (!item.replacementApplied) {
           const itemTotal = Number(item.menuItem.price) * item.quantity;
-          orderTotal += itemTotal;
           total += itemTotal;
 
           const shopName = item.menuItem.shop?.name || "Unknown";
           shopTotals[shopName] = (shopTotals[shopName] || 0) + itemTotal;
+
+          const splits = item.splits || [];
+          if (splits.length > 0) {
+            const participantCount = splits.length + 1;
+            const perPersonShare = itemTotal / participantCount;
+            const fraction = `1/${participantCount}`;
+
+            // 1. Add share to order owner (initiator)
+            const owner = ensureUser(order.user.id, order.user.name);
+            owner.total += perPersonShare;
+            owner.splitNotes.push({
+              fraction,
+              itemName: item.menuItem.name || "item",
+              withNames: splits.map((s) => s.user.name),
+            });
+
+            // 2. Add share to each co-splitter
+            splits.forEach((split) => {
+              const otherParticipants = [
+                order.user.name,
+                ...splits
+                  .filter((s) => s.user.id !== split.user.id)
+                  .map((s) => s.user.name),
+              ];
+
+              const coEntry = ensureUser(split.user.id, split.user.name);
+              coEntry.total += perPersonShare;
+              coEntry.splitNotes.push({
+                fraction,
+                itemName: item.menuItem.name || "item",
+                withNames: otherParticipants,
+              });
+            });
+          } else {
+            // Unshared item
+            const owner = ensureUser(order.user.id, order.user.name);
+            owner.total += itemTotal;
+          }
         }
       });
-
-      if (orderTotal > 0) {
-        if (userTotals[order.user.id]) {
-          userTotals[order.user.id].total += orderTotal;
-        } else {
-          userTotals[order.user.id] = {
-            id: order.user.id,
-            name: order.user.name,
-            total: orderTotal,
-          };
-        }
-      }
     }
   });
 
@@ -110,7 +155,18 @@ export function OrderWindowUserSummaryDialog({
 Total Bill: ${formatCurrency(total)}
 ${shopBreakdownText ? shopBreakdownText + "\n" : ""}
 ${userBreakdown
-  .map((user) => `  ${user.name} - ${formatCurrency(user.total)}`)
+  .map((user) => {
+    const note =
+      user.splitNotes.length > 0
+        ? ` (includes ${user.splitNotes
+            .map(
+              (n) =>
+                `${n.fraction} ${n.itemName} with ${formatSplitNames(n.withNames)}`,
+            )
+            .join(", ")})`
+        : "";
+    return `  ${user.name} - ${formatCurrency(user.total)}${note}`;
+  })
   .join("\n")}`;
 
     try {
@@ -238,16 +294,32 @@ ${userBreakdown
             </div>
 
             {userBreakdown.length > 0 ? (
-              <div className='space-y-2'>
+              <div className='space-y-2.5'>
                 {userBreakdown.map((user) => (
                   <div
                     key={user.id}
-                    className='flex justify-between text-sm items-center'
+                    className='flex justify-between text-sm items-center py-0.5'
                   >
-                    <span className='font-medium text-muted-foreground'>
-                      {user.name}
-                    </span>
-                    <span className='font-medium'>
+                    <div className='flex flex-col'>
+                      <span className='font-medium text-foreground'>
+                        {user.name}
+                      </span>
+                      {user.splitNotes.length > 0 && (
+                        <div className='flex flex-col gap-0.5 mt-0.5'>
+                          {user.splitNotes.map((note, idx) => (
+                            <span
+                              key={idx}
+                              title={`Split with: ${note.withNames.join(", ")}`}
+                              className='text-[11px] text-emerald-600 dark:text-emerald-400 font-normal truncate max-w-sm cursor-help'
+                            >
+                              includes {note.fraction} {note.itemName} with{" "}
+                              {formatSplitNames(note.withNames)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span className='font-semibold'>
                       {formatCurrency(user.total)}
                     </span>
                   </div>

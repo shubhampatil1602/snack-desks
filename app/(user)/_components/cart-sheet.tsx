@@ -7,7 +7,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { QuantityInput } from "./QuantityInput";
 import {
@@ -50,12 +49,16 @@ import {
   Loader2,
   ArrowLeftRight,
   Search,
+  Users,
+  Check,
 } from "lucide-react";
 import {
   placeOrderAction,
   updateOrderAction,
   cancelOrderAction,
   getActiveMenuItemsAction,
+  getOrganizationMembersForSplitAction,
+  getUserActiveSharedSplitsAction,
 } from "@/actions/orders";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -63,6 +66,7 @@ import { hasCartChanged } from "@/lib/cart";
 import { ORDER_STATUS } from "@/lib/constants";
 import { useTransition, useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
+import { cn, formatSplitNames } from "@/lib/utils";
 
 type CartSheetProps = {
   open: boolean;
@@ -76,6 +80,7 @@ export interface ActiveMenuItem {
   unit: string | null;
   menuCategoryName: string;
   shopName: string | null;
+  isGroupOrderEnabled?: boolean;
 }
 
 export function CartSheet({ open, onOpenChange }: CartSheetProps) {
@@ -83,6 +88,8 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const [placing, startPlacing] = useTransition();
   const [updating, startUpdating] = useTransition();
   const [activeMenuItems, setActiveMenuItems] = useState<ActiveMenuItem[]>([]);
+  const sharedItems = useCartStore((state) => state.sharedItems);
+  const setSharedItems = useCartStore((state) => state.setSharedItems);
 
   useEffect(() => {
     if (open) {
@@ -91,8 +98,13 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           setActiveMenuItems(result.items);
         }
       });
+      getUserActiveSharedSplitsAction().then((result) => {
+        if (result.success && result.splits) {
+          setSharedItems(result.splits);
+        }
+      });
     }
-  }, [open]);
+  }, [open, setSharedItems]);
 
   const items = useCartStore((state) => state.items);
   const increment = useCartStore((state) => state.increment);
@@ -123,6 +135,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
         items: items.map((item) => ({
           menuItemId: item.menuItemId,
           quantity: item.quantity,
+          splitUserIds: item.splitUsers?.map((u) => u.id),
           replacements: item.replacements?.map((rep) => ({
             menuItemId: rep.menuItemId,
             quantity: rep.quantity,
@@ -156,6 +169,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
         items.map((item) => ({
           menuItemId: item.menuItemId,
           quantity: item.quantity,
+          splitUserIds: item.splitUsers?.map((u) => u.id),
           replacements: item.replacements?.map((rep) => ({
             menuItemId: rep.menuItemId,
             quantity: rep.quantity,
@@ -216,10 +230,74 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
           {/* Scrollable items container with Table */}
           <div className='flex-1 overflow-y-auto min-h-0'>
-            {items.length === 0 ? (
+            {sharedItems && sharedItems.length > 0 && (
+              <div className='p-3 border-b bg-primary/5 space-y-2'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-1.5'>
+                    <Users className='h-3.5 w-3.5 text-primary' />
+                    <span className='text-xs font-semibold text-primary uppercase tracking-wider'>
+                      Shared With You (Group Order)
+                    </span>
+                  </div>
+                  <span className='text-[10px] text-muted-foreground'>
+                    {sharedItems.length} split item{sharedItems.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <div className='space-y-1.5'>
+                  {sharedItems.map((split) => (
+                    <div
+                      key={split.id}
+                      className='flex items-center justify-between bg-card border p-2 text-xs rounded-sm'
+                    >
+                      <div className='space-y-0.5'>
+                        <div className='flex items-center gap-1.5 flex-wrap'>
+                          <span className='font-medium text-foreground'>
+                            {split.name} × {split.quantity}
+                          </span>
+                          <span className='text-[9px] bg-primary/10 text-primary border border-primary/20 px-1 py-0.2 rounded-full font-medium'>
+                            {split.splitFraction} split
+                          </span>
+                        </div>
+                        <p className='text-[10px] text-muted-foreground'>
+                          Ordered by{" "}
+                          <span className='font-medium text-foreground'>
+                            {split.initiatorName}
+                          </span>
+                          {split.coSplitterNames.length > 0 &&
+                            ` (also with ${split.coSplitterNames.join(", ")})`}
+                        </p>
+                      </div>
+
+                      <div className='text-right'>
+                        <span className='font-semibold text-primary'>
+                          {formatCurrency(split.userShare)}
+                        </span>
+                        <p className='text-[9px] text-muted-foreground line-through'>
+                          {formatCurrency(
+                            Number(split.unitPrice) * split.quantity,
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {items.length === 0 && (!sharedItems || sharedItems.length === 0) ? (
               <p className='text-sm text-muted-foreground p-4 text-center'>
                 Your cart is empty
               </p>
+            ) : items.length === 0 ? (
+              <div className='p-4 text-center space-y-1'>
+                <p className='text-xs text-muted-foreground'>
+                  No personal items in your cart.
+                </p>
+                <p className='text-[11px] text-muted-foreground'>
+                  Your shared group order items are displayed above. You can add more snacks for yourself from the menu or keep only the shared items.
+                </p>
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -231,70 +309,104 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => (
-                    <TableRow key={item.menuItemId} className='border-b'>
-                      <TableCell className='font-medium py-3'>
-                        <div className='flex flex-col gap-0.5'>
-                          <span className='font-semibold text-sm'>
-                            {item.name}
-                          </span>
-                          <ManageAlternativesDialog
-                            originalItem={item}
-                            activeMenuItems={activeMenuItems}
-                            isMutating={isMutating}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className='text-center'>
-                        <div className='flex items-center justify-center gap-2'>
-                          <Button
-                            variant='outline'
-                            size='icon'
-                            className='h-8 w-8 shrink-0'
-                            onClick={() => decrement(item.menuItemId)}
-                            disabled={isMutating}
-                          >
-                            <Minus className='h-3 w-3' />
-                          </Button>
-                          <div className='w-8 h-8 shrink-0 font-medium'>
-                            <QuantityInput
-                              initialQuantity={item.quantity}
-                              onUpdate={(qty) => {
-                                if (qty === 0) {
-                                  removeItem(item.menuItemId);
-                                } else {
-                                  setQuantity(item.menuItemId, qty);
-                                }
-                              }}
+                  {items.map((item) => {
+                    const activeMatch = activeMenuItems.find(
+                      (m) => m.id === item.menuItemId,
+                    );
+                    const isGroupOrder =
+                      item.isGroupOrderEnabled ??
+                      activeMatch?.isGroupOrderEnabled ??
+                      false;
+                    const splitCount = item.splitUsers?.length || 0;
+                    const participantCount = splitCount + 1;
+                    const itemTotal = Number(item.price) * item.quantity;
+                    const userShare = itemTotal / participantCount;
+
+                    return (
+                      <TableRow key={item.menuItemId} className='border-b'>
+                        <TableCell className='font-medium py-3'>
+                          <div className='flex flex-col gap-0.5'>
+                            <span className='font-semibold text-sm'>
+                              {item.name}
+                            </span>
+                            {isGroupOrder && (
+                              <SplitItemDialog
+                                item={item}
+                                isMutating={isMutating}
+                              />
+                            )}
+                            <ManageAlternativesDialog
+                              originalItem={item}
+                              activeMenuItems={activeMenuItems}
+                              isMutating={isMutating}
                             />
                           </div>
+                        </TableCell>
+                        <TableCell className='text-center'>
+                          <div className='flex items-center justify-center gap-2'>
+                            <Button
+                              variant='outline'
+                              size='icon'
+                              className='h-8 w-8 shrink-0'
+                              onClick={() => decrement(item.menuItemId)}
+                              disabled={isMutating}
+                            >
+                              <Minus className='h-3 w-3' />
+                            </Button>
+                            <div className='w-8 h-8 shrink-0 font-medium'>
+                              <QuantityInput
+                                initialQuantity={item.quantity}
+                                onUpdate={(qty) => {
+                                  if (qty === 0) {
+                                    removeItem(item.menuItemId);
+                                  } else {
+                                    setQuantity(item.menuItemId, qty);
+                                  }
+                                }}
+                              />
+                            </div>
+                            <Button
+                              variant='outline'
+                              size='icon'
+                              className='h-8 w-8 shrink-0'
+                              onClick={() => increment(item.menuItemId)}
+                              disabled={isMutating}
+                            >
+                              <Plus className='h-3 w-3' />
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell className='text-right font-medium'>
+                          {splitCount > 0 ? (
+                            <div className='flex flex-col items-end leading-tight'>
+                              <span className='text-sm font-semibold text-primary'>
+                                {formatCurrency(userShare)}
+                              </span>
+                              <span className='text-[10px] text-muted-foreground line-through'>
+                                {formatCurrency(itemTotal)}
+                              </span>
+                              <span className='text-[10px] text-emerald-600 font-medium'>
+                                (1/{participantCount} share)
+                              </span>
+                            </div>
+                          ) : (
+                            formatCurrency(itemTotal)
+                          )}
+                        </TableCell>
+                        <TableCell className='text-center'>
                           <Button
-                            variant='outline'
+                            variant='ghost'
                             size='icon'
-                            className='h-8 w-8 shrink-0'
-                            onClick={() => increment(item.menuItemId)}
+                            className='h-8 w-8 text-muted-foreground hover:text-destructive'
+                            onClick={() => removeItem(item.menuItemId)}
                             disabled={isMutating}
                           >
-                            <Plus className='h-3 w-3' />
+                            <X className='h-4 w-4' />
                           </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell className='text-right font-medium'>
-                        {formatCurrency((Number(item.price) * item.quantity))}
-                      </TableCell>
-                      <TableCell className='text-center'>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-8 w-8 text-muted-foreground hover:text-destructive'
-                          onClick={() => removeItem(item.menuItemId)}
-                          disabled={isMutating}
-                        >
-                          <X className='h-4 w-4' />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -308,15 +420,23 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
             </div>
             <div className='px-3 pb-4'>
               {!hasPlacedOrder ? (
-                <Button
-                  className='w-full'
-                  onClick={handlePlaceOrder}
-                  disabled={items.length === 0 || placing}
-                  size='lg'
-                >
-                  {placing && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-                  {placing ? "Placing..." : "Place Order"}
-                </Button>
+                <>
+                  <Button
+                    className='w-full'
+                    onClick={handlePlaceOrder}
+                    disabled={items.length === 0 || placing}
+                    size='lg'
+                  >
+                    {placing && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+                    {placing ? "Placing..." : "Place Order"}
+                  </Button>
+                  {items.length === 0 && sharedItems && sharedItems.length > 0 && (
+                    <p className='text-[11px] text-center text-muted-foreground mt-2'>
+                      Your shared group order is already placed by{" "}
+                      {sharedItems[0].initiatorName}.
+                    </p>
+                  )}
+                </>
               ) : orderStatus === ORDER_STATUS.PENDING ? (
                 <div className='flex justify-between gap-3'>
                   <Button
@@ -618,6 +738,204 @@ function ManageAlternativesDialog({
         <div className='flex justify-end gap-2 border-t pt-3 mt-2'>
           <Button size='sm' onClick={() => setIsOpen(false)}>
             Done
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SplitItemDialog({
+  item,
+  isMutating,
+}: {
+  item: CartItem;
+  isMutating: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [users, setUsers] = useState<
+    { id: string; name: string; email: string }[]
+  >([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const setSplitUsers = useCartStore((state) => state.setSplitUsers);
+
+  const currentSplits = useMemo(() => item.splitUsers || [], [item.splitUsers]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>(() =>
+    currentSplits.map((u) => u.id),
+  );
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setIsOpen(nextOpen);
+    if (nextOpen) {
+      setSelectedUserIds(currentSplits.map((u) => u.id));
+      setLoading(true);
+      getOrganizationMembersForSplitAction()
+        .then((res) => {
+          if (res.success && res.users) {
+            setUsers(res.users);
+          }
+        })
+        .finally(() => setLoading(false));
+    }
+  };
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(
+      (u) =>
+        u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [users, search]);
+
+  const toggleUser = (user: { id: string; name: string }) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(user.id)
+        ? prev.filter((id) => id !== user.id)
+        : [...prev, user.id],
+    );
+  };
+
+  const handleSave = () => {
+    const selectedObjects = users
+      .filter((u) => selectedUserIds.includes(u.id))
+      .map((u) => ({ id: u.id, name: u.name, email: u.email }));
+    setSplitUsers(item.menuItemId, selectedObjects);
+    setIsOpen(false);
+  };
+
+  const participantCount = selectedUserIds.length + 1;
+  const itemTotal = Number(item.price) * item.quantity;
+  const sharePerPerson = itemTotal / participantCount;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        {currentSplits.length > 0 ? (
+          <button
+            type='button'
+            disabled={isMutating}
+            title={`Split with: ${currentSplits.map((u) => u.name).join(", ")}`}
+            className='inline-flex items-center gap-1.5 mt-1 text-xs text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors max-w-full'
+          >
+            <Users className='h-3.5 w-3.5 shrink-0' />
+            <span className='truncate'>
+              Split with {formatSplitNames(currentSplits.map((u) => u.name))} (1/
+              {currentSplits.length + 1})
+            </span>
+          </button>
+        ) : (
+          <button
+            type='button'
+            disabled={isMutating}
+            className='inline-flex items-center gap-1.5 mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-semibold cursor-pointer transition-colors py-0.5'
+          >
+            <Users className='h-3.5 w-3.5 shrink-0' />
+            <span>Split Item (Optional)</span>
+          </button>
+        )}
+      </DialogTrigger>
+      <DialogContent className='max-w-md p-5'>
+        <DialogHeader>
+          <DialogTitle className='text-base font-semibold'>
+            Split {item.name} with Colleagues
+          </DialogTitle>
+          <p className='text-xs text-muted-foreground'>
+            Select team members to split 1 quantity of this item. Each person
+            pays an equal share.
+          </p>
+        </DialogHeader>
+
+        {/* Calculation summary banner */}
+        <div className='p-3 bg-muted/50 rounded-lg text-xs space-y-1 border'>
+          <div className='flex justify-between font-medium'>
+            <span>Total Item Cost:</span>
+            <span>{formatCurrency(itemTotal)}</span>
+          </div>
+          <div className='flex justify-between text-muted-foreground'>
+            <span>Participants:</span>
+            <span>
+              You + {selectedUserIds.length} colleague(s) = {participantCount}{" "}
+              people
+            </span>
+          </div>
+          <div className='flex justify-between font-semibold text-primary pt-1 border-t'>
+            <span>Your Share:</span>
+            <span>{formatCurrency(sharePerPerson)}</span>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className='relative mt-1'>
+          <Search className='absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground' />
+          <Input
+            placeholder='Search colleagues by name...'
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className='pl-8 h-8 text-xs'
+          />
+        </div>
+
+        {/* User list */}
+        <div className='max-h-48 overflow-y-auto space-y-1 pr-1'>
+          {loading ? (
+            <div className='py-6 text-center text-xs text-muted-foreground'>
+              <Loader2 className='h-4 w-4 animate-spin mx-auto mb-1' />
+              Loading colleagues...
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className='py-6 text-center text-xs text-muted-foreground'>
+              No colleagues found
+            </div>
+          ) : (
+            filteredUsers.map((u) => {
+              const isSelected = selectedUserIds.includes(u.id);
+              return (
+                <div
+                  key={u.id}
+                  onClick={() => toggleUser(u)}
+                  className={cn(
+                    "flex items-center justify-between p-2 rounded-md border text-xs cursor-pointer transition-colors",
+                    isSelected
+                      ? "bg-primary/10 border-primary text-primary font-medium"
+                      : "hover:bg-muted/50",
+                  )}
+                >
+                  <div className='flex flex-col'>
+                    <span>{u.name}</span>
+                    <span className='text-[10px] text-muted-foreground'>
+                      {u.email}
+                    </span>
+                  </div>
+                  {isSelected && <Check className='h-4 w-4 text-primary' />}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className='flex gap-2 justify-end pt-2 border-t'>
+          {selectedUserIds.length > 0 && (
+            <Button
+              type='button'
+              variant='ghost'
+              size='sm'
+              className='text-xs text-destructive'
+              onClick={() => setSelectedUserIds([])}
+            >
+              Clear Split
+            </Button>
+          )}
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            onClick={() => setIsOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button type='button' size='sm' onClick={handleSave}>
+            Save Split
           </Button>
         </div>
       </DialogContent>

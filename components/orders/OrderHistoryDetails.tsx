@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { applyReplacementAction } from "@/actions/orders";
 import { Button } from "@/components/ui/button";
+import { formatSplitNames } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,10 +22,17 @@ type OrderItem = {
   quantity: number;
   replacementApplied?: boolean;
   originalOrderItemId?: string | null;
+  splitFraction?: string;
   menuItem: {
     name: string;
     price: string;
   };
+  splits?: {
+    userId: string;
+    user: {
+      name: string;
+    };
+  }[];
   replacementPreferences?: {
     id: string;
     quantity: number;
@@ -63,10 +71,19 @@ export function OrderHistoryDetails({
             className='flex flex-col gap-1 py-1 border-b last:border-0 border-muted/10'
           >
             <div className='flex justify-between items-center text-sm'>
-              <div className='flex items-center gap-2'>
+              <div className='flex items-center gap-2 flex-wrap'>
                 <span>
                   {item.menuItem.name} × {item.quantity}
                 </span>
+
+                {item.splits && item.splits.length > 0 && (
+                  <span
+                    className='text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md font-medium normal-case'
+                    title={`Split with: ${item.splits.map((s) => s.user.name).join(", ")}`}
+                  >
+                    {item.splitFraction ? `${item.splitFraction} ` : ""}Split • {formatSplitNames(item.splits.map((s) => s.user.name))}
+                  </span>
+                )}
 
                 {!isLocked &&
                   isAdmin &&

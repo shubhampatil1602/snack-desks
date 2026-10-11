@@ -58,7 +58,7 @@ export async function createMenuItemAction(
       unit: parsed.data.unit,
       menuCategoryId: parsed.data.categoryId,
       updatedAt: new Date(),
-      shopId: parsed.data.shopId || null,
+      shopId: parsed.data.shopId,
       imageUrl: parsed.data.imageUrl || null,
     },
   });
@@ -106,7 +106,7 @@ export async function updateMenuItemAction(
       price: parsed.data.price,
       unit: parsed.data.unit,
       menuCategoryId: parsed.data.categoryId ?? null,
-      shopId: parsed.data.shopId || null,
+      shopId: parsed.data.shopId,
       imageUrl: parsed.data.imageUrl || null,
     },
   });
@@ -323,6 +323,7 @@ export async function createShopAction(
       organizationId: member.organizationId,
       name: parsed.data.name.trim(),
       paymentUpi: parsed.data.paymentUpi?.trim() || null,
+      isGroupOrderEnabled: parsed.data.isGroupOrderEnabled ?? false,
     },
   });
 
@@ -398,6 +399,7 @@ export async function updateShopAction(
     data: {
       name: parsed.data.name.trim(),
       paymentUpi: parsed.data.paymentUpi?.trim() || null,
+      isGroupOrderEnabled: parsed.data.isGroupOrderEnabled ?? false,
     },
   });
 
