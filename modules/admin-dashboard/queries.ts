@@ -5,7 +5,9 @@ import {
   getISTDateParts,
   getISTDayBoundaries,
 } from "@/lib/date-utils";
-import { format, subYears, addDays } from "date-fns";
+import { subYears } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+import { buildHeatmapDays } from "@/lib/get-heatmap-data";
 
 export function getDateFilter(period: string) {
   const { startDate, endDate } = parsePeriod(period);
@@ -169,10 +171,9 @@ export type RevenueTimeSeriesPoint = {
   orders: number;
 };
 
-function getPeriodRange(period: string) {
+export function getPeriodRange(period: string) {
   if (period === "all") {
-    const rangeEnd = new Date();
-    return { rangeStart: subYears(rangeEnd, 1), rangeEnd };
+    return { rangeStart: new Date(0), rangeEnd: new Date() };
   }
   const { startDate, endDate } = parsePeriod(period);
   return { rangeStart: startDate!, rangeEnd: endDate! };
@@ -185,11 +186,13 @@ export async function getRevenueTimeSeries(
   const { rangeStart, rangeEnd } = getPeriodRange(period);
   const trunc = period.length === 7 ? "day" : "month";
 
+  // createdAt is a UTC timestamp without time zone: convert UTC -> IST before
+  // truncating, so buckets line up with the IST boundaries the stat cards use.
   const rows = await prisma.$queryRaw<
     { bucket: Date; revenue: number; orders: bigint }[]
   >`
     SELECT
-      DATE_TRUNC(${trunc}, o."createdAt" AT TIME ZONE 'Asia/Kolkata') AS bucket,
+      DATE_TRUNC(${trunc}, (o."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata') AS bucket,
       COALESCE(SUM(oi.quantity * m.price), 0)::float AS revenue,
       COUNT(DISTINCT o.id)::bigint AS orders
     FROM "order" o
@@ -204,10 +207,11 @@ export async function getRevenueTimeSeries(
     ORDER BY 1 ASC
   `;
 
+  // bucket holds IST wall-clock time read back as UTC, so format it in UTC
   const labelFormat =
     trunc === "day"
-      ? (d: Date) => format(d, "d MMM")
-      : (d: Date) => format(d, "MMM yyyy");
+      ? (d: Date) => formatInTimeZone(d, "UTC", "d MMM")
+      : (d: Date) => formatInTimeZone(d, "UTC", "MMM yyyy");
 
   return rows.map((row) => ({
     label: labelFormat(row.bucket),
@@ -226,10 +230,7 @@ export async function getRevenueByCategory(
   organizationId: string,
   period: string,
 ): Promise<CategoryRevenueSlice[]> {
-  const { rangeStart, rangeEnd } =
-    period === "all"
-      ? { rangeStart: new Date(0), rangeEnd: new Date() }
-      : getPeriodRange(period);
+  const { rangeStart, rangeEnd } = getPeriodRange(period);
 
   const rows = await prisma.$queryRaw<{ category: string; revenue: number }[]>`
     SELECT
@@ -380,14 +381,13 @@ export async function getRecentWindows(
 }
 
 export async function getDashboardHeatmap(organizationId: string) {
-  const endDate = new Date();
-  const startDate = subYears(endDate, 1);
+  const startDate = subYears(new Date(), 1);
 
-  // Raw query for massive performance gain. Exactly mimics previous logic.
-  const rawData = await prisma.$queryRaw<{ date: Date; spent: number }[]>`
-    SELECT 
-      DATE_TRUNC('day', o."createdAt") as "date",
-      SUM(oi.quantity * m.price) as "spent"
+  // Bucket by IST day (createdAt is stored as UTC without time zone)
+  const rawData = await prisma.$queryRaw<{ date: string; spent: number }[]>`
+    SELECT
+      TO_CHAR((o."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM-DD') as "date",
+      SUM(oi.quantity * m.price)::float as "spent"
     FROM "order" o
     JOIN "order_item" oi ON o.id = oi."orderId"
     JOIN "menu_item" m ON oi."menuItemId" = m.id
@@ -395,20 +395,10 @@ export async function getDashboardHeatmap(organizationId: string) {
       AND o.status = 'approved'
       AND oi."replacementApplied" = false
       AND o."createdAt" >= ${startDate}
-    GROUP BY DATE_TRUNC('day', o."createdAt")
+    GROUP BY 1
   `;
 
-  const orderMap = new Map<string, number>();
-  for (const row of rawData) {
-    if (row.date) {
-      orderMap.set(format(row.date, "yyyy-MM-dd"), Number(row.spent));
-    }
-  }
-
-  const data = [];
-  for (let date = startDate; date <= endDate; date = addDays(date, 1)) {
-    const key = format(date, "yyyy-MM-dd");
-    data.push({ date: key, spent: orderMap.get(key) ?? 0 });
-  }
-  return data;
+  return buildHeatmapDays(
+    new Map(rawData.map((row) => [row.date, Number(row.spent)])),
+  );
 }

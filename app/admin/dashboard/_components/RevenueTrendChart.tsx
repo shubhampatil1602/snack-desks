@@ -34,7 +34,7 @@ export function RevenueTrendChart({
       color: "var(--chart-1)",
     },
     orders: {
-      label: "Orders",
+      label: "Approved orders",
       color: "var(--chart-2)",
     },
   };
@@ -90,7 +90,7 @@ export function RevenueTrendChart({
                       if (name === "revenue") {
                         return [formatCurrency(Number(value)), ` ${valueLabel}`];
                       }
-                      return [value, " Orders"];
+                      return [value, " Approved orders"];
                     }}
                   />
                 }

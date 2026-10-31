@@ -8,36 +8,21 @@ import {
   isBefore,
   subYears,
 } from "date-fns";
-import type { UserOrderHistory } from "@/modules/orders/user-history-queries";
+import { formatInTimeZone } from "date-fns-tz";
 import { Cell, HeatmapDay } from "@/types/profile";
 
-export function getHeatmapData(orders: UserOrderHistory) {
+export const HEATMAP_TIME_ZONE = "Asia/Kolkata";
+
+/** One entry per IST day over the last year; spentByDate is keyed "yyyy-MM-dd" (IST). */
+export function buildHeatmapDays(spentByDate: Map<string, number>): HeatmapDay[] {
   const endDate = new Date();
   const startDate = subYears(endDate, 1);
 
-  const orderMap = new Map<string, number>();
-  for (const order of orders) {
-    const date = format(order.createdAt, "yyyy-MM-dd");
-    const orderTotal = order.items
-      .filter((item) => !item.replacementApplied)
-      .reduce(
-        (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-        0,
-      );
-    orderMap.set(date, (orderMap.get(date) ?? 0) + orderTotal);
-  }
-
-  const data = [];
-
+  const data: HeatmapDay[] = [];
   for (let date = startDate; date <= endDate; date = addDays(date, 1)) {
-    const key = format(date, "yyyy-MM-dd");
-
-    data.push({
-      date: key,
-      spent: orderMap.get(key) ?? 0, // renamed from orders
-    });
+    const key = formatInTimeZone(date, HEATMAP_TIME_ZONE, "yyyy-MM-dd");
+    data.push({ date: key, spent: spentByDate.get(key) ?? 0 });
   }
-
   return data;
 }
 

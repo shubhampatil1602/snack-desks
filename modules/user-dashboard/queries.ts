@@ -4,13 +4,19 @@ import {
   getISTDateParts,
   getISTDayBoundaries,
 } from "@/lib/date-utils";
-import { getHeatmapData } from "@/lib/get-heatmap-data";
+import { buildHeatmapDays } from "@/lib/get-heatmap-data";
+import { spendLinesCte, IST_CREATED_AT } from "@/lib/spend-lines";
 import { getEmployeeRankings } from "@/modules/rankings/queries";
-import { format, subYears } from "date-fns";
-import type {
-  RevenueTimeSeriesPoint,
-  CategoryRevenueSlice,
+import { subYears } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+import {
+  getPeriodRange,
+  type RevenueTimeSeriesPoint,
+  type CategoryRevenueSlice,
 } from "@/modules/admin-dashboard/queries";
+
+// Spend on this page uses spend lines, so split items count at the user's
+// share (owner and co-splitters alike), the same as order history.
 
 function getDateFilter(period: string) {
   const { startDate, endDate } = parsePeriod(period);
@@ -24,52 +30,49 @@ function getDateFilter(period: string) {
     : {};
 }
 
+function getPeriodSpendRange(period: string) {
+  const { startDate, endDate } = parsePeriod(period);
+  return startDate && endDate ? { start: startDate, end: endDate } : undefined;
+}
+
+async function getUserSpendSummary(
+  organizationId: string,
+  userId: string,
+  range?: { start: Date; end: Date },
+) {
+  const rows = await prisma.$queryRaw<
+    { orderKey: string; shop: string; spent: number }[]
+  >`
+    ${spendLinesCte(organizationId, range)}
+    SELECT
+      l."orderKey",
+      COALESCE(sh.name, 'Unknown Shop') AS shop,
+      SUM(l.amount)::float AS spent
+    FROM spend_lines l
+    INNER JOIN "menu_item" m ON l."menuItemId" = m.id
+    LEFT JOIN "shop" sh ON m."shopId" = sh.id
+    WHERE l."userId" = ${userId}
+    GROUP BY 1, 2
+  `;
+
+  let total = 0;
+  const shopBreakdown: Record<string, number> = {};
+  const orderKeys = new Set<string>();
+  rows.forEach((row) => {
+    const amt = Number(row.spent);
+    total += amt;
+    shopBreakdown[row.shop] = (shopBreakdown[row.shop] || 0) + amt;
+    orderKeys.add(row.orderKey);
+  });
+
+  return { total, shopBreakdown, orders: orderKeys.size };
+}
+
 export async function getUserStats(
   organizationId: string,
   userId: string,
   period: string,
 ) {
-  const dateFilter = getDateFilter(period);
-
-  const orders = await prisma.order.findMany({
-    where: {
-      organizationId,
-      userId,
-      status: "approved",
-      ...dateFilter,
-    },
-    select: {
-      items: {
-        where: { replacementApplied: false },
-        select: {
-          quantity: true,
-          menuItem: {
-            select: { price: true, shop: { select: { name: true } } },
-          },
-        },
-      },
-    },
-  });
-
-  let totalSpent = 0;
-  const totalSpentShopBreakdown: Record<string, number> = {};
-  orders.forEach((order) => {
-    order.items.forEach((item) => {
-      const amt = Number(item.menuItem.price) * item.quantity;
-      const shopName = item.menuItem.shop?.name || "Unknown Shop";
-      totalSpent += amt;
-      totalSpentShopBreakdown[shopName] =
-        (totalSpentShopBreakdown[shopName] || 0) + amt;
-    });
-  });
-
-  const totalOrders = orders.length;
-  const averageOrderValue = totalOrders === 0 ? 0 : totalSpent / totalOrders;
-
-  // Rank
-  const rankings = await getEmployeeRankings(organizationId, period);
-  const currentUserRank = rankings.find((r) => r.userId === userId) ?? null;
-
   // Time-based spent
   const { dayStart, dayEnd } = getISTDayBoundaries();
   let includesToday = false;
@@ -85,85 +88,35 @@ export async function getUserStats(
       Number(year) === currentYear && Number(month) === currentMonth + 1;
   }
 
-  const allTimeOrders = await prisma.order.findMany({
-    where: {
-      organizationId,
-      userId,
-      status: "approved",
-    },
-    select: {
-      items: {
-        where: { replacementApplied: false },
-        select: {
-          quantity: true,
-          menuItem: {
-            select: { price: true, shop: { select: { name: true } } },
-          },
-        },
-      },
-    },
-  });
+  const [periodSpend, allTimeSpend, todaySpend, rankings] = await Promise.all([
+    getUserSpendSummary(organizationId, userId, getPeriodSpendRange(period)),
+    getUserSpendSummary(organizationId, userId),
+    includesToday
+      ? getUserSpendSummary(organizationId, userId, {
+          start: dayStart,
+          end: dayEnd,
+        })
+      : null,
+    getEmployeeRankings(organizationId, period),
+  ]);
 
-  let allTimeSpent = 0;
-  const allTimeSpentShopBreakdown: Record<string, number> = {};
-  allTimeOrders.forEach((order) => {
-    order.items.forEach((item) => {
-      const amt = Number(item.menuItem.price) * item.quantity;
-      const shopName = item.menuItem.shop?.name || "Unknown Shop";
-      allTimeSpent += amt;
-      allTimeSpentShopBreakdown[shopName] =
-        (allTimeSpentShopBreakdown[shopName] || 0) + amt;
-    });
-  });
+  const totalOrders = periodSpend.orders;
+  const averageOrderValue =
+    totalOrders === 0 ? 0 : periodSpend.total / totalOrders;
 
-  let todaySpent: number | null = null;
-  const todaySpentShopBreakdown: Record<string, number> = {};
-  if (includesToday) {
-    const todayOrders = await prisma.order.findMany({
-      where: {
-        organizationId,
-        userId,
-        status: "approved",
-        createdAt: {
-          gte: dayStart,
-          lte: dayEnd,
-        },
-      },
-      select: {
-        items: {
-          where: { replacementApplied: false },
-          select: {
-            quantity: true,
-            menuItem: {
-              select: { price: true, shop: { select: { name: true } } },
-            },
-          },
-        },
-      },
-    });
-
-    todaySpent = 0;
-    todayOrders.forEach((order) => {
-      order.items.forEach((item) => {
-        const amt = Number(item.menuItem.price) * item.quantity;
-        const shopName = item.menuItem.shop?.name || "Unknown Shop";
-        todaySpent! += amt;
-        todaySpentShopBreakdown[shopName] =
-          (todaySpentShopBreakdown[shopName] || 0) + amt;
-      });
-    });
-  }
+  // Rank
+  const currentUserRank = rankings.find((r) => r.userId === userId) ?? null;
 
   return {
     totalOrders,
-    totalSpent,
-    totalSpentShopBreakdown,
+    totalSpent: periodSpend.total,
+    totalSpentShopBreakdown: periodSpend.shopBreakdown,
     averageOrderValue,
     currentRank: currentUserRank,
-    allTimeSpent,
-    allTimeSpentShopBreakdown,
-    todaySpent,
-    todaySpentShopBreakdown,
+    allTimeSpent: allTimeSpend.total,
+    allTimeSpentShopBreakdown: allTimeSpend.shopBreakdown,
+    todaySpent: todaySpend ? todaySpend.total : null,
+    todaySpentShopBreakdown: todaySpend ? todaySpend.shopBreakdown : {},
   };
 }
 
@@ -204,41 +157,31 @@ export async function getUserRecentOrders(
   userId: string,
   period: string,
 ) {
-  const dateFilter = getDateFilter(period);
-
-  const orders = await prisma.order.findMany({
-    where: {
-      organizationId,
-      userId,
-      status: "approved",
-      ...dateFilter,
-    },
-    select: {
-      id: true,
-      status: true,
-      createdAt: true,
-      orderWindow: { select: { label: true } },
-      items: {
-        where: { replacementApplied: false },
-        select: {
-          quantity: true,
-          menuItem: { select: { price: true } },
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
+  // Includes windows where the user only shares someone else's item,
+  // as order history does
+  const orders = await prisma.$queryRaw<
+    { id: string; createdAt: Date; windowLabel: string; total: number }[]
+  >`
+    ${spendLinesCte(organizationId, getPeriodSpendRange(period))}
+    SELECT
+      l."orderKey" AS id,
+      MAX(l."createdAt") AS "createdAt",
+      w.label AS "windowLabel",
+      SUM(l.amount)::float AS total
+    FROM spend_lines l
+    INNER JOIN "order_window" w ON l."windowId" = w.id
+    WHERE l."userId" = ${userId}
+    GROUP BY l."orderKey", w.id
+    ORDER BY 2 DESC
+    LIMIT 5
+  `;
 
   return orders.map((order) => ({
     id: order.id,
-    status: order.status,
+    status: "approved",
     createdAt: order.createdAt,
-    windowLabel: order.orderWindow.label,
-    total: order.items.reduce(
-      (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
-      0,
-    ),
+    windowLabel: order.windowLabel,
+    total: Number(order.total),
   }));
 }
 
@@ -246,25 +189,20 @@ export async function getUserHeatmapData(
   organizationId: string,
   userId: string,
 ) {
-  const allTimeOrders = await prisma.order.findMany({
-    where: {
-      organizationId,
-      userId,
-      status: "approved",
-    },
-    select: {
-      createdAt: true,
-      items: {
-        where: { replacementApplied: false },
-        select: {
-          quantity: true,
-          menuItem: { select: { price: true } },
-        },
-      },
-    },
-  });
+  const rangeEnd = new Date();
+  const rows = await prisma.$queryRaw<{ date: string; spent: number }[]>`
+    ${spendLinesCte(organizationId, { start: subYears(rangeEnd, 1), end: rangeEnd })}
+    SELECT
+      TO_CHAR(${IST_CREATED_AT}, 'YYYY-MM-DD') AS "date",
+      SUM(l.amount)::float AS spent
+    FROM spend_lines l
+    WHERE l."userId" = ${userId}
+    GROUP BY 1
+  `;
 
-  return getHeatmapData(allTimeOrders as any);
+  return buildHeatmapDays(
+    new Map(rows.map((row) => [row.date, Number(row.spent)])),
+  );
 }
 
 export async function getUserSplitMasterWins(
@@ -279,15 +217,6 @@ export async function getUserSplitMasterWins(
   });
 }
 
-function getPeriodRange(period: string) {
-  if (period === "all") {
-    const rangeEnd = new Date();
-    return { rangeStart: subYears(rangeEnd, 1), rangeEnd };
-  }
-  const { startDate, endDate } = parsePeriod(period);
-  return { rangeStart: startDate!, rangeEnd: endDate! };
-}
-
 export async function getUserSpendingTimeSeries(
   organizationId: string,
   userId: string,
@@ -299,27 +228,22 @@ export async function getUserSpendingTimeSeries(
   const rows = await prisma.$queryRaw<
     { bucket: Date; revenue: number; orders: bigint }[]
   >`
+    ${spendLinesCte(organizationId, { start: rangeStart, end: rangeEnd })}
     SELECT
-      DATE_TRUNC(${trunc}, o."createdAt" AT TIME ZONE 'Asia/Kolkata') AS bucket,
-      COALESCE(SUM(oi.quantity * m.price), 0)::float AS revenue,
-      COUNT(DISTINCT o.id)::bigint AS orders
-    FROM "order" o
-    INNER JOIN "order_item" oi ON o.id = oi."orderId"
-    INNER JOIN "menu_item" m ON oi."menuItemId" = m.id
-    WHERE o."organizationId" = ${organizationId}
-      AND o."userId" = ${userId}
-      AND o.status = 'approved'
-      AND oi."replacementApplied" = false
-      AND o."createdAt" >= ${rangeStart}
-      AND o."createdAt" <= ${rangeEnd}
+      DATE_TRUNC(${trunc}, ${IST_CREATED_AT}) AS bucket,
+      COALESCE(SUM(l.amount), 0)::float AS revenue,
+      COUNT(DISTINCT l."orderKey")::bigint AS orders
+    FROM spend_lines l
+    WHERE l."userId" = ${userId}
     GROUP BY 1
     ORDER BY 1 ASC
   `;
 
+  // bucket holds IST wall-clock time read back as UTC, so format it in UTC
   const labelFormat =
     trunc === "day"
-      ? (d: Date) => format(d, "d MMM")
-      : (d: Date) => format(d, "MMM yyyy");
+      ? (d: Date) => formatInTimeZone(d, "UTC", "d MMM")
+      : (d: Date) => formatInTimeZone(d, "UTC", "MMM yyyy");
 
   return rows.map((row) => ({
     label: labelFormat(row.bucket),
@@ -333,25 +257,17 @@ export async function getUserSpendingByCategory(
   userId: string,
   period: string,
 ): Promise<CategoryRevenueSlice[]> {
-  const { rangeStart, rangeEnd } =
-    period === "all"
-      ? { rangeStart: new Date(0), rangeEnd: new Date() }
-      : getPeriodRange(period);
+  const { rangeStart, rangeEnd } = getPeriodRange(period);
 
   const rows = await prisma.$queryRaw<{ category: string; revenue: number }[]>`
+    ${spendLinesCte(organizationId, { start: rangeStart, end: rangeEnd })}
     SELECT
       mc.name AS category,
-      COALESCE(SUM(oi.quantity * m.price), 0)::float AS revenue
-    FROM "order" o
-    INNER JOIN "order_item" oi ON o.id = oi."orderId"
-    INNER JOIN "menu_item" m ON oi."menuItemId" = m.id
+      COALESCE(SUM(l.amount), 0)::float AS revenue
+    FROM spend_lines l
+    INNER JOIN "menu_item" m ON l."menuItemId" = m.id
     INNER JOIN "menu_category" mc ON m."menuCategoryId" = mc.id
-    WHERE o."organizationId" = ${organizationId}
-      AND o."userId" = ${userId}
-      AND o.status = 'approved'
-      AND oi."replacementApplied" = false
-      AND o."createdAt" >= ${rangeStart}
-      AND o."createdAt" <= ${rangeEnd}
+    WHERE l."userId" = ${userId}
     GROUP BY mc.name
     ORDER BY revenue DESC
   `;
