@@ -4,7 +4,7 @@ import { expireOrgData } from "@/lib/cache-tags";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "./user";
+import { getCurrentMember, requireAdmin } from "./user";
 import {
   ActionResult,
   CategoryInput,
@@ -483,5 +483,41 @@ export async function updateShopAction(
 
   expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
+  return { success: true };
+}
+
+// Any member can star items from their own org's menu
+export async function toggleFavouriteMenuItemAction(
+  menuItemId: string,
+  isFavourite: boolean,
+): Promise<ActionResult> {
+  const member = await getCurrentMember();
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  const menuItem = await prisma.menuItem.findFirst({
+    where: { id: menuItemId, organizationId: member.organizationId },
+    select: { id: true },
+  });
+
+  if (!menuItem) {
+    return { success: false, error: "Menu item not found" };
+  }
+
+  const key = { userId: member.userId, menuItemId };
+
+  if (isFavourite === true) {
+    await prisma.favouriteMenuItem.upsert({
+      where: { userId_menuItemId: key },
+      create: key,
+      update: {},
+    });
+  } else {
+    await prisma.favouriteMenuItem.deleteMany({ where: key });
+  }
+
+  revalidatePath("/order-window");
   return { success: true };
 }

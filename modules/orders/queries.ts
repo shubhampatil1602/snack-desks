@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { tagOrgData } from "@/lib/cache-tags";
 import { closeWindowInternal } from "@/modules/order-window/close-window";
 
 export async function getActiveWindowWithMenu(organizationId: string) {
@@ -90,6 +91,40 @@ export async function getUserActiveOrder(windowId: string, userId: string) {
       })),
     })),
   };
+}
+
+// History for "Repeat previous order": recent approved orders.
+// Only items the user picked count (not replacements an admin swapped in).
+export async function getUserReorderHistory(
+  organizationId: string,
+  userId: string,
+) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
+  const orderSelect = {
+    id: true,
+    windowId: true,
+    createdAt: true,
+    orderWindow: { select: { label: true } },
+    items: {
+      where: { originalOrderItemId: null },
+      select: {
+        menuItemId: true,
+        quantity: true,
+        menuItem: {
+          select: { shopId: true, shop: { select: { name: true } } },
+        },
+      },
+    },
+  } as const;
+
+  return prisma.order.findMany({
+    where: { organizationId, userId, status: "approved" },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+    select: orderSelect,
+  });
 }
 
 export type ActiveWindowWithMenu = Awaited<

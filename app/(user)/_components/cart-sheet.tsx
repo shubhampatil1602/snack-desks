@@ -9,6 +9,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { QuantityInput } from "./QuantityInput";
+import { EmptyCartButton } from "./empty-cart-button";
 import {
   Table,
   TableBody,
@@ -41,6 +42,7 @@ import {
   useCartSubtotal,
   type CartItem,
 } from "@/store/cart-store";
+import { useOrderMutation } from "@/store/order-mutation-store";
 import {
   X,
   Plus,
@@ -62,9 +64,9 @@ import {
 } from "@/actions/orders";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { hasCartChanged } from "@/lib/cart";
+import { hasCartChanged, toOrderItemsInput } from "@/lib/cart";
 import { ORDER_STATUS } from "@/lib/constants";
-import { useTransition, useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { cn, formatSplitNames } from "@/lib/utils";
 
@@ -84,9 +86,11 @@ export interface ActiveMenuItem {
 }
 
 export function CartSheet({ open, onOpenChange }: CartSheetProps) {
-  const [cancelling, setCancelling] = useState(false);
-  const [placing, startPlacing] = useTransition();
-  const [updating, startUpdating] = useTransition();
+  // shared with the order window's card, so both show the same request
+  const { pending, run } = useOrderMutation();
+  const placing = pending === "placing";
+  const updating = pending === "updating";
+  const cancelling = pending === "cancelling";
   const [activeMenuItems, setActiveMenuItems] = useState<ActiveMenuItem[]>([]);
   const sharedItems = useCartStore((state) => state.sharedItems);
   const setSharedItems = useCartStore((state) => state.setSharedItems);
@@ -121,10 +125,10 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const router = useRouter();
   const subtotal = useCartSubtotal();
 
-  const isMutating = placing || updating || cancelling;
+  const isMutating = pending !== null;
 
   function handlePlaceOrder() {
-    startPlacing(async () => {
+    run("placing", async () => {
       if (!windowId) {
         toast.error("Order window not found");
         return;
@@ -132,15 +136,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
       const result = await placeOrderAction({
         windowId,
-        items: items.map((item) => ({
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          splitUserIds: item.splitUsers?.map((u) => u.id),
-          replacements: item.replacements?.map((rep) => ({
-            menuItemId: rep.menuItemId,
-            quantity: rep.quantity,
-          })),
-        })),
+        items: toOrderItemsInput(items),
       });
 
       if (!result.success) {
@@ -153,7 +149,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
     });
   }
   function handleUpdateOrder() {
-    startUpdating(async () => {
+    run("updating", async () => {
       if (!orderId) {
         toast.error("Order not found");
         return;
@@ -166,15 +162,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
       const result = await updateOrderAction(
         orderId,
-        items.map((item) => ({
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          splitUserIds: item.splitUsers?.map((u) => u.id),
-          replacements: item.replacements?.map((rep) => ({
-            menuItemId: rep.menuItemId,
-            quantity: rep.quantity,
-          })),
-        })),
+        toOrderItemsInput(items),
       );
 
       if (!result.success) {
@@ -186,35 +174,33 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
       router.refresh();
     });
   }
-  async function handleCancelOrder() {
+  function handleCancelOrder() {
     if (!orderId) {
       toast.error("Order not found");
       return;
     }
 
-    try {
-      setCancelling(true);
+    run("cancelling", async () => {
+      try {
+        const result = await cancelOrderAction(orderId);
 
-      const result = await cancelOrderAction(orderId);
+        if (!result.success) {
+          toast.error(result.error);
+          return;
+        }
 
-      if (!result.success) {
-        toast.error(result.error);
-        return;
+        toast.success("Order cancelled");
+
+        clearCart();
+
+        onOpenChange(false);
+
+        router.refresh();
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to cancel order");
       }
-
-      toast.success("Order cancelled");
-
-      clearCart();
-
-      onOpenChange(false);
-
-      router.refresh();
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to cancel order");
-    } finally {
-      setCancelling(false);
-    }
+    });
   }
 
   const hasChanges = hasCartChanged(items, savedItems);
@@ -424,12 +410,13 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                   <Button
                     className='w-full'
                     onClick={handlePlaceOrder}
-                    disabled={items.length === 0 || placing}
+                    disabled={items.length === 0 || isMutating}
                     size='lg'
                   >
                     {placing && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
                     {placing ? "Placing..." : "Place Order"}
                   </Button>
+                  <EmptyCartButton className='mt-2 w-full' />
                   {items.length === 0 && sharedItems && sharedItems.length > 0 && (
                     <p className='text-[11px] text-center text-muted-foreground mt-2'>
                       Your shared group order is already placed by{" "}
@@ -441,7 +428,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 <div className='flex justify-between gap-3'>
                   <Button
                     onClick={handleUpdateOrder}
-                    disabled={!hasChanges || updating}
+                    disabled={!hasChanges || isMutating}
                     className='flex-1'
                   >
                     {updating && (
@@ -455,7 +442,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                       <Button
                         variant='outline'
                         className='flex-1'
-                        disabled={cancelling}
+                        disabled={isMutating}
                       >
                         {cancelling && (
                           <Loader2 className='mr-2 h-4 w-4 animate-spin' />
@@ -481,7 +468,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                         <AlertDialogAction
                           onClick={handleCancelOrder}
                           className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                          disabled={cancelling}
+                          disabled={isMutating}
                         >
                           {cancelling ? "Cancelling..." : "Cancel Order"}
                         </AlertDialogAction>

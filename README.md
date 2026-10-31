@@ -15,6 +15,9 @@ Admins can create ordering windows, manage menus, approve orders, track spending
 - Order windows with countdown timers (auto-close and auto-approve on expiry)
 - Menu, category & shop management (with UPI payment QR per shop)
 - Order approval workflow, item replacements, and late / on-behalf orders
+- Repeat your previous order in one tap (only items from the window's shops)
+- Star favourite menu items and filter the menu to them
+- Menu grouped by category with a sticky search and filter bar, grid or list view, and your order in a floating card you can fold away (a bottom bar on phones)
 - Group item splitting (cost shared between participants)
 - Spin-the-wheel "split master" winner per window, with paid tracking
 - Real-time updates using PostgreSQL LISTEN/NOTIFY + SSE
@@ -251,6 +254,7 @@ pnpm db:reset
 - Update orders
 - Cancel orders
 - Split items with teammates
+- Repeat the previous order, star favourite menu items, grid or list menu
 - View rankings and history
 
 ---

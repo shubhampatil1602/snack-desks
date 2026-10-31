@@ -63,6 +63,8 @@ type CartStore = {
   setSharedItems: (sharedItems: CartSharedItem[]) => void;
 
   clearCart: () => void;
+  // replaces only your own items; the order and shared items stay
+  setItems: (items: CartItem[]) => void;
 
   loadExistingOrder: (data: {
     orderId: string;
@@ -244,6 +246,8 @@ export const useCartStore = create<CartStore>()(
           hasPlacedOrder: false,
           savedItems: [],
         }),
+
+      setItems: (items) => set({ items }),
 
       loadExistingOrder: ({ orderId, status, items }) =>
         set({

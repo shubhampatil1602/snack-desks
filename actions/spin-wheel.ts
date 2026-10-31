@@ -4,6 +4,29 @@ import { expireOrgData } from "@/lib/cache-tags";
 import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { SPIN_EXCLUDED_USER_IDS } from "@/lib/constants";
+
+type SpinCandidate = { id: string; name: string };
+
+// Relaxes the rules only when nobody is left, so a window always gets a winner:
+// 1. not excluded and not the previous window's winner
+// 2. not excluded (the previous winner may win again)
+// 3. anyone who ordered (excluded users win only if they're the only ones)
+function pickEligible(
+  candidates: SpinCandidate[],
+  previousWinnerId: string | null,
+) {
+  const notExcluded = candidates.filter(
+    (user) => !SPIN_EXCLUDED_USER_IDS.includes(user.id),
+  );
+  const notPreviousWinner = notExcluded.filter(
+    (user) => user.id !== previousWinnerId,
+  );
+
+  if (notPreviousWinner.length > 0) return notPreviousWinner;
+  if (notExcluded.length > 0) return notExcluded;
+  return candidates;
+}
 
 export async function spinWheelAction(windowId: string) {
   const { member } = await requireAdmin();
@@ -27,12 +50,6 @@ export async function spinWheelAction(windowId: string) {
     };
   }
 
-  const excludedIds = [
-    "hBnoaYLfQSivXVOcNY5Bj2JgbTWXR4po",
-    "ZnQ2LO4x1qu0rGOocGebxXvq0OdTNhqu",
-    "rfxrlBvbryRERoUnpgoy6dXx495yZbou",
-  ];
-
   let previousWinnerId: string | null = null;
   try {
     const previousWindow = await prisma.orderWindow.findFirst({
@@ -49,7 +66,7 @@ export async function spinWheelAction(windowId: string) {
     console.error("Failed to fetch previous winner", e);
   }
 
-  let filtered: { id: string; name: string }[] = [];
+  let candidates: SpinCandidate[] = [];
 
   if (window.winnerUserId) {
     // Late-spin: Re-spin between current winner and all late orders
@@ -73,41 +90,9 @@ export async function spinWheelAction(windowId: string) {
       select: { id: true, name: true },
     });
 
-    const eligible = lateParticipants.filter(
-      (p) =>
-        !excludedIds.includes(p.user.id) &&
-        (!previousWinnerId || p.user.id !== previousWinnerId),
-    );
-
-    const lateUserIds = new Set(eligible.map((p) => p.user.id));
-    filtered = eligible.map((p) => p.user);
-
-    if (currentWinner && !lateUserIds.has(currentWinner.id)) {
-      const isExcluded =
-        excludedIds.includes(currentWinner.id) ||
-        (previousWinnerId && currentWinner.id === previousWinnerId);
-
-      if (!isExcluded) {
-        filtered.push(currentWinner);
-      }
-    }
-
-    if (filtered.length === 0) {
-      // Fallback: allow previous winner if they are the only ones available
-      const fallbackEligible = lateParticipants.filter(
-        (p) => !excludedIds.includes(p.user.id),
-      );
-      filtered = fallbackEligible.map((p) => p.user);
-
-      if (currentWinner && !excludedIds.includes(currentWinner.id)) {
-        if (!filtered.some((u) => u.id === currentWinner.id)) {
-          filtered.push(currentWinner);
-        }
-      }
-
-      if (filtered.length === 0) {
-        return { success: false, error: "No eligible participants found" };
-      }
+    candidates = lateParticipants.map((p) => p.user);
+    if (currentWinner && !candidates.some((u) => u.id === currentWinner.id)) {
+      candidates.push(currentWinner);
     }
   } else {
     // Initial spin
@@ -126,27 +111,10 @@ export async function spinWheelAction(windowId: string) {
       return { success: false, error: "No participants found" };
     }
 
-    let eligible = participants.filter(
-      (p) =>
-        !excludedIds.includes(p.user.id) &&
-        (!previousWinnerId || p.user.id !== previousWinnerId),
-    );
-
-    if (eligible.length === 0) {
-      // Fallback: If excluding the previous winner leaves us with 0 participants,
-      // allow the previous winner to participate (e.g. they are the only person in the window).
-      const fallbackEligible = participants.filter(
-        (p) => !excludedIds.includes(p.user.id),
-      );
-      if (fallbackEligible.length > 0) {
-        eligible = fallbackEligible;
-      } else {
-        return { success: false, error: "No eligible participants found" };
-      }
-    }
-
-    filtered = eligible.map((p) => p.user);
+    candidates = participants.map((p) => p.user);
   }
+
+  const filtered = pickEligible(candidates, previousWinnerId);
 
   const winner = filtered[Math.floor(Math.random() * filtered.length)];
 

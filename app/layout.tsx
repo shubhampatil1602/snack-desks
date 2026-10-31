@@ -95,7 +95,7 @@ export default function RootLayout({
         >
           <ThemeColorProvider>
           {children}
-          <Toaster position='bottom-right' />
+          <Toaster position='top-right' />
           <CookieConsent />
           </ThemeColorProvider>
         </ThemeProvider>

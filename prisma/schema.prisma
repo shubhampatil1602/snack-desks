@@ -25,9 +25,10 @@ model User {
   passwordResetToken  String?
   passwordResetExpiry DateTime?
 
-  wonWindows OrderWindow[] @relation("OrderWindowWinner")
-  adminCreatedOrders Order[] @relation("AdminCreatedOrders")
-  orderItemSplits OrderItemSplit[]
+  wonWindows         OrderWindow[]       @relation("OrderWindowWinner")
+  adminCreatedOrders Order[]             @relation("AdminCreatedOrders")
+  orderItemSplits    OrderItemSplit[]
+  favouriteMenuItems FavouriteMenuItem[]
 
   @@unique([email])
   @@map("user")
@@ -104,14 +105,14 @@ model Organization {
 }
 
 model Member {
-  id             String       @id
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId               String
-  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role                 String
-  canViewGlobalSplit   Boolean      @default(false)
-  createdAt            DateTime
+  id                 String       @id
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role               String
+  canViewGlobalSplit Boolean      @default(false)
+  createdAt          DateTime
 
   @@unique([organizationId, userId])
   @@index([userId])
@@ -146,14 +147,14 @@ model OrderWindow {
   createdBy String // userId of admin who started it
   createdAt DateTime  @default(now())
 
-  orders       Order[]
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  orders               Order[]
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   winnerUserId         String?
   winnerUser           User?        @relation("OrderWindowWinner", fields: [winnerUserId], references: [id])
   originalWinnerUserId String?
-  lastSpunAt   DateTime?
-  paid         Boolean      @default(false)
-  shops        Shop[]
+  lastSpunAt           DateTime?
+  paid                 Boolean      @default(false)
+  shops                Shop[]
 
   @@index([organizationId])
   @@index([status])
@@ -167,16 +168,16 @@ model Order {
   userId         String
   windowId       String
 
-  status       String // "pending" | "approved" | "rejected" | "cancelled"
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  createdByAdmin  Boolean   @default(false)
+  status          String // "pending" | "approved" | "rejected" | "cancelled"
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  createdByAdmin  Boolean      @default(false)
   createdByUserId String?
-  items        OrderItem[]
-  orderWindow  OrderWindow  @relation(fields: [windowId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  adminUser    User?        @relation("AdminCreatedOrders", fields: [createdByUserId], references: [id])
+  items           OrderItem[]
+  orderWindow     OrderWindow  @relation(fields: [windowId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  adminUser       User?        @relation("AdminCreatedOrders", fields: [createdByUserId], references: [id])
 
   @@index([userId])
   @@index([windowId])
@@ -264,6 +265,7 @@ model MenuItem {
 
   orderItems             OrderItem[]
   replacementPreferences OrderItemReplacement[]
+  favouritedBy           FavouriteMenuItem[]
   organization           Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   menuCategory           MenuCategory           @relation(fields: [menuCategoryId], references: [id])
   menuCategoryId         String
@@ -276,6 +278,20 @@ model MenuItem {
   @@index([menuCategoryId])
   @@index([organizationId, isAvailable])
   @@map("menu_item")
+}
+
+// menu items a user starred; each user has their own
+model FavouriteMenuItem {
+  userId     String
+  menuItemId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@id([userId, menuItemId])
+  @@index([menuItemId])
+  @@map("favourite_menu_item")
 }
 
 model MenuCategory {
@@ -295,12 +311,12 @@ model Shop {
   id             String @id
   organizationId String
 
-  name       String
-  paymentUpi String?
-  isGroupOrderEnabled Boolean @default(false)
-  createdAt  DateTime @default(now())
+  name                String
+  paymentUpi          String?
+  isGroupOrderEnabled Boolean  @default(false)
+  createdAt           DateTime @default(now())
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   menuItems    MenuItem[]
   orderWindows OrderWindow[]
 

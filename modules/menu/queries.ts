@@ -55,3 +55,16 @@ export async function getMenuItemsSoldCounts(organizationId: string) {
     grouped.map((row) => [row.menuItemId, row._sum.quantity ?? 0]),
   );
 }
+
+// Not cached: it's per user, small, and changes on every star tap
+export async function getUserFavouriteMenuItemIds(
+  organizationId: string,
+  userId: string,
+) {
+  const favourites = await prisma.favouriteMenuItem.findMany({
+    where: { userId, menuItem: { organizationId } },
+    select: { menuItemId: true },
+  });
+
+  return favourites.map((favourite) => favourite.menuItemId);
+}

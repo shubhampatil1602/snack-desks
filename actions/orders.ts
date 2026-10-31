@@ -101,9 +101,12 @@ export async function placeOrderAction(
     };
   }
 
-  const itemsError = await validateOrderItems(member.organizationId, items, {
-    requireAvailable: true,
-  });
+  const itemsError = await validateOrderItems(
+    member.organizationId,
+    windowId,
+    items,
+    { requireAvailable: true },
+  );
   if (itemsError) {
     return { success: false, error: itemsError };
   }
@@ -248,9 +251,12 @@ export async function updateOrderAction(
     return { success: true, orderId: order.id };
   }
 
-  const itemsError = await validateOrderItems(order.organizationId, items, {
-    requireAvailable: true,
-  });
+  const itemsError = await validateOrderItems(
+    order.organizationId,
+    order.windowId,
+    items,
+    { requireAvailable: true },
+  );
   if (itemsError) {
     return { success: false, error: itemsError };
   }
@@ -491,9 +497,22 @@ export async function updateAdminOrderAction(
     };
   }
 
-  const itemsError = await validateOrderItems(order.organizationId, items, {
-    requireAvailable: false,
+  // items already on the order stay editable even if their shop isn't
+  // linked to the window (orders from before shops were enforced)
+  const existingItems = await prisma.orderItem.findMany({
+    where: { orderId },
+    select: { menuItemId: true },
   });
+
+  const itemsError = await validateOrderItems(
+    order.organizationId,
+    order.windowId,
+    items,
+    {
+      requireAvailable: false,
+      allowMenuItemIds: existingItems.map((item) => item.menuItemId),
+    },
+  );
   if (itemsError) {
     return { success: false, error: itemsError };
   }
@@ -747,9 +766,12 @@ export async function createLateOrderAction(
     };
   }
 
-  const itemsError = await validateOrderItems(member.organizationId, items, {
-    requireAvailable: false,
-  });
+  const itemsError = await validateOrderItems(
+    member.organizationId,
+    windowId,
+    items,
+    { requireAvailable: false },
+  );
   if (itemsError) {
     return { success: false, error: itemsError };
   }
@@ -914,9 +936,12 @@ export async function createOrderOnBehalfAction(
     };
   }
 
-  const itemsError = await validateOrderItems(member.organizationId, items, {
-    requireAvailable: false,
-  });
+  const itemsError = await validateOrderItems(
+    member.organizationId,
+    windowId,
+    items,
+    { requireAvailable: false },
+  );
   if (itemsError) {
     return { success: false, error: itemsError };
   }
@@ -1143,12 +1168,16 @@ export async function getUserActiveSharedSplitsAction() {
 
 type OrderItemInput = PlaceOrderInput["items"][number];
 
-// Menu items must belong to the org (and be available when required);
-// split users must be members of the org
+// Menu items must belong to the org and to the shops the window was opened
+// with (and be available when required); split users must be org members
 async function validateOrderItems(
   organizationId: string,
+  windowId: string,
   items: OrderItemInput[],
-  { requireAvailable }: { requireAvailable: boolean },
+  {
+    requireAvailable,
+    allowMenuItemIds = [],
+  }: { requireAvailable: boolean; allowMenuItemIds?: string[] },
 ): Promise<string | null> {
   const menuItemIds = [
     ...new Set(
@@ -1159,13 +1188,33 @@ async function validateOrderItems(
     ),
   ];
 
-  const menuItems = await prisma.menuItem.findMany({
-    where: { id: { in: menuItemIds }, organizationId },
-    select: { id: true, name: true, isAvailable: true },
-  });
+  const [menuItems, window] = await Promise.all([
+    prisma.menuItem.findMany({
+      where: { id: { in: menuItemIds }, organizationId },
+      select: { id: true, name: true, isAvailable: true, shopId: true },
+    }),
+    prisma.orderWindow.findUnique({
+      where: { id: windowId },
+      select: { shops: { select: { id: true } } },
+    }),
+  ]);
 
   if (menuItems.length !== menuItemIds.length) {
     return "Menu item not found";
+  }
+
+  // older windows without linked shops allow every shop
+  const windowShopIds = new Set(window?.shops.map((shop) => shop.id) ?? []);
+  if (windowShopIds.size > 0) {
+    const allowed = new Set(allowMenuItemIds);
+    const outsideWindow = menuItems.find(
+      (menuItem) =>
+        !allowed.has(menuItem.id) &&
+        !(menuItem.shopId && windowShopIds.has(menuItem.shopId)),
+    );
+    if (outsideWindow) {
+      return `${outsideWindow.name} isn't from a shop in this order window`;
+    }
   }
 
   if (requireAvailable) {

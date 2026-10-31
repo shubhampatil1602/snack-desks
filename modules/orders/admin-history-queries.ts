@@ -46,6 +46,11 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
       ...dateFilter,
     },
     include: {
+      shops: {
+        select: {
+          id: true,
+        },
+      },
       winnerUser: {
         select: {
           id: true,

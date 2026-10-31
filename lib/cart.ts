@@ -53,3 +53,16 @@ export function hasCartChanged(
 
   return false;
 }
+
+// Cart items in the shape placeOrderAction and updateOrderAction take
+export function toOrderItemsInput(items: CartItem[]) {
+  return items.map((item) => ({
+    menuItemId: item.menuItemId,
+    quantity: item.quantity,
+    splitUserIds: item.splitUsers?.map((u) => u.id),
+    replacements: item.replacements?.map((rep) => ({
+      menuItemId: rep.menuItemId,
+      quantity: rep.quantity,
+    })),
+  }));
+}

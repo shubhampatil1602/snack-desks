@@ -289,6 +289,17 @@ function buildWindowParticipantOrders(
   return result;
 }
 
+// Only items from the shops the window was opened with; older windows
+// without linked shops allow every shop
+function getWindowMenuItems(
+  menuItems: MenuItem[],
+  shops: AdminWindowHistoryType[number]["shops"],
+) {
+  if (shops.length === 0) return menuItems;
+  const shopIds = new Set(shops.map((shop) => shop.id));
+  return menuItems.filter((item) => item.shopId && shopIds.has(item.shopId));
+}
+
 type AdminWindowHistoryProps = {
   windows: AdminWindowHistoryType;
   menuItems: MenuItem[];
@@ -551,6 +562,7 @@ export function AdminWindowHistory({
       <div>
         {pagination.paginatedData.map((window) => {
           const isExpanded = expandedWindows[window.id];
+          const windowMenuItems = getWindowMenuItems(menuItems, window.shops);
           const windowShopRevenue: Record<string, number> = {};
           let windowRevenue = 0;
 
@@ -689,7 +701,7 @@ export function AdminWindowHistory({
                       <AddLateOrderDialog
                         windowId={window.id}
                         windowLabel={window.label}
-                        menuItems={menuItems}
+                        menuItems={windowMenuItems}
                       />
                     )}
                   </div>
@@ -854,7 +866,7 @@ export function AdminWindowHistory({
                                           ).filter(
                                             (item) => !item.replacementApplied,
                                           )}
-                                          menuItems={menuItems}
+                                          menuItems={windowMenuItems}
                                         />
                                       )}
                                     {!order.isCoSplitOnly &&

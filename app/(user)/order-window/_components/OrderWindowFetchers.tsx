@@ -1,4 +1,10 @@
-import { getActiveWindowWithMenu, getUserActiveOrder } from "@/modules/orders/queries";
+import {
+  getActiveWindowWithMenu,
+  getUserActiveOrder,
+  getUserReorderHistory,
+} from "@/modules/orders/queries";
+import { getUserFavouriteMenuItemIds } from "@/modules/menu/queries";
+import { buildRepeatOrder } from "@/modules/orders/reorder";
 import { NoActiveWindow } from "./NoActiveWindow";
 import { OrdersClient } from "./OrdersClient";
 import { WindowBanner } from "./WindowBanner";
@@ -13,10 +19,6 @@ export async function OrderWindowFetcher({
 }) {
   const activeWindowData = await getActiveWindowWithMenu(organizationId);
 
-  const existingOrder = activeWindowData
-    ? await getUserActiveOrder(activeWindowData.window.id, userId)
-    : null;
-
   if (!activeWindowData) {
     return (
       <>
@@ -26,6 +28,14 @@ export async function OrderWindowFetcher({
     );
   }
   
+  const [existingOrder, reorderHistory, favouriteMenuItemIds] =
+    await Promise.all([
+      getUserActiveOrder(activeWindowData.window.id, userId),
+      getUserReorderHistory(organizationId, userId),
+      getUserFavouriteMenuItemIds(organizationId, userId),
+    ]);
+  const repeatOrder = buildRepeatOrder(reorderHistory, activeWindowData);
+
   const serverNow = new Date().getTime();
 
   return (
@@ -40,6 +50,8 @@ export async function OrderWindowFetcher({
         windowId={activeWindowData.window.id}
         menuItems={activeWindowData.menuItems}
         existingOrder={existingOrder}
+        repeatOrder={repeatOrder}
+        favouriteMenuItemIds={favouriteMenuItemIds}
       />
     </div>
   );

@@ -3,12 +3,14 @@
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartSheet } from "./cart-sheet";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useCartCount, useCartStore } from "@/store/cart-store";
+import { useCartSheetStore } from "@/store/cart-sheet-store";
 import { getUserActiveSharedSplitsAction } from "@/actions/orders";
 
 export function CartButton() {
-  const [open, setOpen] = useState(false);
+  const open = useCartSheetStore((state) => state.open);
+  const setOpen = useCartSheetStore((state) => state.setOpen);
 
   const itemCount = useCartCount();
   const setSharedItems = useCartStore((state) => state.setSharedItems);
