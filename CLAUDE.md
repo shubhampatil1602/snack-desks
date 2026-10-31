@@ -31,6 +31,12 @@ Internal office snack-ordering app (multi-tenant). Live: snackdesk.shubhamspatil
 
 **Layout:** `app/` routes (`(auth)`, `(user)`, `admin`, `super-admin`, `api`) · `modules/<feature>/queries.ts` read queries · `actions/` server actions · `lib/sse` real-time (Postgres LISTEN/NOTIFY → SSE) · `lib/date-utils.ts` IST helpers.
 
+**Authorization (gotcha):** Every export of a `"use server"` file is a public endpoint — guard each one, and keep internal helpers (e.g. `modules/order-window/close-window.ts`) out of `actions/`. Admin actions must check that the record they touch belongs to the admin's org (`where: { id, organizationId }`); `requireAdmin()` only proves the caller is admin of *some* org. User management goes through `canManageUser` (`lib/auth/manage-user.ts`).
+
+**Caching (gotcha):** `cacheComponents` is on. Read queries in `modules/*` use `"use cache: remote"` + `tagOrgData(orgId, ...kinds)` (`lib/cache-tags.ts`, kinds: orders/menu/members). Any server action that writes must call `expireOrgData(orgId, ...kinds)` or pages keep showing old numbers (until the 15-min revalidate). Active-window reads stay uncached (they lazily close expired windows); countdowns call `closeExpiredWindowAction`. Root layout wraps `<body>` in `<Suspense>` so every page renders per request; route segment configs (`dynamic`, `runtime`) aren't allowed. Browser keeps pages 60s (`staleTimes`); live pages use `useRefreshWhenStale`.
+
+**Migrations drift:** `prisma/migrations` lacks `order_window.originalWinnerUserId`, `shop.isGroupOrderEnabled`, `order_item_split`, `_OrderWindowToShop` (prod was `db push`ed). A fresh DB from migrations is broken until a migration is added.
+
 **Timezone (gotcha):** All business dates are IST (`Asia/Kolkata`). DB timestamps are `TIMESTAMP(3)` without tz, stored as UTC. In raw SQL, convert with `(col AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata'` — a single `AT TIME ZONE 'Asia/Kolkata'` shifts the wrong way. Period strings: `"all"`, `"YYYY"`, `"YYYY-MM"` (`parsePeriod`).
 
 **Commands:** `pnpm dev` · `pnpm lint` · `pnpm db:up|db:migrate|db:seed|db:studio`. No test suite.

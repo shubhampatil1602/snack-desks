@@ -36,7 +36,7 @@ export async function OrderWindowContentFetcher({ organizationId }: { organizati
             </TabsList>
 
             <TabsContent value='active-orders'>
-              <LiveOrdersSSE />
+              <LiveOrdersSSE renderedAt={serverNow} />
               <LiveOrdersTable
                 orders={liveOrders}
                 windowId={activeWindow.id}

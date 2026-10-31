@@ -1,11 +1,13 @@
 "use server";
 
+import { expireOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "./user";
+import { authIsRequired, requireAdmin } from "./user";
 import { notify } from "@/lib/sse/pg-notify";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { closeWindowInternal } from "@/modules/order-window/close-window";
 
 const createWindowSchema = z.object({
   label: z.string().trim().min(1, "Label is required"),
@@ -51,6 +53,15 @@ export async function createWindowAction(
     };
   }
 
+  const shopIds = [...new Set(parsed.data.shopIds)];
+  const ownShopCount = await prisma.shop.count({
+    where: { id: { in: shopIds }, organizationId: member.organizationId },
+  });
+
+  if (ownShopCount !== shopIds.length) {
+    return { success: false, error: "Shop not found" };
+  }
+
   const startsAt = new Date();
   const endsAt = parsed.data.duration
     ? new Date(startsAt.getTime() + parsed.data.duration * 60 * 1000)
@@ -65,7 +76,7 @@ export async function createWindowAction(
       endsAt,
       createdBy: session.user.id,
       shops: {
-        connect: parsed.data.shopIds.map((id) => ({ id })),
+        connect: shopIds.map((id) => ({ id })),
       },
       organization: {
         connect: { id: member.organizationId },
@@ -85,6 +96,7 @@ export async function createWindowAction(
     },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
   return { success: true };
@@ -130,47 +142,55 @@ export async function closeWindowAction(
     payload: { windowId },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
   return { success: true };
 }
 
-export async function closeWindowInternal(windowId: string) {
-  await prisma.$transaction(async (tx) => {
-    const orderCount = await tx.order.count({
-      where: {
-        windowId,
-      },
-    });
+// Called by any viewer's countdown when the timer runs out, so the window
+// closes (auto-approving pending orders) and everyone refreshes right away
+// instead of on their next page load
+export async function closeExpiredWindowAction(
+  windowId: string,
+): Promise<ActionResult> {
+  const session = await authIsRequired();
 
-    // no orders placed - delete window completely
-    if (orderCount === 0) {
-      await tx.orderWindow.delete({
-        where: {
-          id: windowId,
-        },
-      });
-
-      return;
-    }
-    await tx.order.updateMany({
-      where: {
-        windowId,
-        status: "pending",
-      },
-      data: {
-        status: "approved",
-      },
-    });
-
-    await tx.orderWindow.update({
-      where: {
-        id: windowId,
-      },
-      data: {
-        status: "closed",
-        endsAt: new Date(),
-      },
-    });
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
   });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
+  const window = await prisma.orderWindow.findFirst({
+    where: { id: windowId, organizationId: member.organizationId },
+  });
+
+  if (!window || window.status !== "active") {
+    revalidatePath("/order-window");
+    return { success: true };
+  }
+
+  if (!window.endsAt || window.endsAt > new Date()) {
+    return { success: false, error: "Window is still open" };
+  }
+
+  const closed = await closeWindowInternal(windowId);
+
+  if (closed) {
+    await notify({
+      type: "window_closed",
+      orgId: member.organizationId,
+      payload: { windowId },
+    });
+
+    expireOrgData(member.organizationId, "orders");
+  }
+
+  revalidatePath("/admin/order-window");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/order-window");
+  return { success: true };
 }

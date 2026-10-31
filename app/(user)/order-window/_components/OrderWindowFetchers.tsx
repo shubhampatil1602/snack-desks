@@ -31,6 +31,7 @@ export async function OrderWindowFetcher({
   return (
     <div className='w-full'>
       <WindowBanner
+        windowId={activeWindowData.window.id}
         endsAt={activeWindowData.window.endsAt}
         label={activeWindowData.window.label}
         serverNow={serverNow}

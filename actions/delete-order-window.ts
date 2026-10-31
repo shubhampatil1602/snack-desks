@@ -1,23 +1,18 @@
 "use server";
 
+import { expireOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
-import { authIsRequired } from "@/actions/user";
+import { requireAdmin } from "@/actions/user";
 import { revalidatePath } from "next/cache";
 
 export async function deleteOrderWindowAction(windowId: string) {
   try {
-    const session = await authIsRequired();
+    const { member } = await requireAdmin();
 
-    if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-      return {
-        success: false,
-        error: "Unauthorized",
-      };
-    }
-
-    const window = await prisma.orderWindow.findUnique({
+    const window = await prisma.orderWindow.findFirst({
       where: {
         id: windowId,
+        organizationId: member.organizationId,
       },
       select: {
         id: true,
@@ -38,6 +33,7 @@ export async function deleteOrderWindowAction(windowId: string) {
       },
     });
 
+    expireOrgData(member.organizationId, "orders");
     revalidatePath("/admin/order-window");
     revalidatePath("/order-window");
 
@@ -56,14 +52,7 @@ export async function deleteOrderWindowAction(windowId: string) {
 
 export async function deleteMultipleOrderWindowsAction(windowIds: string[]) {
   try {
-    const session = await authIsRequired();
-
-    if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-      return {
-        success: false,
-        error: "Unauthorized",
-      };
-    }
+    const { member } = await requireAdmin();
 
     if (!windowIds || windowIds.length === 0) {
       return {
@@ -75,9 +64,11 @@ export async function deleteMultipleOrderWindowsAction(windowIds: string[]) {
     await prisma.orderWindow.deleteMany({
       where: {
         id: { in: windowIds },
+        organizationId: member.organizationId,
       },
     });
 
+    expireOrgData(member.organizationId, "orders");
     revalidatePath("/admin/history");
 
     return {

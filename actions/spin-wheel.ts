@@ -1,15 +1,17 @@
 "use server";
 
+import { expireOrgData } from "@/lib/cache-tags";
 import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
 export async function spinWheelAction(windowId: string) {
-  await requireAdmin();
+  const { member } = await requireAdmin();
 
-  const window = await prisma.orderWindow.findUnique({
+  const window = await prisma.orderWindow.findFirst({
     where: {
       id: windowId,
+      organizationId: member.organizationId,
     },
     select: {
       winnerUserId: true,
@@ -34,7 +36,11 @@ export async function spinWheelAction(windowId: string) {
   let previousWinnerId: string | null = null;
   try {
     const previousWindow = await prisma.orderWindow.findFirst({
-      where: { id: { not: windowId }, winnerUserId: { not: null } },
+      where: {
+        organizationId: member.organizationId,
+        id: { not: windowId },
+        winnerUserId: { not: null },
+      },
       orderBy: { createdAt: "desc" },
       select: { winnerUserId: true },
     });
@@ -154,6 +160,7 @@ export async function spinWheelAction(windowId: string) {
     },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/history");
   revalidatePath("/history");
 
@@ -164,10 +171,10 @@ export async function spinWheelAction(windowId: string) {
 }
 
 export async function markAsPaidAction(windowId: string) {
-  await requireAdmin();
+  const { member } = await requireAdmin();
 
-  const window = await prisma.orderWindow.findUnique({
-    where: { id: windowId },
+  const window = await prisma.orderWindow.findFirst({
+    where: { id: windowId, organizationId: member.organizationId },
     select: {
       winnerUserId: true,
       paid: true,
@@ -191,6 +198,7 @@ export async function markAsPaidAction(windowId: string) {
     data: { paid: true },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/history");
   revalidatePath("/history");
 

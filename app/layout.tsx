@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   Geist,
   Geist_Mono,
@@ -68,6 +69,9 @@ export default function RootLayout({
         instrumentSerifHeading.variable,
       )}
     >
+      {/* Every page reads the session, so render all of them at request
+          time; data is cached per query with "use cache" instead */}
+      <Suspense fallback={null}>
       <body className='min-h-full flex flex-col'>
         <script
           dangerouslySetInnerHTML={{
@@ -97,6 +101,7 @@ export default function RootLayout({
         </ThemeProvider>
         <AnalyticsProvider />
       </body>
+      </Suspense>
     </html>
   );
 }

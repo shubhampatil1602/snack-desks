@@ -1,14 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useCloseWindowOnExpiry } from "@/hooks/use-countdown";
+import { useRefreshWhenStale } from "@/hooks/use-refresh-when-stale";
 
 type Props = {
+  windowId: string;
   endsAt: string | Date | null;
   serverNow: number;
 };
 
-export function CountdownTimer({ endsAt, serverNow }: Props) {
+export function CountdownTimer({ windowId, endsAt, serverNow }: Props) {
   const [timeLeft, setTimeLeft] = useState("--:--");
+
+  // a cached page has an old serverNow, which would skew the timer
+  useRefreshWhenStale(serverNow);
+  useCloseWindowOnExpiry(windowId, endsAt, serverNow);
 
   useEffect(() => {
     if (!endsAt) return;

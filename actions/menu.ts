@@ -1,5 +1,6 @@
 "use server";
 
+import { expireOrgData } from "@/lib/cache-tags";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { prisma } from "@/lib/db";
@@ -13,6 +14,28 @@ import {
   ShopInput,
   shopSchema,
 } from "@/types/menu";
+
+// Category and shop must belong to the admin's org
+async function validateMenuReferences(
+  organizationId: string,
+  categoryId: string,
+  shopId: string,
+): Promise<string | null> {
+  const [category, shop] = await Promise.all([
+    prisma.menuCategory.findFirst({
+      where: { id: categoryId, organizationId },
+      select: { id: true },
+    }),
+    prisma.shop.findFirst({
+      where: { id: shopId, organizationId },
+      select: { id: true },
+    }),
+  ]);
+
+  if (!category) return "Category not found";
+  if (!shop) return "Shop not found";
+  return null;
+}
 
 export async function createMenuItemAction(
   input: MenuItemInput,
@@ -49,6 +72,15 @@ export async function createMenuItemAction(
     };
   }
 
+  const referenceError = await validateMenuReferences(
+    member.organizationId,
+    parsed.data.categoryId,
+    parsed.data.shopId,
+  );
+  if (referenceError) {
+    return { success: false, error: referenceError };
+  }
+
   await prisma.menuItem.create({
     data: {
       id: nanoid(),
@@ -62,6 +94,7 @@ export async function createMenuItemAction(
       imageUrl: parsed.data.imageUrl || null,
     },
   });
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }
@@ -70,16 +103,27 @@ export async function updateMenuItemAction(
   id: string,
   input: MenuItemInput,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const { member } = await requireAdmin();
 
   const parsed = menuItemSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.message };
   }
 
-  const item = await prisma.menuItem.findUnique({ where: { id } });
+  const item = await prisma.menuItem.findFirst({
+    where: { id, organizationId: member.organizationId },
+  });
   if (!item) {
     return { success: false, error: "Menu item not found" };
+  }
+
+  const referenceError = await validateMenuReferences(
+    member.organizationId,
+    parsed.data.categoryId,
+    parsed.data.shopId,
+  );
+  if (referenceError) {
+    return { success: false, error: referenceError };
   }
   const duplicateItem = await prisma.menuItem.findFirst({
     where: {
@@ -105,19 +149,22 @@ export async function updateMenuItemAction(
       name: parsed.data.name.trim(),
       price: parsed.data.price,
       unit: parsed.data.unit,
-      menuCategoryId: parsed.data.categoryId ?? null,
+      menuCategoryId: parsed.data.categoryId,
       shopId: parsed.data.shopId,
       imageUrl: parsed.data.imageUrl || null,
     },
   });
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }
 
 export async function deleteMenuItemAction(id: string): Promise<ActionResult> {
-  await requireAdmin();
+  const { member } = await requireAdmin();
 
-  const item = await prisma.menuItem.findUnique({ where: { id } });
+  const item = await prisma.menuItem.findFirst({
+    where: { id, organizationId: member.organizationId },
+  });
   if (!item) {
     return { success: false, error: "Menu item not found" };
   }
@@ -136,6 +183,7 @@ export async function deleteMenuItemAction(id: string): Promise<ActionResult> {
   }
 
   await prisma.menuItem.delete({ where: { id } });
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }
@@ -144,12 +192,16 @@ export async function toggleMenuItemAvailabilityAction(
   id: string,
   isAvailable: boolean,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const { member } = await requireAdmin();
 
-  await prisma.menuItem.update({
-    where: { id },
+  const result = await prisma.menuItem.updateMany({
+    where: { id, organizationId: member.organizationId },
     data: { isAvailable },
   });
+  if (result.count === 0) {
+    return { success: false, error: "Menu item not found" };
+  }
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }
@@ -197,12 +249,20 @@ export async function createCategoryAction(
     },
   });
 
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }
 
 export async function deleteCategoryAction(id: string): Promise<ActionResult> {
-  await requireAdmin();
+  const { member } = await requireAdmin();
+
+  const category = await prisma.menuCategory.findFirst({
+    where: { id, organizationId: member.organizationId },
+  });
+  if (!category) {
+    return { success: false, error: "Category not found" };
+  }
 
   // check if category has items
   const itemCount = await prisma.menuItem.count({
@@ -218,6 +278,7 @@ export async function deleteCategoryAction(id: string): Promise<ActionResult> {
 
   await prisma.menuCategory.delete({ where: { id } });
 
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }
@@ -278,6 +339,7 @@ export async function updateCategoryAction(
     };
   }
 
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }
@@ -327,12 +389,20 @@ export async function createShopAction(
     },
   });
 
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }
 
 export async function deleteShopAction(id: string): Promise<ActionResult> {
-  await requireAdmin();
+  const { member } = await requireAdmin();
+
+  const shop = await prisma.shop.findFirst({
+    where: { id, organizationId: member.organizationId },
+  });
+  if (!shop) {
+    return { success: false, error: "Shop not found" };
+  }
 
   // check if shop has items
   const itemCount = await prisma.menuItem.count({
@@ -348,6 +418,7 @@ export async function deleteShopAction(id: string): Promise<ActionResult> {
 
   await prisma.shop.delete({ where: { id } });
 
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }
@@ -410,6 +481,7 @@ export async function updateShopAction(
     };
   }
 
+  expireOrgData(member.organizationId, "menu");
   revalidatePath("/admin/menus");
   return { success: true };
 }

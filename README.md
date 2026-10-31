@@ -12,12 +12,14 @@ Admins can create ordering windows, manage menus, approve orders, track spending
 - Multi-tenant organizations
 - Invite code based onboarding
 - Super Admin, Admin & User roles
-- Order windows with countdown timers
-- Menu & category management
-- Order approval workflow
+- Order windows with countdown timers (auto-close and auto-approve on expiry)
+- Menu, category & shop management (with UPI payment QR per shop)
+- Order approval workflow, item replacements, and late / on-behalf orders
+- Group item splitting (cost shared between participants)
+- Spin-the-wheel "split master" winner per window, with paid tracking
 - Real-time updates using PostgreSQL LISTEN/NOTIFY + SSE
 - Employee rankings
-- Spending analytics
+- Spending analytics, charts & activity heatmap
 - Order history
 - Responsive dashboard
 
@@ -237,8 +239,10 @@ pnpm db:reset
 ### Admin
 
 - Create order windows
-- Manage menus
-- Approve or reject orders
+- Manage menus and shops
+- Approve or reject orders, apply replacements, add late orders
+- Spin the wheel and mark windows as paid
+- Manage members and generate password reset tokens
 - View analytics and rankings
 
 ### User
@@ -246,6 +250,7 @@ pnpm db:reset
 - Place orders
 - Update orders
 - Cancel orders
+- Split items with teammates
 - View rankings and history
 
 ---
@@ -266,10 +271,25 @@ Admin Action
  Connected Clients
 ```
 
+Each server instance keeps a single `LISTEN` connection shared by all open SSE streams. When a window's countdown runs out, the window is closed on the server and a `window_closed` event refreshes every viewer.
+
 For Neon users:
 
 - Use pooled connection for `DATABASE_URL`
 - Use direct connection for `PG_NOTIFY_URL`
+
+---
+
+## Caching
+
+[Cache Components](https://nextjs.org/docs/app/getting-started/caching) are enabled.
+
+- Read queries in `modules/*/queries.ts` are cached with `"use cache: remote"` and tagged per organization (`orders`, `menu`, `members`), see `lib/cache-tags.ts`.
+- Server actions expire the tags they change with `expireOrgData(...)`, so pages refetch only when their data changes (plus a 15-minute safety revalidation).
+- Data for the active order window is never cached.
+- The browser reuses visited pages for 60 seconds (`staleTimes`); live pages refetch when shown again.
+
+When adding a server action that writes data, call `expireOrgData` for the affected kinds, or pages will keep showing old numbers.
 
 ---
 
@@ -278,8 +298,9 @@ For Neon users:
 1. Push repository to GitHub
 2. Import project into Vercel
 3. Configure environment variables
-4. Deploy
-5. Seed Super Admin account
+4. Set the Vercel function region close to your database (e.g. `sin1` for Neon `ap-southeast-1`)
+5. Deploy
+6. Seed Super Admin account
 
 ---
 

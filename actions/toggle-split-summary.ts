@@ -1,5 +1,6 @@
 "use server";
 
+import { expireOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "./user";
 import { revalidatePath } from "next/cache";
@@ -27,5 +28,6 @@ export async function toggleSplitSummary(memberId: string, canViewGlobalSplit: b
     },
   });
 
+  expireOrgData(member.organizationId, "members");
   revalidatePath("/admin/users");
 }

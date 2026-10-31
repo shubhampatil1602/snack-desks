@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { closeWindowInternal } from "@/actions/order-window";
+import { closeWindowInternal } from "@/modules/order-window/close-window";
 
 export async function getActiveWindowWithMenu(organizationId: string) {
   const window = await prisma.orderWindow.findFirst({

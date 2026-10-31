@@ -2,7 +2,12 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCountdown, formatTime, urgencyClass } from "@/hooks/use-countdown";
+import {
+  useCloseWindowOnExpiry,
+  useCountdown,
+  formatTime,
+  urgencyClass,
+} from "@/hooks/use-countdown";
 import { useRouter } from "next/navigation";
 
 type ActiveWindowCardProps = {
@@ -22,6 +27,7 @@ export function ActiveWindowCard({ window, serverNow }: ActiveWindowCardProps) {
   const router = useRouter();
 
   const remaining = useCountdown(window?.endsAt ?? null, serverNow);
+  useCloseWindowOnExpiry(window?.id, window?.endsAt, serverNow);
 
   if (!window) {
     return (

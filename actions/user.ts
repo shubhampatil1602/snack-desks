@@ -1,17 +1,37 @@
 "use server";
 
+import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/auth";
 import type { Session } from "@/lib/auth/auth";
+import { prisma } from "@/lib/db";
+
+// Layouts, pages and fetchers each check auth; cache() makes those checks
+// share one lookup per request instead of hitting the database every time
+const getRequestSession = cache(async () =>
+  auth.api.getSession({
+    headers: await headers(),
+  }),
+);
+
+// Same result as auth.api.getActiveMember, which would look the session up again
+const getRequestMember = cache(async () => {
+  const session = await getRequestSession();
+  const organizationId = session?.session.activeOrganizationId;
+  if (!session || !organizationId) return null;
+
+  return prisma.member.findFirst({
+    where: { userId: session.user.id, organizationId },
+    include: {
+      user: { select: { id: true, name: true, email: true, image: true } },
+    },
+  });
+});
 
 // nullable session
 export async function authSession(): Promise<Session | null> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  return session;
+  return getRequestSession();
 }
 
 // must be logged in or redirects to /login
@@ -34,11 +54,7 @@ export async function authIsNotRequired() {
 
 // org-level member
 export async function getCurrentMember() {
-  const member = await auth.api.getActiveMember({
-    headers: await headers(),
-  });
-
-  return member;
+  return getRequestMember();
 }
 // must be admin or owner in org
 export async function requireAdmin() {

@@ -1,9 +1,14 @@
+import { tagOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 
 export async function getUserOrderHistory(
+  organizationId: string, // scopes the cache tags only
   userId: string,
-  period: string, // Add period parameter
+  period: string,
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu", "members");
+
   // Parse period - supports "all", "YYYY", and "YYYY-MM"
   let startDate: Date | undefined;
   let endDate: Date | undefined;

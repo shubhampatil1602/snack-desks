@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { requireSuperAdmin } from "./user";
 
 export async function toggleRealtime(orgId: string, enabled: boolean) {
+  await requireSuperAdmin();
+
   await prisma.organization.update({
     where: {
       id: orgId,

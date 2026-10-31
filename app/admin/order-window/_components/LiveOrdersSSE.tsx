@@ -2,14 +2,19 @@
 
 import { useSSEEvent } from "@/providers/sse-provider";
 import { useRouter } from "next/navigation";
+import { useRefreshWhenStale } from "@/hooks/use-refresh-when-stale";
 
-export function LiveOrdersSSE() {
+export function LiveOrdersSSE({ renderedAt }: { renderedAt: number }) {
   const router = useRouter();
   const refresh = () => router.refresh();
+
+  // events were missed while this page sat in the browser cache
+  useRefreshWhenStale(renderedAt);
 
   useSSEEvent("order_placed", refresh);
   useSSEEvent("order_updated", refresh);
   useSSEEvent("order_cancelled", refresh);
+  useSSEEvent("window_closed", refresh);
 
   return null;
 }

@@ -1,4 +1,4 @@
-import { closeWindowInternal } from "@/actions/order-window";
+import { closeWindowInternal } from "@/modules/order-window/close-window";
 import { prisma } from "@/lib/db";
 import { getISTDayBoundaries } from "@/lib/date-utils";
 

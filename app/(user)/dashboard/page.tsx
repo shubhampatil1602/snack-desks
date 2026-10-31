@@ -110,7 +110,7 @@ export default async function UserDashboard({
         />
       </Suspense>
 
-      <DashboardSSE />
+      <DashboardSSE renderedAt={new Date().getTime()} />
 
       <Suspense fallback={<UserStatsSkeleton />}>
         <UserStatsFetcher

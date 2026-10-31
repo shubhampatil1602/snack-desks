@@ -131,6 +131,8 @@ export async function deleteOrgAction(orgId: string): Promise<ActionResult> {
 }
 
 export async function getOrganizationById(orgId: string) {
+  await requireSuperAdmin();
+
   return await prisma.organization.findUnique({
     where: { id: orgId },
     include: {
@@ -156,6 +158,8 @@ export async function getOrganizationById(orgId: string) {
 }
 
 export async function getOrgStats() {
+  await requireSuperAdmin();
+
   const [totalOrgs, totalUsers] = await Promise.all([
     prisma.organization.count(),
     prisma.user.count({
@@ -167,6 +171,8 @@ export async function getOrgStats() {
 }
 
 export async function getRecentOrganizations() {
+  await requireSuperAdmin();
+
   return await prisma.organization.findMany({
     take: 5,
     orderBy: { createdAt: "desc" },

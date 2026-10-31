@@ -1,3 +1,4 @@
+import { tagOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import {
   parsePeriod,
@@ -73,6 +74,9 @@ export async function getUserStats(
   userId: string,
   period: string,
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu", "members");
+
   // Time-based spent
   const { dayStart, dayEnd } = getISTDayBoundaries();
   let includesToday = false;
@@ -125,6 +129,9 @@ export async function getUserFavoriteItems(
   userId: string,
   period: string,
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const dateFilter = getDateFilter(period);
 
   const items = await prisma.orderItem.groupBy({
@@ -157,6 +164,9 @@ export async function getUserRecentOrders(
   userId: string,
   period: string,
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   // Includes windows where the user only shares someone else's item,
   // as order history does
   const orders = await prisma.$queryRaw<
@@ -189,6 +199,9 @@ export async function getUserHeatmapData(
   organizationId: string,
   userId: string,
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const rangeEnd = new Date();
   const rows = await prisma.$queryRaw<{ date: string; spent: number }[]>`
     ${spendLinesCte(organizationId, { start: subYears(rangeEnd, 1), end: rangeEnd })}
@@ -209,6 +222,9 @@ export async function getUserSplitMasterWins(
   organizationId: string,
   userId: string,
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders");
+
   return prisma.orderWindow.count({
     where: {
       organizationId,
@@ -222,6 +238,9 @@ export async function getUserSpendingTimeSeries(
   userId: string,
   period: string,
 ): Promise<RevenueTimeSeriesPoint[]> {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const { rangeStart, rangeEnd } = getPeriodRange(period);
   const trunc = period.length === 7 ? "day" : "month";
 
@@ -257,6 +276,9 @@ export async function getUserSpendingByCategory(
   userId: string,
   period: string,
 ): Promise<CategoryRevenueSlice[]> {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const { rangeStart, rangeEnd } = getPeriodRange(period);
 
   const rows = await prisma.$queryRaw<{ category: string; revenue: number }[]>`

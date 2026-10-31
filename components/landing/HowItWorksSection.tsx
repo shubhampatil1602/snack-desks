@@ -20,7 +20,7 @@ const steps = [
     number: "03",
     title: "Review & Fulfill",
     description:
-      "Admins approve requests, export orders and coordinate fulfillment with vendors.",
+      "Admins approve requests and coordinate fulfillment with vendors.",
     icon: ClipboardCheck,
   },
 ];

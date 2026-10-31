@@ -1,10 +1,13 @@
-import { notifyPool } from "@/lib/sse/pg-notify";
+import { subscribe } from "@/lib/sse/pg-notify";
 import { authSession } from "@/actions/user";
 import { prisma } from "@/lib/db";
 
+// Always dynamic: it reads the session, and Cache Components runs it on Node.js
 export const maxDuration = 300;
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+
+const HEARTBEAT_MS = 55 * 1000;
+// close before maxDuration so the client reconnects cleanly
+const STREAM_LIFETIME_MS = 4 * 60 * 1000;
 
 export async function GET(request: Request) {
   // auth check
@@ -13,9 +16,13 @@ export async function GET(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // get user's org
+  // get user's org, preferring the session's active org
+  const activeOrganizationId = session.session.activeOrganizationId;
   const member = await prisma.member.findFirst({
-    where: { userId: session.user.id },
+    where: {
+      userId: session.user.id,
+      ...(activeOrganizationId ? { organizationId: activeOrganizationId } : {}),
+    },
   });
 
   if (!member) {
@@ -25,89 +32,66 @@ export async function GET(request: Request) {
   const orgId = member.organizationId;
   const encoder = new TextEncoder();
 
-  console.log(`[SSE CONNECTED] user=${session.user.id} org=${orgId}`);
+  let close = () => {};
 
   // set up SSE stream
   const stream = new ReadableStream({
     async start(controller) {
-      // send initial connected event
-      controller.enqueue(
-        encoder.encode(`event: connected\ndata: {"status":"ok"}\n\n`),
-      );
+      let closed = false;
+      let unsubscribe: (() => void) | undefined;
+      const timers: {
+        heartbeat?: ReturnType<typeof setInterval>;
+        lifetime?: ReturnType<typeof setTimeout>;
+      } = {};
 
-      // dedicated pg client for LISTEN
-      const pgClient = await notifyPool.connect();
+      // safe to call more than once, from any of the exits below
+      close = () => {
+        if (closed) return;
+        closed = true;
+        clearInterval(timers.heartbeat);
+        clearTimeout(timers.lifetime);
+        unsubscribe?.();
+        try {
+          controller.close();
+        } catch {
+          // already closed
+        }
+      };
+
+      const send = (event: string, data: string) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${data}\n\n`));
+        } catch {
+          close();
+        }
+      };
+
+      request.signal.addEventListener("abort", () => close());
+
+      send("connected", `{"status":"ok"}`);
 
       try {
-        await pgClient.query("LISTEN snackdesk_events");
-
-        // forward org-scoped events to this client
-        pgClient.on("notification", (msg) => {
-          if (!msg.payload) return;
-          console.log("RECEIVED", msg.payload);
-          try {
-            const event = JSON.parse(msg.payload);
-            if (event.orgId !== orgId) return; // only this org's events
-            controller.enqueue(
-              encoder.encode(
-                `event: ${event.type}\ndata: ${JSON.stringify(event.payload)}\n\n`,
-              ),
-            );
-          } catch {
-            // ignore malformed payloads
-          }
-        });
-
-        // heartbeat every 30s to keep connection alive
-        const heartbeat = setInterval(() => {
-          try {
-            controller.enqueue(
-              encoder.encode(`event: heartbeat\ndata: {}\n\n`),
-            );
-          } catch {
-            clearInterval(heartbeat);
-          }
-        }, 55000);
-
-        const gracefulClose = setTimeout(
-          () => {
-            console.log(
-              `[SSE GRACEFUL CLOSE] user=${session.user.id} org=${orgId}`,
-            );
-
-            try {
-              clearInterval(heartbeat);
-
-              pgClient
-                .query("UNLISTEN snackdesk_events")
-                .finally(() => pgClient.release());
-
-              controller.close();
-            } catch {
-              // ignore
-            }
-          },
-          4 * 60 * 1000,
-        ); // 4 minutes
-
-        // cleanup on client disconnect
-        request.signal.addEventListener("abort", () => {
-          console.log(
-            `[SSE DISCONNECTED] user=${session.user.id} org=${orgId}`,
-          );
-
-          clearInterval(heartbeat);
-          clearTimeout(gracefulClose);
-
-          pgClient
-            .query("UNLISTEN snackdesk_events")
-            .finally(() => pgClient.release());
-          controller.close();
+        unsubscribe = await subscribe((event) => {
+          if (event.orgId !== orgId) return; // only this org's events
+          send(event.type, JSON.stringify(event.payload));
         });
       } catch {
-        pgClient.release();
-        controller.close();
+        close();
+        return;
       }
+
+      // client left while we were subscribing
+      if (closed) {
+        unsubscribe();
+        return;
+      }
+
+      timers.heartbeat = setInterval(() => send("heartbeat", "{}"), HEARTBEAT_MS);
+      timers.lifetime = setTimeout(() => close(), STREAM_LIFETIME_MS);
+    },
+    cancel() {
+      close();
     },
   });
 

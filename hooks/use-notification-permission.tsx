@@ -17,15 +17,11 @@ export function useNotificationPermission() {
 }
 
 export function sendNotification(title: string, body: string) {
-  console.log("[Notification] Permission:", Notification.permission);
-  console.log("[Notification] Title:", title);
-
   if (
     typeof window === "undefined" ||
     !("Notification" in window) ||
     Notification.permission !== "granted"
   ) {
-    console.log("[Notification] Blocked — permission not granted");
     return;
   }
 

@@ -5,11 +5,10 @@ import { prisma } from "@/lib/db";
 export const metadata: Metadata = {
   title: "Order History & Settlement",
   description:
-    "View past order windows, settle bills, export orders, and manage late orders.",
+    "View past order windows, settle bills, and manage late orders.",
 };
 import { Suspense } from "react";
 
-import { ExportOrdersDialog } from "./_components/ExportOrdersDialog";
 import { PaymentQR } from "@/components/payment-qr";
 import { PeriodPicker } from "@/components/period-picker";
 import { getPeriodCookie } from "@/actions/period-cookie";
@@ -70,7 +69,6 @@ export default async function AdminHistoryPage({
         </div>
         <div className='flex items-center flex-wrap gap-3'>
           <PaymentQR />
-          <ExportOrdersDialog />
           <PeriodPicker
             period={rawPeriod}
             startDate={member.organization?.createdAt || new Date()}

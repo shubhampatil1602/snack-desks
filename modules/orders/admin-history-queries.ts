@@ -1,9 +1,13 @@
+import { tagOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 
 export async function getOrganizationOrderHistoryGroupedByWindow(
   organizationId: string,
   period: string,
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu", "members");
+
   let startDate: Date | undefined;
   let endDate: Date | undefined;
 

@@ -90,7 +90,7 @@ export default async function AdminDashboard({
         />
       </div>
 
-      <DashboardSSE />
+      <DashboardSSE renderedAt={new Date().getTime()} />
 
       <Suspense fallback={<ActiveWindowSkeleton />}>
         <ActiveWindowFetcher organizationId={member.organizationId} />

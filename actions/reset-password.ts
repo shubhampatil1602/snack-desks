@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 import { nanoid } from "nanoid";
 
-import { authIsRequired } from "@/actions/user";
+import { canManageUser } from "@/lib/auth/manage-user";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -20,13 +20,16 @@ export async function generatePasswordResetToken(
   userId: string,
   expiry: 1 | 15 | 60,
 ) {
-  const session = await authIsRequired();
-
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
+  if (!(expiry in EXPIRY_MINUTES)) {
     return {
       success: false,
-      error: "Unauthorized",
+      error: "Invalid expiry",
     };
+  }
+
+  const access = await canManageUser(userId);
+  if (!access.success) {
+    return access;
   }
 
   const user = await prisma.user.findUnique({
@@ -76,7 +79,8 @@ export async function generatePasswordResetToken(
   };
 }
 
-export async function verifyPasswordResetToken(email: string, token: string) {
+// Not exported: exports of a "use server" file are public endpoints
+async function verifyPasswordResetToken(email: string, token: string) {
   const user = await prisma.user.findUnique({
     where: {
       email,
@@ -166,12 +170,11 @@ export async function resetPasswordAction(input: {
         data: {
           id: nanoid(),
           userId: userId,
-          providerId: "email",
+          providerId: "credential",
           accountId: userId,
           password: hashedPassword,
         },
       });
-      console.log("Created new account for user:", userId);
     } else {
       // Update existing account
       await prisma.account.update({
@@ -182,7 +185,6 @@ export async function resetPasswordAction(input: {
           password: hashedPassword,
         },
       });
-      console.log("Updated password for user:", userId);
     }
 
     // Clear the reset token

@@ -1,3 +1,4 @@
+import { tagOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import { parsePeriod } from "@/lib/date-utils";
 import { spendLinesCte } from "@/lib/spend-lines";
@@ -6,6 +7,9 @@ export async function getEmployeeRankings(
   organizationId: string,
   period: string,
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu", "members");
+
   const { startDate, endDate } = parsePeriod(period);
   const range =
     startDate && endDate ? { start: startDate, end: endDate } : undefined;

@@ -1,3 +1,4 @@
+import { tagOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import { getEmployeeRankings } from "@/modules/rankings/queries";
 import {
@@ -42,6 +43,9 @@ export async function getDashboardActiveWindow(organizationId: string) {
 }
 
 export async function getDashboardStats(organizationId: string, period: string) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const dateFilter = getDateFilter(period);
   const { dayStart, dayEnd } = getISTDayBoundaries();
 
@@ -183,6 +187,9 @@ export async function getRevenueTimeSeries(
   organizationId: string,
   period: string,
 ): Promise<RevenueTimeSeriesPoint[]> {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const { rangeStart, rangeEnd } = getPeriodRange(period);
   const trunc = period.length === 7 ? "day" : "month";
 
@@ -230,6 +237,9 @@ export async function getRevenueByCategory(
   organizationId: string,
   period: string,
 ): Promise<CategoryRevenueSlice[]> {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const { rangeStart, rangeEnd } = getPeriodRange(period);
 
   const rows = await prisma.$queryRaw<{ category: string; revenue: number }[]>`
@@ -263,6 +273,9 @@ export async function getTopWindowWinners(
   organizationId: string,
   period: string,
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "members");
+
   const dateFilter = getDateFilter(period);
 
   const grouped = await prisma.orderWindow.groupBy({
@@ -301,6 +314,9 @@ export async function getTopSellingItems(
   organizationId: string,
   period: string
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const dateFilter = getDateFilter(period);
 
   const topSellingRaw = await prisma.orderItem.groupBy({
@@ -339,6 +355,9 @@ export async function getRecentWindows(
   organizationId: string,
   period: string
 ) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const dateFilter = getDateFilter(period);
   const recentWindows = await prisma.orderWindow.findMany({
     where: { organizationId, status: { not: "active" }, ...dateFilter },
@@ -381,6 +400,9 @@ export async function getRecentWindows(
 }
 
 export async function getDashboardHeatmap(organizationId: string) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const startDate = subYears(new Date(), 1);
 
   // Bucket by IST day (createdAt is stored as UTC without time zone)

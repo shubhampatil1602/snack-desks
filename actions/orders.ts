@@ -1,27 +1,31 @@
 "use server";
 
+import { expireOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import { authIsRequired, requireAdmin } from "./user";
 import { notify } from "@/lib/sse/pg-notify";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { closeWindowInternal } from "./order-window";
+import { closeWindowInternal } from "@/modules/order-window/close-window";
 import { checkRateLimit } from "@/lib/rate-limit";
+import type { Prisma } from "@/lib/generated/prisma/client";
 
 const orderItemSchema = z.object({
   menuItemId: z.string().min(1),
-  quantity: z.number().min(1),
+  quantity: z.number().int().min(1).max(100),
   splitUserIds: z.array(z.string()).optional(),
   replacements: z
     .array(
       z.object({
         menuItemId: z.string().min(1),
-        quantity: z.number().min(1),
+        quantity: z.number().int().min(1).max(100),
       }),
     )
     .optional(),
 });
+
+const orderItemsSchema = z.array(orderItemSchema);
 
 const placeOrderSchema = z.object({
   windowId: z.string().min(1),
@@ -53,18 +57,31 @@ export async function placeOrderAction(
 
   const { windowId, items } = parsed.data;
 
+  const member = await prisma.member.findFirst({
+    where: { userId: session.user.id },
+  });
+
+  if (!member) {
+    return { success: false, error: "Organization not found" };
+  }
+
   // verify window is still active
   const window = await prisma.orderWindow.findUnique({
     where: { id: windowId },
   });
 
-  if (!window || window.status !== "active") {
+  if (
+    !window ||
+    window.organizationId !== member.organizationId ||
+    window.status !== "active"
+  ) {
     return { success: false, error: "Order window is no longer active" };
   }
 
   // check if window has expired
   if (window.endsAt && window.endsAt < new Date()) {
     await closeWindowInternal(windowId);
+    expireOrgData(member.organizationId, "orders");
     return { success: false, error: "Order window has expired" };
   }
 
@@ -84,12 +101,11 @@ export async function placeOrderAction(
     };
   }
 
-  const member = await prisma.member.findFirst({
-    where: { userId: session.user.id },
+  const itemsError = await validateOrderItems(member.organizationId, items, {
+    requireAvailable: true,
   });
-
-  if (!member) {
-    return { success: false, error: "Organization not found" };
+  if (itemsError) {
+    return { success: false, error: itemsError };
   }
 
   // create order + items in a transaction
@@ -116,7 +132,7 @@ export async function placeOrderAction(
         },
       });
 
-      await createOrderItems(tx, newOrder.id, items);
+      await createOrderItems(tx, newOrder.id, items, session.user.id);
 
       return newOrder;
     });
@@ -135,15 +151,23 @@ export async function placeOrderAction(
     },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/order-window");
   return { success: true, orderId: order.id };
 }
 
 export async function updateOrderAction(
   orderId: string,
-  items: PlaceOrderInput["items"],
+  input: PlaceOrderInput["items"],
 ): Promise<ActionResult> {
   const session = await authIsRequired();
+
+  const parsed = orderItemsSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.message };
+  }
+
+  const items = parsed.data;
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
@@ -219,8 +243,16 @@ export async function updateOrderAction(
       payload: { orderId },
     });
 
+    expireOrgData(member.organizationId, "orders");
     revalidatePath("/order-window");
     return { success: true, orderId: order.id };
+  }
+
+  const itemsError = await validateOrderItems(order.organizationId, items, {
+    requireAvailable: true,
+  });
+  if (itemsError) {
+    return { success: false, error: itemsError };
   }
 
   // replace all items in a transaction
@@ -228,7 +260,7 @@ export async function updateOrderAction(
     // Delete many cascades and automatically deletes orderItemReplacements
     await tx.orderItem.deleteMany({ where: { orderId } });
 
-    await createOrderItems(tx, orderId, items);
+    await createOrderItems(tx, orderId, items, session.user.id);
 
     await tx.order.update({
       where: { id: orderId },
@@ -242,6 +274,7 @@ export async function updateOrderAction(
     payload: { orderId },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/order-window");
   return { success: true, orderId: order.id };
 }
@@ -294,6 +327,7 @@ export async function cancelOrderAction(
     payload: { orderId },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/order-window");
   return { success: true, orderId: order.id };
 }
@@ -303,6 +337,10 @@ export async function updateOrderStatusAction(
   status: "approved" | "rejected" | "pending" | "cancelled",
 ): Promise<ActionResult> {
   const { session } = await requireAdmin();
+
+  if (!["approved", "rejected", "pending", "cancelled"].includes(status)) {
+    return { success: false, error: "Invalid status" };
+  }
 
   const member = await prisma.member.findFirst({
     where: {
@@ -323,7 +361,7 @@ export async function updateOrderStatusAction(
     },
   });
 
-  if (!order) {
+  if (!order || order.organizationId !== member.organizationId) {
     return {
       success: false,
       error: "Order not found",
@@ -369,6 +407,7 @@ export async function updateOrderStatusAction(
     },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
 
@@ -380,13 +419,20 @@ export async function updateOrderStatusAction(
 
 export async function updateAdminOrderAction(
   orderId: string,
-  items: {
+  input: {
     menuItemId: string;
     quantity: number;
     splitUserIds?: string[];
   }[],
 ): Promise<ActionResult> {
   const { session } = await requireAdmin();
+
+  const parsed = orderItemsSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.message };
+  }
+
+  const items = parsed.data;
 
   const member = await prisma.member.findFirst({
     where: {
@@ -407,7 +453,7 @@ export async function updateAdminOrderAction(
     },
   });
 
-  if (!order) {
+  if (!order || order.organizationId !== member.organizationId) {
     return {
       success: false,
       error: "Order not found",
@@ -438,10 +484,18 @@ export async function updateAdminOrderAction(
       }
     });
 
+    expireOrgData(member.organizationId, "orders");
     return {
       success: true,
       orderId,
     };
+  }
+
+  const itemsError = await validateOrderItems(order.organizationId, items, {
+    requireAvailable: false,
+  });
+  if (itemsError) {
+    return { success: false, error: itemsError };
   }
 
   await prisma.$transaction(async (tx) => {
@@ -452,7 +506,7 @@ export async function updateAdminOrderAction(
       },
     });
 
-    await createOrderItems(tx, orderId, items);
+    await createOrderItems(tx, orderId, items, order.userId);
 
     await tx.order.update({
       where: {
@@ -472,6 +526,7 @@ export async function updateAdminOrderAction(
     },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/history");
   revalidatePath("/admin/dashboard");
@@ -516,7 +571,7 @@ export async function applyReplacementAction(
     },
   });
 
-  if (!orderItem) {
+  if (!orderItem || orderItem.order.organizationId !== member.organizationId) {
     return {
       success: false,
       error: "Order item not found",
@@ -585,6 +640,7 @@ export async function applyReplacementAction(
     },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
   revalidatePath("/order-window");
@@ -657,6 +713,24 @@ export async function createLateOrderAction(
     return { success: false, error: "Organization not found" };
   }
 
+  const lateWindow = await prisma.orderWindow.findFirst({
+    where: { id: windowId, organizationId: member.organizationId },
+    select: { id: true },
+  });
+
+  if (!lateWindow) {
+    return { success: false, error: "Order window not found" };
+  }
+
+  const targetMember = await prisma.member.findFirst({
+    where: { userId, organizationId: member.organizationId },
+    select: { id: true },
+  });
+
+  if (!targetMember) {
+    return { success: false, error: "User is not a member of your organization" };
+  }
+
   // check if user already has an order in this window
   const existingOrder = await prisma.order.findFirst({
     where: {
@@ -671,6 +745,13 @@ export async function createLateOrderAction(
       success: false,
       error: "User already has an order for this window.",
     };
+  }
+
+  const itemsError = await validateOrderItems(member.organizationId, items, {
+    requireAvailable: false,
+  });
+  if (itemsError) {
+    return { success: false, error: itemsError };
   }
 
   // create order + items in a transaction
@@ -688,7 +769,7 @@ export async function createLateOrderAction(
       },
     });
 
-    await createOrderItems(tx, newOrder.id, items);
+    await createOrderItems(tx, newOrder.id, items, userId);
 
     const window = await tx.orderWindow.findUnique({ where: { id: windowId } });
     if (window?.originalWinnerUserId === userId && !window?.winnerUserId) {
@@ -711,6 +792,7 @@ export async function createLateOrderAction(
     },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/history");
@@ -804,6 +886,7 @@ export async function createOrderOnBehalfAction(
 
   if (window.endsAt && window.endsAt < new Date()) {
     await closeWindowInternal(windowId);
+    expireOrgData(member.organizationId, "orders");
     return { success: false, error: "Order window has expired" };
   }
 
@@ -831,6 +914,13 @@ export async function createOrderOnBehalfAction(
     };
   }
 
+  const itemsError = await validateOrderItems(member.organizationId, items, {
+    requireAvailable: false,
+  });
+  if (itemsError) {
+    return { success: false, error: itemsError };
+  }
+
   let order;
   try {
     order = await prisma.$transaction(async (tx) => {
@@ -855,7 +945,7 @@ export async function createOrderOnBehalfAction(
         },
       });
 
-      await createOrderItems(tx, newOrder.id, items);
+      await createOrderItems(tx, newOrder.id, items, userId);
 
       return newOrder;
     });
@@ -873,6 +963,7 @@ export async function createOrderOnBehalfAction(
     },
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
   revalidatePath("/(user)/order-window");
@@ -1050,16 +1141,65 @@ export async function getUserActiveSharedSplitsAction() {
   };
 }
 
+type OrderItemInput = PlaceOrderInput["items"][number];
+
+// Menu items must belong to the org (and be available when required);
+// split users must be members of the org
+async function validateOrderItems(
+  organizationId: string,
+  items: OrderItemInput[],
+  { requireAvailable }: { requireAvailable: boolean },
+): Promise<string | null> {
+  const menuItemIds = [
+    ...new Set(
+      items.flatMap((item) => [
+        item.menuItemId,
+        ...(item.replacements ?? []).map((rep) => rep.menuItemId),
+      ]),
+    ),
+  ];
+
+  const menuItems = await prisma.menuItem.findMany({
+    where: { id: { in: menuItemIds }, organizationId },
+    select: { id: true, name: true, isAvailable: true },
+  });
+
+  if (menuItems.length !== menuItemIds.length) {
+    return "Menu item not found";
+  }
+
+  if (requireAvailable) {
+    const orderedIds = new Set(items.map((item) => item.menuItemId));
+    const unavailable = menuItems.find(
+      (menuItem) => orderedIds.has(menuItem.id) && !menuItem.isAvailable,
+    );
+    if (unavailable) {
+      return `${unavailable.name} is no longer available`;
+    }
+  }
+
+  const splitUserIds = [
+    ...new Set(items.flatMap((item) => item.splitUserIds ?? []).filter(Boolean)),
+  ];
+
+  if (splitUserIds.length > 0) {
+    const splitMemberCount = await prisma.member.count({
+      where: { organizationId, userId: { in: splitUserIds } },
+    });
+    if (splitMemberCount !== splitUserIds.length) {
+      return "Split user not found";
+    }
+  }
+
+  return null;
+}
+
 // Helper to DRY order item creation
 async function createOrderItems(
-  tx: any,
+  tx: Prisma.TransactionClient,
   orderId: string,
-  items: {
-    menuItemId: string;
-    quantity: number;
-    splitUserIds?: string[];
-    replacements?: { menuItemId: string; quantity: number }[];
-  }[],
+  items: OrderItemInput[],
+  ownerUserId: string,
 ) {
   for (const item of items) {
     const orderItemId = nanoid();
@@ -1073,8 +1213,11 @@ async function createOrderItems(
     });
 
     if (item.splitUserIds && item.splitUserIds.length > 0) {
+      // the owner is always a participant, never one of their own splitters
       const uniqueSplitUserIds = Array.from(
-        new Set(item.splitUserIds.filter(Boolean)),
+        new Set(
+          item.splitUserIds.filter((id) => id && id !== ownerUserId),
+        ),
       );
       if (uniqueSplitUserIds.length > 0) {
         const totalParticipants = uniqueSplitUserIds.length + 1;
@@ -1128,7 +1271,7 @@ export async function bulkDeleteOrderItemFromWindowAction(
     where: { id: windowId },
   });
 
-  if (!orderWindow) {
+  if (!orderWindow || orderWindow.organizationId !== member.organizationId) {
     return { success: false, error: "Order window not found" };
   }
 
@@ -1207,6 +1350,7 @@ export async function bulkDeleteOrderItemFromWindowAction(
     }
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/history");
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");
@@ -1220,6 +1364,15 @@ export async function bulkUpdateOrderItemAction(
   updates: { orderId: string; newQuantity: number }[],
 ): Promise<ActionResult> {
   const { session } = await requireAdmin();
+
+  if (
+    !updates.every(
+      (update) =>
+        Number.isInteger(update.newQuantity) && update.newQuantity >= 0,
+    )
+  ) {
+    return { success: false, error: "Invalid quantity" };
+  }
 
   const member = await prisma.member.findFirst({
     where: {
@@ -1238,7 +1391,7 @@ export async function bulkUpdateOrderItemAction(
     where: { id: windowId },
   });
 
-  if (!orderWindow) {
+  if (!orderWindow || orderWindow.organizationId !== member.organizationId) {
     return { success: false, error: "Order window not found" };
   }
 
@@ -1250,9 +1403,14 @@ export async function bulkUpdateOrderItemAction(
         where: {
           orderId: orderId,
           menuItemId: menuItemId,
+          order: { windowId },
         },
         orderBy: { createdAt: "asc" },
       });
+
+      if (currentItems.length === 0) {
+        continue; // Not an order in this window with this item
+      }
 
       const currentQuantity = currentItems.reduce(
         (acc, item) => acc + item.quantity,
@@ -1322,6 +1480,7 @@ export async function bulkUpdateOrderItemAction(
     }
   });
 
+  expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/history");
   revalidatePath("/admin/order-window");
   revalidatePath("/admin/dashboard");

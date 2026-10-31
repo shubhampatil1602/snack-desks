@@ -1,6 +1,10 @@
+import { tagOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 
 export async function getMenuItems(organizationId: string) {
+  "use cache: remote";
+  tagOrgData(organizationId, "menu");
+
   const items = await prisma.menuItem.findMany({
     where: { organizationId },
     include: { menuCategory: true, shop: true },
@@ -15,6 +19,9 @@ export async function getMenuItems(organizationId: string) {
 }
 
 export async function getMenuCategories(organizationId: string) {
+  "use cache: remote";
+  tagOrgData(organizationId, "menu");
+
   return await prisma.menuCategory.findMany({
     where: { organizationId },
     orderBy: { createdAt: "asc" },
@@ -22,6 +29,9 @@ export async function getMenuCategories(organizationId: string) {
 }
 
 export async function getShops(organizationId: string) {
+  "use cache: remote";
+  tagOrgData(organizationId, "menu");
+
   return await prisma.shop.findMany({
     where: { organizationId },
     orderBy: { createdAt: "asc" },
@@ -29,6 +39,9 @@ export async function getShops(organizationId: string) {
 }
 
 export async function getMenuItemsSoldCounts(organizationId: string) {
+  "use cache: remote";
+  tagOrgData(organizationId, "orders", "menu");
+
   const grouped = await prisma.orderItem.groupBy({
     by: ["menuItemId"],
     where: {

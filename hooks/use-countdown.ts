@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { closeExpiredWindowAction } from "@/actions/order-window";
 
 export function useCountdown(endsAt: Date | null, serverNow: number) {
   const [offset] = useState(() => serverNow - Date.now());
@@ -26,6 +27,34 @@ export function useCountdown(endsAt: Date | null, serverNow: number) {
   }, [endsAt, offset]);
 
   return remaining;
+}
+
+// Grace period so the server's clock has also passed endsAt
+const CLOSE_GRACE_MS = 1500;
+
+/** Closes the window on the server once its timer runs out. */
+export function useCloseWindowOnExpiry(
+  windowId: string | null | undefined,
+  endsAt: string | Date | null | undefined,
+  serverNow: number,
+) {
+  useEffect(() => {
+    if (!windowId || !endsAt) return;
+
+    const serverOffset = serverNow - Date.now();
+    const msLeft = new Date(endsAt).getTime() - (Date.now() + serverOffset);
+
+    const timer = setTimeout(
+      () => {
+        closeExpiredWindowAction(windowId).catch(() => {
+          // the next page load closes it lazily instead
+        });
+      },
+      Math.max(0, msLeft) + CLOSE_GRACE_MS,
+    );
+
+    return () => clearTimeout(timer);
+  }, [windowId, endsAt, serverNow]);
 }
 
 export function formatTime(ms: number) {

@@ -81,7 +81,11 @@ export default async function OrderHistoryPage({
       </div>
 
       <Suspense fallback={<UserHistorySkeleton />}>
-        <UserHistoryFetcher userId={session.user.id} period={period} />
+        <UserHistoryFetcher
+          organizationId={member.organizationId}
+          userId={session.user.id}
+          period={period}
+        />
       </Suspense>
     </div>
   );
