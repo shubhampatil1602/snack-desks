@@ -1,19 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatGroupsSkeleton } from "@/components/dashboard/StatGroup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function UserStatsSkeleton() {
-  return (
-    <div className='grid gap-3 sm:grid-cols-3'>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Card key={i}>
-          <CardContent>
-            <Skeleton className='h-3 w-32 mb-1' />
-            <Skeleton className='h-4.5 w-24' />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
+  return <StatGroupsSkeleton />;
 }
 
 export function UserRankSkeleton() {

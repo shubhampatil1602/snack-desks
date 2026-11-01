@@ -1,6 +1,5 @@
-import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { ShopBreakdownInfo } from "@/components/orders/ShopBreakdownInfo";
+import { StatGroup, type Stat } from "@/components/dashboard/StatGroup";
 
 type DashboardStatsProps = {
   stats: {
@@ -18,80 +17,56 @@ type DashboardStatsProps = {
 };
 
 export function DashboardStats({ stats, periodLabel }: DashboardStatsProps) {
-  const statsConfig = [
+  const todayRevenue = stats.todayRevenue ?? 0;
+  const approvedShare =
+    stats.totalOrders === 0
+      ? 0
+      : Math.round((stats.approvedOrders / stats.totalOrders) * 100);
+
+  const revenue: Stat[] = [
     {
-      title: "Today's Revenue",
-      value:
-        stats.todayRevenue !== null
-          ? `${formatCurrency(stats.todayRevenue)}`
-          : formatCurrency(0),
-      color: "from-chart-1 to-chart-1/80",
-      gradient: "via-chart-1/50",
+      label: "Today",
+      value: formatCurrency(todayRevenue),
+      note: "approved today",
       breakdown: stats.todayRevenueShopBreakdown,
+      dim: todayRevenue === 0,
     },
     {
-      title: `${periodLabel} Revenue`,
-      value: `${formatCurrency(stats.totalRevenue)}`,
-      color: "from-chart-2 to-chart-2/80",
-      gradient: "via-chart-2/50",
+      label: periodLabel,
+      value: formatCurrency(stats.totalRevenue),
+      note: "approved orders",
       breakdown: stats.totalRevenueShopBreakdown,
     },
     {
-      title: "All Time Revenue",
-      value: `${formatCurrency(stats.allTimeRevenue)}`,
-      color: "from-chart-3 to-chart-3/80",
-      gradient: "via-chart-3/50",
+      label: "All time",
+      value: formatCurrency(stats.allTimeRevenue),
+      note: "every approved order",
       breakdown: stats.allTimeRevenueShopBreakdown,
     },
+  ];
 
+  const orders: Stat[] = [
     {
-      title: `${periodLabel} Orders`,
-      value: stats.totalOrders,
-      color: "from-chart-4 to-chart-4/80",
-      gradient: "via-chart-4/50",
+      label: "Placed",
+      value: stats.totalOrders.toLocaleString("en-IN"),
+      note: "all orders",
     },
     {
-      title: "Approved Orders",
-      value: stats.approvedOrders,
-      color: "from-chart-5 to-chart-5/80",
-      gradient: "via-chart-5/50",
+      label: "Approved",
+      value: stats.approvedOrders.toLocaleString("en-IN"),
+      note: `${approvedShare}% of placed`,
     },
     {
-      title: "Average Order Value",
-      value: `${formatCurrency(stats.avgOrderValue)}`,
-      color: "from-primary to-primary/80",
-      gradient: "via-primary/50",
+      label: "Average order",
+      value: formatCurrency(stats.avgOrderValue),
+      note: "per approved order",
     },
   ];
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-      {statsConfig.map((stat, idx) => {
-        return (
-          <Card
-            key={idx}
-            className="group relative overflow-hidden py-3 px-3 transition-all duration-300 hover:shadow-md"
-          >
-            <div className="absolute inset-0 -translate-x-full transition-transform duration-1000 ease-in-out group-hover:translate-x-full">
-              <div
-                className={`absolute inset-0 bg-linear-to-r ${stat.color} h-full w-full opacity-20 blur-3xl`}
-              />
-            </div>
-
-            <div className="p-2.5">
-              <p className="text-sm text-muted-foreground">{stat.title}</p>
-              <div className="mt-0.5 flex items-center gap-1.5">
-                <p className="text-2xl font-bold tracking-tight">
-                  {stat.value}
-                </p>
-                {stat.breakdown && Object.keys(stat.breakdown).length > 0 && (
-                  <ShopBreakdownInfo breakdown={stat.breakdown} />
-                )}
-              </div>
-            </div>
-          </Card>
-        );
-      })}
+    <div className='grid gap-3 lg:grid-cols-2'>
+      <StatGroup title='Revenue' stats={revenue} />
+      <StatGroup title={`Orders · ${periodLabel}`} stats={orders} />
     </div>
   );
 }

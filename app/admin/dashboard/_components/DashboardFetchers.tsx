@@ -53,6 +53,7 @@ export async function HeatmapFetcher({ organizationId, joinedAt }: { organizatio
       joinedAt={joinedAt}
       title='Organization Activity'
       description='Total spending across the organization over time'
+      variant='detailed'
     />
   );
 }

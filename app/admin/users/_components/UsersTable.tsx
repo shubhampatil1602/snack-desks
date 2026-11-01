@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import { Search, Trophy } from "lucide-react";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { usePagination } from "@/hooks/use-pagination";
-
 import {
   Table,
   TableBody,
@@ -11,19 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DeleteUserButton } from "@/components/admins/DeleteUserButton";
 import { OrganizationHeader } from "@/components/admins/OrganizationHeader";
-import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import {
   SortableTableHead,
   useColumnSort,
 } from "@/components/ui/sortable-table-head";
-import { Input } from "@/components/ui/input";
-import { ResetTokenCountdown } from "@/components/admins/ResetTokenCountdown";
+import { DeleteUserButton } from "@/components/admins/DeleteUserButton";
 import { GenerateResetTokenDialog } from "@/components/admins/GenerateResetTokenDialog";
-import { Switch } from "@/components/ui/switch";
-import { toggleSplitSummary } from "@/actions/toggle-split-summary";
+import { ResetTokenCountdown } from "@/components/admins/ResetTokenCountdown";
+import { cn } from "@/lib/utils";
+import { SplitSummarySwitch } from "./SplitSummarySwitch";
 
 type UsersTableProps = {
   organization: {
@@ -46,40 +44,62 @@ type UsersTableProps = {
     };
   }[];
 };
-type UsersSortKey = "orderWindowWins";
+type Member = UsersTableProps["members"][number];
+type UsersSortKey = "name" | "wins" | "joined";
+type MemberFilter = "all" | "fullBill";
+
+const SORT_VALUE: Record<UsersSortKey, (member: Member) => string | number> = {
+  name: (member) => member.user.name.toLowerCase(),
+  wins: (member) => member.orderWindowWins,
+  joined: (member) => new Date(member.createdAt).getTime(),
+};
+
+const FULL_BILL_HINT =
+  "Lets this person see the whole window's bill in their history, even when someone else is split master";
+
+function formatJoined(date: Date) {
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export function UsersTable({ organization, members }: UsersTableProps) {
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<MemberFilter>("all");
   const { sort, toggleSort } = useColumnSort<UsersSortKey>();
 
-  const filteredMembers = members.filter((member) => {
-    const query = search.toLowerCase();
+  const counts: Record<MemberFilter, number> = {
+    all: members.length,
+    fullBill: members.filter((member) => member.canViewGlobalSplit).length,
+  };
 
-    return (
-      member.user.name.toLowerCase().includes(query) ||
-      member.user.email.toLowerCase().includes(query)
+  const visibleMembers = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const filtered = members.filter(
+      (member) =>
+        (filter === "all" || member.canViewGlobalSplit) &&
+        (!query ||
+          member.user.name.toLowerCase().includes(query) ||
+          member.user.email.toLowerCase().includes(query)),
     );
-  });
+    if (!sort) return filtered;
 
-  const sortedMembers = useMemo(() => {
-    if (!sort) return filteredMembers;
-
-    const copy = [...filteredMembers];
-    copy.sort((a, b) => {
-      const delta = a.orderWindowWins - b.orderWindowWins;
+    const value = SORT_VALUE[sort.key];
+    return [...filtered].sort((a, b) => {
+      const delta = value(a) < value(b) ? -1 : value(a) > value(b) ? 1 : 0;
       return sort.desc ? -delta : delta;
     });
-    return copy;
-  }, [filteredMembers, sort]);
+  }, [members, search, filter, sort]);
 
   const pagination = usePagination({
-    data: sortedMembers,
+    data: visibleMembers,
     itemsPerPage: 10,
   });
 
   return (
-    <div className='space-y-6'>
-      {/* Invite Code */}
+    <div className='space-y-4'>
       <OrganizationHeader
         createdAt={organization.createdAt}
         inviteCode={organization.inviteCode}
@@ -88,32 +108,81 @@ export function UsersTable({ organization, members }: UsersTableProps) {
         slug={organization.slug}
       />
 
-      <div className='relative'>
-        <Search className='absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
-        <Input
-          placeholder='Search employee...'
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className='w-full pl-8 h-8 text-sm'
-        />
+      <div className='flex flex-wrap items-center gap-2'>
+        <div
+          role='group'
+          aria-label='Show members'
+          className='inline-flex h-8 divide-x border bg-card'
+        >
+          {(
+            [
+              { value: "all", label: "All" },
+              { value: "fullBill", label: "Sees full bill" },
+            ] as const
+          ).map(({ value, label }) => {
+            const selected = filter === value;
+            return (
+              <button
+                key={value}
+                type='button'
+                aria-pressed={selected}
+                onClick={() => setFilter(value)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                  selected
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {label}
+                <span className='tabular-nums opacity-75'>{counts[value]}</span>
+              </button>
+            );
+          })}
+        </div>
+        <label className='flex h-8 w-full items-center gap-2 border bg-card px-2.5 focus-within:border-ring sm:w-60'>
+          <Search className='size-3.5 shrink-0 text-muted-foreground' />
+          <input
+            type='search'
+            placeholder='Search name or email'
+            aria-label='Search name or email'
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className='min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground'
+          />
+        </label>
       </div>
 
-      {/* Users Table */}
-      <div className='border overflow-x-auto'>
-        <Table>
+      <div className='border bg-card'>
+        {/* wide screens: a table */}
+        <Table className='hidden md:table'>
           <TableHeader className='bg-muted'>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Joined</TableHead>
               <SortableTableHead
-                label="Order window wins"
-                sortKey="orderWindowWins"
+                label='Name'
+                sortKey='name'
                 sort={sort}
                 onSort={toggleSort}
               />
-              <TableHead>Show Summary</TableHead>
-              <TableHead>Reset Token</TableHead>
+              <SortableTableHead
+                label='Wins'
+                sortKey='wins'
+                sort={sort}
+                onSort={toggleSort}
+                className='text-right'
+              />
+              <TableHead>
+                <span title={FULL_BILL_HINT} className='cursor-help'>
+                  Sees full bill
+                </span>
+              </TableHead>
+              <SortableTableHead
+                label='Joined'
+                sortKey='joined'
+                sort={sort}
+                onSort={toggleSort}
+              />
+              <TableHead>Reset token</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -122,55 +191,37 @@ export function UsersTable({ organization, members }: UsersTableProps) {
             {pagination.paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
-                  className='text-center text-muted-foreground py-8'
+                  colSpan={6}
+                  className='py-8 text-center text-muted-foreground'
                 >
-                  No users found
+                  No members match
                 </TableCell>
               </TableRow>
             ) : (
               pagination.paginatedData.map((member) => (
                 <TableRow key={member.id}>
-                  <TableCell className='font-medium'>
-                    {member.user.name}
+                  <TableCell className='py-2'>
+                    <div className='font-medium'>{member.user.name}</div>
+                    <div className='text-xs text-muted-foreground'>
+                      {member.user.email}
+                    </div>
                   </TableCell>
-
-                  <TableCell className='text-muted-foreground'>
-                    {member.user.email}
-                  </TableCell>
-
-                  <TableCell className='text-sm text-muted-foreground'>
-                    {new Date(member.createdAt).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </TableCell>
-
-                  <TableCell className='tabular-nums'>
+                  <TableCell className='text-right tabular-nums'>
                     {member.orderWindowWins}
                   </TableCell>
-
                   <TableCell>
-                    <Switch
+                    <SplitSummarySwitch
+                      memberId={member.id}
+                      userName={member.user.name}
                       checked={member.canViewGlobalSplit}
-                      onCheckedChange={async (checked) => {
-                        await toggleSplitSummary(member.id, checked);
-                      }}
                     />
                   </TableCell>
-
-                  <TableCell>
-                    {member.user.passwordResetExpiry &&
-                    new Date(member.user.passwordResetExpiry) > new Date() ? (
-                      <ResetTokenCountdown
-                        expiresAt={member.user.passwordResetExpiry}
-                      />
-                    ) : (
-                      <GenerateResetTokenDialog userId={member.user.id} />
-                    )}
+                  <TableCell className='text-sm text-muted-foreground tabular-nums'>
+                    {formatJoined(member.createdAt)}
                   </TableCell>
-
+                  <TableCell>
+                    <ResetToken member={member} />
+                  </TableCell>
                   <TableCell>
                     <DeleteUserButton
                       userId={member.user.id}
@@ -183,8 +234,58 @@ export function UsersTable({ organization, members }: UsersTableProps) {
           </TableBody>
         </Table>
 
+        {/* phones: a list */}
+        <ul className='divide-y md:hidden'>
+          {pagination.paginatedData.length === 0 && (
+            <li className='py-8 text-center text-sm text-muted-foreground'>
+              No members match
+            </li>
+          )}
+          {pagination.paginatedData.map((member) => (
+            <li key={member.id} className='space-y-2 px-3 py-2.5'>
+              <div className='flex items-start justify-between gap-3'>
+                <div className='min-w-0 text-xs text-muted-foreground tabular-nums'>
+                  <p className='truncate text-sm font-medium text-foreground'>
+                    {member.user.name}
+                  </p>
+                  <p className='truncate'>{member.user.email}</p>
+                  <p className='flex items-center gap-x-3'>
+                    <span className='inline-flex items-center gap-1'>
+                      <Trophy className='size-3 text-primary' />
+                      {member.orderWindowWins}{" "}
+                      {member.orderWindowWins === 1 ? "win" : "wins"}
+                    </span>
+                    <span>Joined {formatJoined(member.createdAt)}</span>
+                  </p>
+                </div>
+                <SplitSummarySwitch
+                  memberId={member.id}
+                  userName={member.user.name}
+                  checked={member.canViewGlobalSplit}
+                />
+              </div>
+              <div className='flex items-center justify-between gap-3'>
+                <ResetToken member={member} />
+                <DeleteUserButton
+                  userId={member.user.id}
+                  userName={member.user.name}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+
         <DataPagination {...pagination} />
       </div>
     </div>
   );
+}
+
+// a running countdown while a reset code is live, else the button to make one
+function ResetToken({ member }: { member: Member }) {
+  const expiry = member.user.passwordResetExpiry;
+  if (expiry && new Date(expiry) > new Date()) {
+    return <ResetTokenCountdown expiresAt={expiry} />;
+  }
+  return <GenerateResetTokenDialog userId={member.user.id} />;
 }

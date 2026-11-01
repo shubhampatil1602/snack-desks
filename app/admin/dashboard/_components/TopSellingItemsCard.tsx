@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 
 type TopSellingItem = {
   menuItemId: string;
@@ -42,25 +41,31 @@ export function TopSellingItemsCard({ items }: TopSellingItemsCardProps) {
         {items.length === 0 ? (
           <p className='text-sm text-muted-foreground'>No sales yet</p>
         ) : (
-          <div className='space-y-3'>
+          <ul className='space-y-3'>
             {items.map((item) => {
               const percentage = (item.quantity / maxQuantity) * 100;
 
               return (
-                <div key={item.menuItemId}>
-                  <div className='mb-1 flex items-center justify-between'>
-                    <span className='font-medium'>{item.name}</span>
-
-                    <span className='text-sm text-muted-foreground'>
-                      {item.quantity} sold
+                <li key={item.menuItemId} className='space-y-1.5'>
+                  <div className='flex items-baseline justify-between gap-3'>
+                    <span className='truncate'>{item.name}</span>
+                    <span className='shrink-0 font-semibold tabular-nums'>
+                      {item.quantity.toLocaleString("en-IN")}
+                      <span className='ml-1.5 text-xs font-normal text-muted-foreground'>
+                        sold
+                      </span>
                     </span>
                   </div>
-
-                  <Progress value={percentage} className='h-3' />
-                </div>
+                  <div className='h-[3px] bg-muted'>
+                    <div
+                      className='h-full bg-primary'
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </CardContent>
     </Card>

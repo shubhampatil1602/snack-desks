@@ -26,7 +26,7 @@ export function SortableTableHead<T extends string>({
     <TableHead className={className}>
       <button
         type="button"
-        className="inline-flex h-8 items-center gap-1 text-left font-medium hover:text-foreground"
+        className="inline-flex h-8 items-center gap-1 text-left font-medium uppercase tracking-wider hover:text-foreground"
         onClick={() => onSort(sortKey)}
       >
         {label}

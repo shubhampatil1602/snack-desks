@@ -140,6 +140,14 @@ export default async function UserDashboard({
         </Suspense>
       </div>
 
+      <Suspense fallback={<UserHeatmapSkeleton />}>
+        <UserHeatmapFetcher
+          organizationId={member.organizationId}
+          userId={session.user.id}
+          joinedAt={member.organization.createdAt}
+        />
+      </Suspense>
+
       <div className='grid gap-3 lg:grid-cols-2'>
         <Suspense fallback={<UserRankSkeleton />}>
           <UserRankFetcher
@@ -156,14 +164,6 @@ export default async function UserDashboard({
           />
         </Suspense>
       </div>
-
-      <Suspense fallback={<UserHeatmapSkeleton />}>
-        <UserHeatmapFetcher
-          organizationId={member.organizationId}
-          userId={session.user.id}
-          joinedAt={member.organization.createdAt}
-        />
-      </Suspense>
 
       <Suspense fallback={<UserFavoriteItemsSkeleton />}>
         <UserFavoriteItemsFetcher

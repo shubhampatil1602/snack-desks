@@ -81,7 +81,7 @@ export async function UserHeatmapFetcher({
   joinedAt: Date;
 }) {
   const data = await getUserHeatmapData(organizationId, userId);
-  return <SnackHeatmap data={data} joinedAt={joinedAt} />;
+  return <SnackHeatmap data={data} joinedAt={joinedAt} variant='detailed' />;
 }
 
 export async function ProfileHeaderFetcher({
