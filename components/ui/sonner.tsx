@@ -38,7 +38,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          // an open sheet or dialog turns off clicks outside it; keep
+          // toast buttons like Undo clickable
+          toast: "cn-toast pointer-events-auto",
         },
       }}
       {...props}
@@ -46,4 +48,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-export { Toaster }
+// For a sheet's or dialog's onInteractOutside: a click on a toast isn't a
+// click away, so it shouldn't close them
+function isToastEvent(event: Event) {
+  return event.target instanceof Element && !!event.target.closest("[data-sonner-toaster]")
+}
+
+export { Toaster, isToastEvent }

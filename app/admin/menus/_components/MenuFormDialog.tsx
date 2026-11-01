@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/select";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
+import { VegMark } from "@/components/veg-mark";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createMenuItemAction, updateMenuItemAction } from "@/actions/menu";
 import { menuItemSchema as schema } from "@/types/menu";
@@ -69,12 +71,14 @@ export function MenuFormDialog({
       categoryId: "",
       shopId: "",
       imageUrl: "",
+      isVeg: true,
     },
   });
 
   const unitValue = useWatch({ control, name: "unit" });
   const categoryValue = useWatch({ control, name: "categoryId" });
   const shopValue = useWatch({ control, name: "shopId" });
+  const isVegValue = useWatch({ control, name: "isVeg" });
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
@@ -86,6 +90,7 @@ export function MenuFormDialog({
           categoryId: item.menuCategoryId ?? "",
           shopId: item.shopId ?? "",
           imageUrl: item.imageUrl ?? "",
+          isVeg: item.isVeg,
         });
       } else {
         reset({
@@ -95,6 +100,7 @@ export function MenuFormDialog({
           categoryId: "",
           shopId: "",
           imageUrl: "",
+          isVeg: true,
         });
       }
     }
@@ -119,6 +125,7 @@ export function MenuFormDialog({
         categoryId: values.categoryId,
         shopId: values.shopId,
         imageUrl: values.imageUrl || null,
+        isVeg: values.isVeg,
       };
 
       const result =
@@ -177,6 +184,37 @@ export function MenuFormDialog({
               disabled={isSubmitting}
             />
             <FieldError>{errors.name?.message}</FieldError>
+          </Field>
+
+          <Field>
+            <FieldLabel>Type</FieldLabel>
+            <div className='grid grid-cols-2 gap-2' role='radiogroup' aria-label='Type'>
+              {[true, false].map((isVeg) => (
+                <Button
+                  key={String(isVeg)}
+                  type='button'
+                  variant='outline'
+                  role='radio'
+                  aria-checked={isVegValue === isVeg}
+                  onClick={() =>
+                    setValue("isVeg", isVeg, { shouldDirty: true })
+                  }
+                  disabled={isSubmitting}
+                  className={cn(
+                    isVegValue === isVeg &&
+                      (isVeg
+                        ? "border-green-600 bg-green-600/10 hover:bg-green-600/15"
+                        : "border-red-600 bg-red-600/10 hover:bg-red-600/15"),
+                  )}
+                >
+                  {/* the label already says it */}
+                  <span aria-hidden className='contents'>
+                    <VegMark isVeg={isVeg} />
+                  </span>
+                  {isVeg ? "Veg" : "Non-veg"}
+                </Button>
+              ))}
+            </div>
           </Field>
 
           <Field>

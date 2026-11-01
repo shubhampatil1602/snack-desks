@@ -13,3 +13,7 @@ export const SPIN_EXCLUDED_USER_IDS: readonly string[] = [
   "ZnQ2LO4x1qu0rGOocGebxXvq0OdTNhqu",
   "rfxrlBvbryRERoUnpgoy6dXx495yZbou",
 ];
+
+// Banner line on the order window when the admin didn't write one
+export const DEFAULT_WINDOW_TAGLINE =
+  "Chal bhidu, nasta order karle chal... apna pet apna sagga hai, baki sab moh-maaya hai!";

@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createWindowAction } from "@/actions/order-window";
+import { DEFAULT_WINDOW_TAGLINE } from "@/lib/constants";
 import type { Shop } from "@/lib/generated/prisma/client";
 
 const schema = z.object({
@@ -25,6 +26,11 @@ const schema = z.object({
     .trim()
     .min(1, "Label is required")
     .max(25, "Backxhodi mat kar bhai..."),
+  tagline: z
+    .string()
+    .trim()
+    .max(120, "Keep the tagline under 120 characters")
+    .optional(),
   hasDuration: z.boolean().default(false),
   duration: z.coerce.number().min(1).optional(),
   shopIds: z.array(z.string()).min(1, "Select at least one shop"),
@@ -44,6 +50,7 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
     resolver: zodResolver(schema) as Resolver<FormValues>,
     defaultValues: {
       label: "",
+      tagline: "",
       hasDuration: false,
       duration: 15,
       shopIds: [],
@@ -63,6 +70,7 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
   async function onSubmit(values: FormValues) {
     const result = await createWindowAction({
       label: values.label.trim(),
+      tagline: values.tagline?.trim() || undefined,
       duration: values.hasDuration ? values.duration : undefined,
       shopIds: values.shopIds,
     });
@@ -95,6 +103,21 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
             This helps users know which session they&apos;re ordering for
           </FieldDescription>
           <FieldError>{errors.label?.message}</FieldError>
+        </Field>
+
+        <Field className='max-w-xl'>
+          <FieldLabel htmlFor='tagline'>Tagline (optional)</FieldLabel>
+          <Input
+            id='tagline'
+            placeholder={DEFAULT_WINDOW_TAGLINE}
+            maxLength={120}
+            {...register("tagline")}
+          />
+          <FieldDescription>
+            Shown at the top of the order window. Leave it empty for the usual
+            line.
+          </FieldDescription>
+          <FieldError>{errors.tagline?.message}</FieldError>
         </Field>
 
         <Field>

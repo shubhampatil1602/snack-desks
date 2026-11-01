@@ -44,13 +44,14 @@ export async function OrderWindowFetcher({
         windowId={activeWindowData.window.id}
         endsAt={activeWindowData.window.endsAt}
         label={activeWindowData.window.label}
+        tagline={activeWindowData.window.tagline}
         serverNow={serverNow}
+        repeatOrder={repeatOrder}
       />
       <OrdersClient
         windowId={activeWindowData.window.id}
         menuItems={activeWindowData.menuItems}
         existingOrder={existingOrder}
-        repeatOrder={repeatOrder}
         favouriteMenuItemIds={favouriteMenuItemIds}
       />
     </div>

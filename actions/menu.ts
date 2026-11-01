@@ -92,6 +92,7 @@ export async function createMenuItemAction(
       updatedAt: new Date(),
       shopId: parsed.data.shopId,
       imageUrl: parsed.data.imageUrl || null,
+      isVeg: parsed.data.isVeg,
     },
   });
   expireOrgData(member.organizationId, "menu");
@@ -152,6 +153,7 @@ export async function updateMenuItemAction(
       menuCategoryId: parsed.data.categoryId,
       shopId: parsed.data.shopId,
       imageUrl: parsed.data.imageUrl || null,
+      isVeg: parsed.data.isVeg,
     },
   });
   expireOrgData(member.organizationId, "menu");

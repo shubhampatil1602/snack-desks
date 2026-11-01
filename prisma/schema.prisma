@@ -141,6 +141,7 @@ model OrderWindow {
   organizationId String
 
   label     String // "tea" | "lunch" | "evening" | anything admin types
+  tagline   String? // line on the users' banner; empty shows the default one
   status    String // "active" | "closed"
   startsAt  DateTime
   endsAt    DateTime?
@@ -260,6 +261,7 @@ model MenuItem {
   price       Decimal  @db.Decimal(10, 2)
   unit        String // "plate" | "piece" | "rs" | "glass"
   isAvailable Boolean  @default(true)
+  isVeg       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

@@ -27,7 +27,9 @@ export function TodaysWindowsList({ windows }: TodaysWindowsListProps) {
               </span>
             </div>
             <div className='flex items-center gap-4 text-xs text-muted-foreground'>
-              <span>{w._count.orders} orders</span>
+              <span>
+                {w._count.orders} {w._count.orders === 1 ? "order" : "orders"}
+              </span>
               {/* <span>
                 {new Date(w.startsAt).toLocaleTimeString("en-IN", {
                   hour: "2-digit",

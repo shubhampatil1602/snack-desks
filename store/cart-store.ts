@@ -277,6 +277,8 @@ export const useCartStore = create<CartStore>()(
         orderStatus: state.orderStatus,
         hasPlacedOrder: state.hasPlacedOrder,
         savedItems: state.savedItems,
+        // which window the cart is for, so another window doesn't inherit it
+        windowId: state.windowId,
       }),
     },
   ),

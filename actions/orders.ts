@@ -423,6 +423,69 @@ export async function updateOrderStatusAction(
   };
 }
 
+// Approves every pending order of one of the admin's windows at once
+export async function approvePendingOrdersAction(
+  windowId: string,
+): Promise<{ success: true; count: number } | { success: false; error: string }> {
+  const { session } = await requireAdmin();
+
+  const member = await prisma.member.findFirst({
+    where: {
+      userId: session.user.id,
+    },
+  });
+
+  if (!member) {
+    return {
+      success: false,
+      error: "Organization not found",
+    };
+  }
+
+  const pendingOrders = await prisma.order.findMany({
+    where: {
+      windowId,
+      organizationId: member.organizationId,
+      status: "pending",
+    },
+    select: { id: true },
+  });
+
+  const orderIds = pendingOrders.map((order) => order.id);
+  if (orderIds.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  await prisma.order.updateMany({
+    where: {
+      id: { in: orderIds },
+      status: "pending",
+    },
+    data: {
+      status: "approved",
+    },
+  });
+
+  await Promise.all(
+    orderIds.map((orderId) =>
+      notify({
+        type: "order_status_changed",
+        orgId: member.organizationId,
+        payload: {
+          orderId,
+          status: "approved",
+        },
+      }),
+    ),
+  );
+
+  expireOrgData(member.organizationId, "orders");
+  revalidatePath("/admin/order-window");
+  revalidatePath("/admin/dashboard");
+
+  return { success: true, count: orderIds.length };
+}
+
 export async function updateAdminOrderAction(
   orderId: string,
   input: {

@@ -11,6 +11,7 @@ import { closeWindowInternal } from "@/modules/order-window/close-window";
 
 const createWindowSchema = z.object({
   label: z.string().trim().min(1, "Label is required"),
+  tagline: z.string().trim().max(120, "Keep the tagline under 120 characters").optional(),
   duration: z.coerce.number().min(1).optional(), // in minutes, optional
   shopIds: z.array(z.string()).min(1, "Select at least one shop"),
 });
@@ -71,6 +72,7 @@ export async function createWindowAction(
     data: {
       id: nanoid(),
       label: parsed.data.label,
+      tagline: parsed.data.tagline || null,
       status: "active",
       startsAt,
       endsAt,

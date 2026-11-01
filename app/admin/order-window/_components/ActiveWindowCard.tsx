@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -22,15 +22,23 @@ import { WindowClosedPayload } from "@/types/sse";
 import type { ActiveWindow } from "@/modules/order-window/queries";
 import { formatTime, urgencyClass, useCountdown } from "@/hooks/use-countdown";
 import { useSSEEvent } from "@/providers/sse-provider";
+import { formatCurrency } from "@/lib/utils";
 
 interface ActiveWindowCardProps {
   window: NonNullable<ActiveWindow>;
   serverNow: number;
+  orderCount: number;
+  bill: number;
+  // the Order on behalf button
+  action?: ReactNode;
 }
 
 export function ActiveWindowCard({
   window,
   serverNow,
+  orderCount,
+  bill,
+  action,
 }: ActiveWindowCardProps) {
   const router = useRouter();
   const [closing, setClosing] = useState(false);
@@ -73,52 +81,49 @@ export function ActiveWindowCard({
   if (closed) return null;
 
   return (
-    <div className='border p-6'>
-      <div className='flex items-start justify-between'>
-        <div className='space-y-1'>
-          <div className='flex items-center gap-2'>
-            <h2 className='text-base font-medium'>{window.label}</h2>
-            <Badge
-              variant='default'
-              className='bg-green-600 text-white px-1.5 py-0.5'
-            >
-              Active
-            </Badge>
-          </div>
-          <p className='text-xs text-muted-foreground'>
-            Opened at{" "}
-            {new Date(window.startsAt).toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
-        </div>
-
-        {/* countdown or no timer */}
-        <div className='text-right'>
-          {remaining !== null ? (
-            <div>
-              <p
-                className={`text-3xl font-mono font-semibold ${urgencyClass(remaining)}`}
-              >
-                {formatTime(remaining)}
-              </p>
-              <p className='text-xs text-muted-foreground mt-0.5'>remaining</p>
-            </div>
-          ) : (
-            !window.endsAt && (
-              <div className='flex items-center gap-2 bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-700 dark:bg-yellow-950 dark:border-yellow-900 dark:text-yellow-300'>
-                <span>
-                  ⚠️ No timer set - this window will stay open until you close
-                  it manually.
-                </span>
-              </div>
-            )
-          )}
-        </div>
+    <div className='flex flex-wrap items-center gap-x-4 gap-y-3 border bg-card px-4 py-3'>
+      <div className='flex items-center gap-2'>
+        <h2 className='text-base font-medium'>{window.label}</h2>
+        <Badge
+          variant='default'
+          className='bg-green-600 text-white px-1.5 py-0.5'
+        >
+          Active
+        </Badge>
       </div>
 
-      <div className='mt-5 pt-4 border-t flex justify-end'>
+      <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground'>
+        <span>
+          Opened{" "}
+          {new Date(window.startsAt).toLocaleTimeString("en-IN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+        {remaining !== null ? (
+          <span
+            className={`font-mono text-base font-semibold ${urgencyClass(remaining)}`}
+          >
+            {formatTime(remaining)} left
+          </span>
+        ) : (
+          !window.endsAt && (
+            <span
+              className='border border-dashed px-2 py-0.5 text-xs'
+              title='This window stays open until you end it'
+            >
+              No timer
+            </span>
+          )
+        )}
+        <span className='tabular-nums'>
+          {orderCount} {orderCount === 1 ? "order" : "orders"} ·{" "}
+          {formatCurrency(bill)}
+        </span>
+      </div>
+
+      <div className='ml-auto flex flex-wrap items-center gap-2'>
+        {action}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant='destructive' size='sm' disabled={closing}>

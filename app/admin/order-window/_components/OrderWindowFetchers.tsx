@@ -3,11 +3,12 @@ import { getActiveWindowWithMenu } from "@/modules/orders/queries";
 import { getShops } from "@/modules/menu/queries";
 import { getLiveOrders } from "@/modules/orders/admin-queries";
 import { ActiveWindowCard } from "./ActiveWindowCard";
+import { AddOrderOnBehalfDialog } from "./AddOrderOnBehalfDialog";
 import { CreateWindowForm } from "./CreateWindowForm";
 import { TodaysWindowsList } from "./TodaysWindowsList";
-import { Tabs, TabsTrigger, TabsList, TabsContent } from "@/components/ui/tabs";
-import { LiveOrdersTable } from "./LiveOrdersTable";
+import { LiveOrders } from "./LiveOrders";
 import { LiveOrdersSSE } from "./LiveOrdersSSE";
+import { summarizeOrders } from "./live-orders-view";
 
 export async function OrderWindowContentFetcher({ organizationId }: { organizationId: string }) {
   const [activeWindowData, todaysWindows, shops] = await Promise.all([
@@ -21,41 +22,48 @@ export async function OrderWindowContentFetcher({ organizationId }: { organizati
   const liveOrders = activeWindow ? await getLiveOrders(activeWindow.id) : [];
   const serverNow = new Date().getTime();
 
+  if (!activeWindow) {
+    return (
+      <>
+        <CreateWindowForm shops={shops} />
+        <h2 className='text-sm font-medium mb-3'>Recent Windows</h2>
+        <TodaysWindowsList windows={todaysWindows} />
+      </>
+    );
+  }
+
+  const summary = summarizeOrders(liveOrders);
+  const earlierWindows = todaysWindows.filter((w) => w.id !== activeWindow.id);
+
   return (
     <>
-      {activeWindow ? (
-        <>
-          <ActiveWindowCard
-            window={activeWindow}
-            serverNow={serverNow}
+      <ActiveWindowCard
+        window={activeWindow}
+        serverNow={serverNow}
+        orderCount={summary.count}
+        bill={summary.bill}
+        action={
+          <AddOrderOnBehalfDialog
+            windowId={activeWindow.id}
+            windowLabel={activeWindow.label}
+            menuItems={menuItems}
           />
-          <Tabs defaultValue='active-orders'>
-            <TabsList className='w-full mb-1'>
-              <TabsTrigger value='active-orders'>Active Orders</TabsTrigger>
-              <TabsTrigger value='recent-windows'>Recent Windows</TabsTrigger>
-            </TabsList>
+        }
+      />
 
-            <TabsContent value='active-orders'>
-              <LiveOrdersSSE renderedAt={serverNow} />
-              <LiveOrdersTable
-                orders={liveOrders}
-                windowId={activeWindow.id}
-                windowLabel={activeWindow.label}
-                menuItems={menuItems}
-              />
-            </TabsContent>
+      <LiveOrdersSSE renderedAt={serverNow} />
+      <LiveOrders
+        orders={liveOrders}
+        windowId={activeWindow.id}
+        windowLabel={activeWindow.label}
+        menuItems={menuItems}
+      />
 
-            <TabsContent value='recent-windows'>
-              <TodaysWindowsList windows={todaysWindows} />
-            </TabsContent>
-          </Tabs>
-        </>
-      ) : (
-        <>
-          <CreateWindowForm shops={shops} />
-          <h2 className='text-sm font-medium mb-3'>Recent Windows</h2>
-          <TodaysWindowsList windows={todaysWindows} />
-        </>
+      {earlierWindows.length > 0 && (
+        <section className='space-y-3'>
+          <h2 className='text-sm font-medium'>Earlier today</h2>
+          <TodaysWindowsList windows={earlierWindows} />
+        </section>
       )}
     </>
   );

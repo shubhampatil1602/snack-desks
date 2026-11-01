@@ -10,8 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { VegMark } from "@/components/veg-mark";
+import type { FoodType } from "@/components/food-type-toggles";
 import { toast } from "sonner";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { usePagination } from "@/hooks/use-pagination";
@@ -56,13 +57,15 @@ export function MenuTable({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedShop, setSelectedShop] = useState<string | null>(null);
   const [availability, setAvailability] = useState<string>("all");
+  const [foodType, setFoodType] = useState<FoodType>("all");
   const { sort, toggleSort } = useColumnSort<MenuSortKey>();
 
   const isFiltered =
     search !== "" ||
     selectedCategory !== null ||
     selectedShop !== null ||
-    availability !== "all";
+    availability !== "all" ||
+    foodType !== "all";
 
   const itemsWithoutCategoryFilter = useMemo(() => {
     const query = search.toLowerCase();
@@ -75,6 +78,8 @@ export function MenuTable({
       
       if (availability === "available" && !isAvailable) return acc;
       if (availability === "unavailable" && isAvailable) return acc;
+      if (foodType === "veg" && !item.isVeg) return acc;
+      if (foodType === "nonveg" && item.isVeg) return acc;
 
       if (
         query &&
@@ -93,6 +98,7 @@ export function MenuTable({
     toggledItems,
     selectedShop,
     availability,
+    foodType,
     search,
   ]);
 
@@ -147,37 +153,34 @@ export function MenuTable({
   }
   return (
     <div className='space-y-6'>
-      <div className='flex items-center gap-2 flex-wrap'>
-        <Badge
-          className={cn(
-            "cursor-pointer transition-all px-3 py-2 border",
-            selectedCategory === null
-              ? "bg-accent opacity-100"
-              : "opacity-50 hover:opacity-75",
-          )}
-          onClick={() => setSelectedCategory(null)}
-        >
-          All {itemsWithoutCategoryFilter.length}
-        </Badge>
-        {categories.map((cat) => {
-          const count = itemsWithoutCategoryFilter.filter(
-            (i) => i.menuCategoryId === cat.id,
-          ).length;
-          
+      {/* same chips as the order window's menu */}
+      <div className='flex flex-wrap items-center gap-2'>
+        {[null, ...categories].map((cat) => {
+          const count = cat
+            ? itemsWithoutCategoryFilter.filter(
+                (i) => i.menuCategoryId === cat.id,
+              ).length
+            : itemsWithoutCategoryFilter.length;
+          const selected = selectedCategory === (cat?.id ?? null);
+
           return (
-            <Badge
-              key={cat.id}
-              variant={selectedCategory === cat.id ? "default" : "outline"}
-              className={cn(
-                "cursor-pointer transition-all px-3 py-2 border",
-                selectedCategory === cat.id
-                  ? "bg-accent opacity-100"
-                  : "opacity-50 hover:opacity-75",
-              )}
-              onClick={() => setSelectedCategory(cat.id)}
+            <Button
+              key={cat?.id ?? "all"}
+              variant={selected ? "default" : "outline"}
+              size='sm'
+              aria-pressed={selected}
+              onClick={() => setSelectedCategory(cat?.id ?? null)}
             >
-              {cat.name} {count}
-            </Badge>
+              {cat ? cat.name : "All"}
+              <span
+                className={cn(
+                  "font-normal tabular-nums",
+                  selected ? "opacity-80" : "text-muted-foreground",
+                )}
+              >
+                {count}
+              </span>
+            </Button>
           );
         })}
       </div>
@@ -212,6 +215,26 @@ export function MenuTable({
             </Select>
           )}
 
+          <Select
+            value={foodType}
+            onValueChange={(value) => setFoodType(value as FoodType)}
+          >
+            <SelectTrigger className='w-[140px]' aria-label='Type'>
+              <SelectValue placeholder='Type' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='all'>All Types</SelectItem>
+              <SelectItem value='veg'>
+                <VegMark isVeg />
+                Veg
+              </SelectItem>
+              <SelectItem value='nonveg'>
+                <VegMark isVeg={false} />
+                Non-veg
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
           <Select value={availability} onValueChange={setAvailability}>
             <SelectTrigger className='w-[140px]'>
               <SelectValue placeholder='Availability' />
@@ -232,6 +255,7 @@ export function MenuTable({
                 setSelectedCategory(null);
                 setSelectedShop(null);
                 setAvailability("all");
+                setFoodType("all");
               }}
             >
               <X className='h-4 w-4 mr-2' />
@@ -253,7 +277,8 @@ export function MenuTable({
                 onSort={toggleSort}
               />
               <TableHead>Unit</TableHead>
-              <TableHead>Category</TableHead>
+              {/* the category chips already say it */}
+              {!selectedCategory && <TableHead>Category</TableHead>}
               <TableHead>Shop</TableHead>
               <SortableTableHead
                 label="Items sold"
@@ -269,35 +294,43 @@ export function MenuTable({
             {pagination.paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={selectedCategory ? 7 : 8}
                   className='text-center text-muted-foreground py-8'
                 >
-                  No menu items found for{" "}
-                  <span className='font-semibold'>{search}</span>
+                  {search ? (
+                    <>
+                      No menu items found for{" "}
+                      <span className='font-semibold'>{search}</span>
+                    </>
+                  ) : (
+                    "No menu items match these filters"
+                  )}
                 </TableCell>
               </TableRow>
             ) : (
               pagination.paginatedData.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className='font-medium'>{item.name}</TableCell>
+                <TableRow
+                  key={item.id}
+                  // unavailable items fade, except the switch and actions
+                  className={cn(
+                    !item.isAvailable &&
+                      "[&>td:not(:nth-last-child(-n+2))]:opacity-45",
+                  )}
+                >
+                  <TableCell className='font-medium'>
+                    <span className='flex items-center gap-3'>
+                      <ItemThumb item={item} />
+                      {item.name}
+                    </span>
+                  </TableCell>
                   <TableCell>{formatCurrency(item.price)}</TableCell>
-                  <TableCell>
-                    <Badge variant='secondary'>{item.unit}</Badge>
+                  <TableCell className='text-muted-foreground'>
+                    {item.unit}
                   </TableCell>
-                  <TableCell>
-                    {item.menuCategory ? (
-                      <Badge variant='outline'>{item.menuCategory.name}</Badge>
-                    ) : (
-                      <span className='text-xs text-muted-foreground'>—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {item.shop ? (
-                      <Badge variant='outline'>{item.shop.name}</Badge>
-                    ) : (
-                      <span className='text-xs text-muted-foreground'>—</span>
-                    )}
-                  </TableCell>
+                  {!selectedCategory && (
+                    <TableCell>{item.menuCategory?.name ?? "—"}</TableCell>
+                  )}
+                  <TableCell>{item.shop?.name ?? "—"}</TableCell>
 
                   <TableCell className='tabular-nums'>
                     {soldByMenuItemId[item.id] ?? 0}
@@ -334,5 +367,39 @@ export function MenuTable({
         <DataPagination {...pagination} />
       </div>
     </div>
+  );
+}
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+}
+
+// photo (or letters when there's none), with the veg mark on its corner
+function ItemThumb({ item }: { item: MenuItem }) {
+  return (
+    <span className='relative shrink-0'>
+      <span className='grid h-10 w-10 place-items-center overflow-hidden bg-muted font-heading text-sm text-muted-foreground'>
+        {item.imageUrl ? (
+          <img
+            src={item.imageUrl}
+            alt=''
+            loading='lazy'
+            decoding='async'
+            className='h-full w-full object-cover'
+          />
+        ) : (
+          <span aria-hidden>{initials(item.name)}</span>
+        )}
+      </span>
+      <VegMark
+        isVeg={item.isVeg}
+        className='absolute -bottom-1 -right-1 h-4 w-4 shadow-sm'
+      />
+    </span>
   );
 }

@@ -1,13 +1,25 @@
+import type { RepeatOrder } from "@/modules/orders/reorder";
+import { DEFAULT_WINDOW_TAGLINE } from "@/lib/constants";
 import { CountdownTimer } from "./CountdownTimer";
+import { RepeatOrderDialog } from "./RepeatOrderDialog";
 
 type Props = {
   windowId: string;
   label: string;
+  tagline: string | null;
   endsAt: string | Date | null;
   serverNow: number;
+  repeatOrder: RepeatOrder | null;
 };
 
-export function WindowBanner({ windowId, label, endsAt, serverNow }: Props) {
+export function WindowBanner({
+  windowId,
+  label,
+  tagline,
+  endsAt,
+  serverNow,
+  repeatOrder,
+}: Props) {
   return (
     <div className='relative overflow-hidden bg-card px-4 py-4 shadow'>
       {/* Paper Texture */}
@@ -49,7 +61,9 @@ export function WindowBanner({ windowId, label, endsAt, serverNow }: Props) {
             </p>
           </div>
 
-          <div className='flex items-center gap-2 text-right'>
+          {/* repeating an order sits with the window it goes into */}
+          <div className='flex items-center gap-4 text-right'>
+            <RepeatOrderDialog windowId={windowId} order={repeatOrder} />
             <CountdownTimer
               windowId={windowId}
               endsAt={endsAt}
@@ -61,8 +75,7 @@ export function WindowBanner({ windowId, label, endsAt, serverNow }: Props) {
         {/* Tagline */}
         <div className='bg-zinc-900 p-3 dark:bg-zinc-900/90 dark:border dark:border-zinc-700'>
           <p className='text-lg leading-relaxed text-zinc-100'>
-            Chal bhidu, nasta order karle chal... apna pet apna sagga hai, baki
-            sab moh-maaya hai!
+            {tagline || DEFAULT_WINDOW_TAGLINE}
           </p>
         </div>
       </div>

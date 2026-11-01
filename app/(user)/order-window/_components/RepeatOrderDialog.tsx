@@ -66,8 +66,10 @@ export function RepeatOrderDialog({ windowId, order }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {/* sits in the filter row: icon only until there's room for the label */}
+        {/* in the banner: outline, so the menu keeps the only orange button;
+            icon only until there's room for the label */}
         <Button
+          variant='outline'
           size='sm'
           className='w-9 shrink-0 px-0 lg:w-auto lg:px-4'
           aria-label='Repeat previous order'

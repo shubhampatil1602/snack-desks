@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { VegMark } from "@/components/veg-mark";
 import { ItemStepper } from "./ItemStepper";
 
 export type MenuItem = {
@@ -16,6 +17,7 @@ export type MenuItem = {
   price: string;
   unit: string | null;
   isAvailable: boolean;
+  isVeg: boolean;
   menuCategory: {
     id: string;
     name: string;
@@ -106,7 +108,7 @@ function MenuItemCard({
         {/* Gradient Overlay for Text Readability */}
         <div className='pointer-events-none absolute inset-0 bg-linear-to-t from-black via-black/50 to-black/5' />
 
-        {/* Name & Category at Bottom of Image */}
+        {/* name at the bottom of the image */}
         <div className='pointer-events-none absolute inset-x-0 bottom-0 z-10 p-3'>
           <h3
             className='line-clamp-2 font-semibold leading-tight text-white'
@@ -114,9 +116,6 @@ function MenuItemCard({
           >
             {item.name}
           </h3>
-          <p className='mt-1 line-clamp-1 text-xs text-white/80'>
-            {item.menuCategory.name}
-          </p>
         </div>
 
         <FavouriteButton
@@ -128,11 +127,15 @@ function MenuItemCard({
 
         {/* tags on the image's top right, as before; stacked so they line up on every card */}
         <div className='pointer-events-none absolute right-1.5 top-1.5 z-20 flex max-w-[calc(100%-3rem)] flex-col items-end gap-1 text-[10px] font-bold uppercase tracking-wider'>
-          {showShop && item.shop && (
-            <span className='max-w-full truncate border bg-accent px-2 py-1 text-primary shadow-sm'>
-              {item.shop.name}
-            </span>
-          )}
+          {/* the veg mark matches the shop tag's height */}
+          <div className='flex max-w-full items-center gap-1'>
+            {showShop && item.shop && (
+              <span className='flex h-6 min-w-0 items-center border bg-accent px-2 text-primary shadow-sm'>
+                <span className='truncate'>{item.shop.name}</span>
+              </span>
+            )}
+            <VegMark isVeg={item.isVeg} className='h-6 w-6 border-2 shadow-sm' />
+          </div>
           {item.shop?.isGroupOrderEnabled && (
             <span className='bg-emerald-600 px-1.5 py-1 text-white shadow-sm'>
               Group Split
@@ -174,6 +177,10 @@ function MenuItemRow({
     <div className='grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 sm:grid-cols-[3rem_minmax(0,1fr)_auto_auto]'>
       <div className='relative h-12 w-12 overflow-hidden'>
         <ItemImage item={item} small />
+        <VegMark
+          isVeg={item.isVeg}
+          className='pointer-events-none absolute left-0.5 top-0.5 h-3 w-3 border'
+        />
       </div>
 
       <div className='min-w-0'>

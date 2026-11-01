@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { updateOrderStatusAction } from "@/actions/orders";
 import { useTransition } from "react";
-import { IconCheck } from "@tabler/icons-react";
-import { X } from "lucide-react";
 import { AdminEditOrderDialog } from "@/app/admin/history/_components/AdminEditOrderDialog";
 import type { MenuItem } from "@/types/menu";
 
@@ -78,26 +76,37 @@ export function OrderActions({
     />
   );
 
+  const approve = (
+    <Button size='sm' onClick={() => updateStatus("approved")} disabled={pending}>
+      Approve
+    </Button>
+  );
+  const reject = (
+    <Button
+      size='sm'
+      variant='outline'
+      onClick={() => updateStatus("rejected")}
+      disabled={pending}
+    >
+      Reject
+    </Button>
+  );
+  const markPending = (
+    <Button
+      size='sm'
+      variant={status === "approved" ? "ghost" : "outline"}
+      onClick={() => updateStatus("pending")}
+      disabled={pending}
+    >
+      Mark Pending
+    </Button>
+  );
+
   if (status === "pending") {
     return (
-      <div className='flex items-center gap-2'>
-        <Button
-          size='sm'
-          onClick={() => updateStatus("approved")}
-          disabled={pending}
-        >
-          <IconCheck stroke={2} />
-        </Button>
-
-        <Button
-          size='sm'
-          variant='outline'
-          onClick={() => updateStatus("rejected")}
-          disabled={pending}
-        >
-          <X />
-        </Button>
-
+      <div className='flex flex-wrap items-center justify-end gap-2'>
+        {approve}
+        {reject}
         {editDialog}
       </div>
     );
@@ -105,25 +114,9 @@ export function OrderActions({
 
   if (status === "approved") {
     return (
-      <div className='flex items-center gap-2'>
-        <Button
-          size='sm'
-          variant='outline'
-          onClick={() => updateStatus("pending")}
-          disabled={pending}
-        >
-          Mark Pending
-        </Button>
-
-        <Button
-          size='sm'
-          variant='outline'
-          onClick={() => updateStatus("rejected")}
-          disabled={pending}
-        >
-          <X />
-        </Button>
-
+      <div className='flex flex-wrap items-center justify-end gap-2'>
+        {markPending}
+        {reject}
         {editDialog}
       </div>
     );
@@ -131,24 +124,9 @@ export function OrderActions({
 
   if (status === "rejected") {
     return (
-      <div className='flex items-center gap-2'>
-        <Button
-          size='sm'
-          variant='outline'
-          onClick={() => updateStatus("pending")}
-          disabled={pending}
-        >
-          Mark Pending
-        </Button>
-
-        <Button
-          size='sm'
-          onClick={() => updateStatus("approved")}
-          disabled={pending}
-        >
-          <IconCheck stroke={2} />
-        </Button>
-
+      <div className='flex flex-wrap items-center justify-end gap-2'>
+        {markPending}
+        {approve}
         {editDialog}
       </div>
     );
