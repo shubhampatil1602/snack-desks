@@ -16,6 +16,11 @@ import {
 import { RevenueTrendChart } from "@/app/admin/dashboard/_components/RevenueTrendChart";
 import { CategoryRevenueChart } from "@/app/admin/dashboard/_components/CategoryRevenueChart";
 import { prisma } from "@/lib/db";
+import { SnackySummaryCard } from "@/app/admin/dashboard/_components/SnackySummaryCard";
+import {
+  getSavedSnackySummary,
+  refreshSnackySummary,
+} from "@/modules/snacky/summary";
 
 export async function UserStatsFetcher({
   organizationId,
@@ -155,6 +160,40 @@ export async function UserCategorySpendingFetcher({
       periodLabel={periodLabel}
       title="Spending by category"
       description={`Your share of approved spend · ${periodLabel}`}
+    />
+  );
+}
+
+// your own roast; the first one for a period is written on the spot
+export async function UserSnackySummaryFetcher({
+  organizationId,
+  userId,
+  period,
+  periodLabel,
+}: {
+  organizationId: string;
+  userId: string;
+  period: string;
+  periodLabel: string;
+}) {
+  const scope = { userId };
+  let summary = await getSavedSnackySummary(organizationId, period, scope);
+  let error: string | undefined;
+  if (!summary) {
+    try {
+      summary = await refreshSnackySummary(organizationId, period, scope);
+    } catch (e) {
+      console.error("Snacky personal summary failed", e);
+      error = "Snacky couldn't write your roast just now";
+    }
+  }
+  return (
+    <SnackySummaryCard
+      mine
+      period={period}
+      periodLabel={periodLabel}
+      initial={summary}
+      initialError={error}
     />
   );
 }

@@ -29,6 +29,7 @@ model User {
   adminCreatedOrders Order[]             @relation("AdminCreatedOrders")
   orderItemSplits    OrderItemSplit[]
   favouriteMenuItems FavouriteMenuItem[]
+  snackyChats        SnackyChat[]
 
   @@unique([email])
   @@map("user")
@@ -100,6 +101,8 @@ model Organization {
   orderWindows   OrderWindow[]
   menuCategories MenuCategory[]
   shops          Shop[]
+  snackyChats    SnackyChat[]
+  snackySummaries SnackySummary[]
 
   @@map("organization")
 }
@@ -325,4 +328,38 @@ model Shop {
   @@unique([organizationId, name])
   @@index([organizationId])
   @@map("shop")
+}
+
+// An admin's Ask Snacky conversation, as AI SDK UI messages. Deleted 24 hours
+// after it starts (cleared lazily when the admin next uses Ask Snacky).
+model SnackyChat {
+  id             String   @id
+  organizationId String
+  userId         String
+  title          String
+  messages       Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, organizationId, createdAt])
+  @@map("snacky_chat")
+}
+
+// Snacky's dashboard roast for a period ("all", "YYYY", "YYYY-MM"), for the
+// whole org (scope "org", on the admin dashboard) or one person (scope = their
+// user id, on their own dashboard); kept until someone asks for a fresh one
+model SnackySummary {
+  organizationId String
+  period         String
+  scope          String   @default("org")
+  summary        Json
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, period, scope])
+  @@map("snacky_summary")
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useController, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,7 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Sparkles } from "lucide-react";
 import { createWindowAction } from "@/actions/order-window";
+import { suggestWindowNameAction } from "@/actions/snacky";
 import { DEFAULT_WINDOW_TAGLINE } from "@/lib/constants";
 import type { Shop } from "@/lib/generated/prisma/client";
 
@@ -45,6 +48,8 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
     register,
     handleSubmit,
     control,
+    setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as Resolver<FormValues>,
@@ -66,6 +71,28 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
     control,
     name: "shopIds",
   });
+
+  const [suggesting, setSuggesting] = useState(false);
+
+  // Snacky fills in a label, tagline and the usual shops; the admin can
+  // still change all three
+  async function suggestName() {
+    setSuggesting(true);
+    const result = await suggestWindowNameAction({
+      label: getValues("label"),
+      tagline: getValues("tagline"),
+    });
+    setSuggesting(false);
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+    setValue("label", result.data.label, { shouldValidate: true });
+    setValue("tagline", result.data.tagline);
+    if (result.data.shopIds.length > 0) {
+      setValue("shopIds", result.data.shopIds, { shouldValidate: true });
+    }
+  }
 
   async function onSubmit(values: FormValues) {
     const result = await createWindowAction({
@@ -94,11 +121,24 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
       <form onSubmit={handleSubmit(onSubmit)} className='space-y-4 w-full'>
         <Field className='max-w-sm'>
           <FieldLabel htmlFor='label'>Window label</FieldLabel>
-          <Input
-            id='label'
-            placeholder='Tea, Lunch, Evening...'
-            {...register("label")}
-          />
+          <div className='flex gap-2'>
+            <Input
+              id='label'
+              placeholder='Tea, Lunch, Evening...'
+              className='border-input px-3 focus-visible:border-ring'
+              {...register("label")}
+            />
+            <Button
+              type='button'
+              onClick={suggestName}
+              disabled={suggesting}
+              title='Snacky suggests a label and tagline'
+              className='h-10'
+            >
+              {suggesting ? <Spinner /> : <Sparkles />}
+              Suggest
+            </Button>
+          </div>
           <FieldDescription>
             This helps users know which session they&apos;re ordering for
           </FieldDescription>

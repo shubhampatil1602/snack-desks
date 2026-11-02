@@ -10,7 +10,7 @@ import {
   IconUsersGroup,
   IconChartBar,
   IconHistory,
-  IconBrain,
+  IconSparkles,
 } from "@tabler/icons-react";
 
 import { NavMain } from "./nav-main";
@@ -32,15 +32,15 @@ import { Logo } from "@/components/logo";
 
 const data = {
   navMain: [
-    // {
-    //   title: "Ask SnackDesk",
-    //   url: "/admin/ask-snackdesk",
-    //   icon: IconBrain,
-    // },
     {
       title: "Dashboard",
       url: "/admin/dashboard",
       icon: IconGraph,
+    },
+    {
+      title: "Ask Snacky",
+      url: "/admin/ask-snacky",
+      icon: IconSparkles,
     },
     {
       title: "Order Window",

@@ -16,6 +16,7 @@ import { PeriodPicker } from "@/components/period-picker";
 import { getPeriodCookie } from "@/actions/period-cookie";
 
 import { DashboardSSE } from "./_components/DashboardSSE";
+import { SnackySummarySkeleton } from "./_components/SnackySummaryCard";
 import { Suspense } from "react";
 import {
   ActiveWindowFetcher,
@@ -27,6 +28,7 @@ import {
   RevenueTrendFetcher,
   CategoryRevenueFetcher,
   TopWindowWinnersFetcher,
+  SnackySummaryFetcher,
 } from "./_components/DashboardFetchers";
 import {
   ActiveWindowSkeleton,
@@ -98,6 +100,14 @@ export default async function AdminDashboard({
 
       <Suspense fallback={<StatsSkeleton />}>
         <DashboardStatsFetcher
+          organizationId={member.organizationId}
+          period={period}
+          periodLabel={periodLabel}
+        />
+      </Suspense>
+
+      <Suspense key={period} fallback={<SnackySummarySkeleton />}>
+        <SnackySummaryFetcher
           organizationId={member.organizationId}
           period={period}
           periodLabel={periodLabel}

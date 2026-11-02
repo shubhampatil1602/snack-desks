@@ -18,6 +18,11 @@ import { SnackHeatmap } from "@/components/SnackHeatMap";
 import { RevenueTrendChart } from "./RevenueTrendChart";
 import { CategoryRevenueChart } from "./CategoryRevenueChart";
 import { TopWindowWinnersCard } from "./TopWindowWinnersCard";
+import { SnackySummaryCard } from "./SnackySummaryCard";
+import {
+  getSavedSnackySummary,
+  refreshSnackySummary,
+} from "@/modules/snacky/summary";
 
 export async function ActiveWindowFetcher({ organizationId }: { organizationId: string }) {
   const activeWindow = await getDashboardActiveWindow(organizationId);
@@ -93,4 +98,34 @@ export async function TopWindowWinnersFetcher({
 }) {
   const winners = await getTopWindowWinners(organizationId, period);
   return <TopWindowWinnersCard winners={winners} />;
+}
+
+// shows the saved summary; writes the first one for a period on the spot
+export async function SnackySummaryFetcher({
+  organizationId,
+  period,
+  periodLabel,
+}: {
+  organizationId: string;
+  period: string;
+  periodLabel: string;
+}) {
+  let summary = await getSavedSnackySummary(organizationId, period);
+  let error: string | undefined;
+  if (!summary) {
+    try {
+      summary = await refreshSnackySummary(organizationId, period);
+    } catch (e) {
+      console.error("Snacky summary failed", e);
+      error = "Snacky couldn't write the summary just now";
+    }
+  }
+  return (
+    <SnackySummaryCard
+      period={period}
+      periodLabel={periodLabel}
+      initial={summary}
+      initialError={error}
+    />
+  );
 }

@@ -37,7 +37,9 @@ import {
   ProfileHeaderFetcher,
   UserSpendingTrendFetcher,
   UserCategorySpendingFetcher,
+  UserSnackySummaryFetcher,
 } from "./_components/DashboardFetchers";
+import { SnackySummarySkeleton } from "@/app/admin/dashboard/_components/SnackySummaryCard";
 
 interface UserDashboardProps {
   searchParams: Promise<{
@@ -114,6 +116,15 @@ export default async function UserDashboard({
 
       <Suspense fallback={<UserStatsSkeleton />}>
         <UserStatsFetcher
+          organizationId={member.organizationId}
+          userId={session.user.id}
+          period={period}
+          periodLabel={periodLabel}
+        />
+      </Suspense>
+
+      <Suspense key={period} fallback={<SnackySummarySkeleton />}>
+        <UserSnackySummaryFetcher
           organizationId={member.organizationId}
           userId={session.user.id}
           period={period}
