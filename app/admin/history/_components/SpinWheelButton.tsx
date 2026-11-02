@@ -172,7 +172,7 @@ export function SpinWheelButton({
         </Button>
       </AlertDialogTrigger>
 
-      <AlertDialogContent className='max-w-md'>
+      <AlertDialogContent className='data-[size=default]:max-w-[calc(100%-2rem)] data-[size=default]:sm:max-w-xl'>
         {!showResult ? (
           <>
             <AlertDialogHeader>
@@ -193,7 +193,7 @@ export function SpinWheelButton({
               </AlertDialogDescription>
             </AlertDialogHeader>
 
-            <div className='flex min-h-[300px] flex-col items-center justify-center gap-4 py-2'>
+            <div className='flex min-h-[360px] flex-col items-center justify-center gap-4'>
               {winnerName && !spinning && (
                 <div className='text-center space-y-1 bg-yellow-100/50 dark:bg-yellow-900/20 px-6 py-3 border border-yellow-200 dark:border-yellow-900/50'>
                   <p className='text-xs font-semibold text-yellow-600 dark:text-yellow-500 uppercase tracking-wider'>
@@ -205,47 +205,26 @@ export function SpinWheelButton({
                 </div>
               )}
 
-              {style === "wheel" && (
-                <WheelSpinner
-                  names={names}
-                  target={target}
-                  onTick={() => tick()}
-                  onSettled={handleSettled}
-                />
-              )}
-              {style === "reel" && (
+              {drawError ? (
+                <p className='text-sm text-destructive'>{drawError}</p>
+              ) : !draw ? (
+                <p className='text-sm text-muted-foreground'>Loading names…</p>
+              ) : style === "reel" ? (
                 <ReelSpinner
                   names={names}
                   target={target}
                   onTick={() => tick(0.8)}
                   onSettled={handleSettled}
                 />
-              )}
-
-              {!spinning && (
-                <div className='w-full space-y-2 text-center'>
-                  {drawError ? (
-                    <p className='text-sm text-destructive'>{drawError}</p>
-                  ) : !draw ? (
-                    <p className='text-sm text-muted-foreground'>Loading names…</p>
-                  ) : (
-                    <>
-                      <p className='text-xs font-semibold uppercase tracking-wider text-muted-foreground'>
-                        In the draw · {draw.candidates.length}
-                      </p>
-                      <div className='flex flex-wrap justify-center gap-1.5'>
-                        {draw.candidates.map((user) => (
-                          <span
-                            key={user.id}
-                            className='border bg-muted/50 px-2 py-0.5 text-xs'
-                          >
-                            {user.name}
-                          </span>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
+              ) : (
+                // stands still as a preview of the names until it's spun
+                <WheelSpinner
+                  names={names}
+                  spinning={style === "wheel"}
+                  target={target}
+                  onTick={() => tick()}
+                  onSettled={handleSettled}
+                />
               )}
 
               {draw && draw.sittingOut.length > 0 && (
@@ -258,7 +237,7 @@ export function SpinWheelButton({
               )}
             </div>
 
-            <AlertDialogFooter>
+            <AlertDialogFooter className='sm:grid sm:grid-cols-3'>
               <AlertDialogCancel disabled={spinning}>Cancel</AlertDialogCancel>
               <Button
                 variant='outline'

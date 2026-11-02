@@ -59,6 +59,41 @@ export function prefersReducedMotion() {
 
 // fast start, long gentle stop
 export const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
+const easeInOutCubic = (t: number) =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-// how long the slow-down onto the winner takes
-export const SETTLE_MS = 4500;
+type Leg = { to: number; ms: number; ease: (t: number) => number };
+
+/**
+ * The stop, as legs in the spinner's own units (radians or rows): slow down
+ * and stop just short of the winner, hold, go round once more, run a little
+ * past the winner and swing back onto it.
+ * `nearMiss` and `overshoot` are how far before and past `to` it turns back.
+ */
+export function teaseLegs(
+  to: number,
+  lap: number,
+  nearMiss: number,
+  overshoot: number,
+): Leg[] {
+  const decoy = to - lap - nearMiss;
+  return [
+    { to: decoy, ms: 4000, ease: easeOutQuart },
+    { to: decoy, ms: 650, ease: (t) => t },
+    { to: to + overshoot, ms: 2600, ease: easeInOutCubic },
+    { to, ms: 800, ease: easeInOutCubic },
+  ];
+}
+
+// where the legs have got to `elapsed` ms after leaving `from`
+export function followLegs(from: number, legs: Leg[], elapsed: number) {
+  let start = from;
+  for (const leg of legs) {
+    if (elapsed < leg.ms) {
+      return { value: start + (leg.to - start) * leg.ease(elapsed / leg.ms), done: false };
+    }
+    elapsed -= leg.ms;
+    start = leg.to;
+  }
+  return { value: start, done: true };
+}

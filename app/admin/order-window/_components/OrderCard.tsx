@@ -82,7 +82,7 @@ export function OrderCard({
       )}
     >
       {/* who, status, total and buttons on one line; buttons wrap below on phones */}
-      <header className='flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2'>
+      <header className='flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-muted/40 px-4 py-2'>
         <div className='flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1'>
           <h3 className='font-medium'>{order.user.name}</h3>
           {order.createdByAdmin && (
@@ -117,7 +117,9 @@ export function OrderCard({
       </header>
 
       {/* items run down in columns as the card gets wider */}
-      <ul className='gap-x-8 px-4 py-2 text-sm tabular-nums @xl:columns-2 @4xl:columns-3'>
+      {/* a line between the columns; the spacing sits on the items so the
+          line runs the full height, from the header to the card's edge */}
+      <ul className='gap-x-8 px-4 text-sm tabular-nums [column-rule:1px_solid_var(--color-border)] @xl:columns-2 @4xl:columns-3'>
         {items.map((item) => (
           <ItemRows key={item.id} item={item} />
         ))}
@@ -136,7 +138,7 @@ function ItemRows({ item }: { item: LiveOrderItem }) {
 
   // one list entry per item, so its "If out" line never lands in the next column
   return (
-    <li className='break-inside-avoid'>
+    <li className='break-inside-avoid py-1'>
       <div
         className={cn(
           ROW,

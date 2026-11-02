@@ -2,11 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import {
-  easeOutQuart,
-  prefersReducedMotion,
-  SETTLE_MS,
-} from "./use-spin-sound";
+import { followLegs, prefersReducedMotion, teaseLegs } from "./use-spin-sound";
 
 type ReelSpinnerProps = {
   names: string[];
@@ -16,7 +12,7 @@ type ReelSpinnerProps = {
   onSettled: () => void;
 };
 
-const ROW = 52;
+const ROW = 58;
 // rows shown above and below the middle one
 const SPREAD = 2;
 
@@ -31,7 +27,8 @@ function initials(name: string) {
 
 /**
  * Names roll past a window like a slot machine from the moment it mounts;
- * once `target` arrives the reel slows down and stops on that name.
+ * once `target` arrives the reel stops just short of that name, rolls once
+ * more, runs a little past it and comes back onto it.
  */
 export function ReelSpinner({
   names,
@@ -55,7 +52,8 @@ export function ReelSpinner({
     let speed = 0;
     let pos = 0;
     let lastRow = 0;
-    let settle: { from: number; to: number; at: number } | null = null;
+    let settle: { from: number; legs: ReturnType<typeof teaseLegs>; at: number } | null =
+      null;
 
     const show = (value: number, velocity: number) => {
       pos = value;
@@ -81,10 +79,9 @@ export function ReelSpinner({
       const n = Math.max(list.length, 1);
 
       if (settle) {
-        const p = Math.min(1, (now - settle.at) / SETTLE_MS);
-        const next = settle.from + (settle.to - settle.from) * easeOutQuart(p);
-        show(next, next - pos);
-        if (p < 1) frame = requestAnimationFrame(loop);
+        const { value, done } = followLegs(settle.from, settle.legs, now - settle.at);
+        show(value, Math.abs(value - pos));
+        if (!done) frame = requestAnimationFrame(loop);
         else {
           setBlur(0);
           setLanded(true);
@@ -101,10 +98,13 @@ export function ReelSpinner({
       show(pos + speed * dt, speed * dt);
 
       if (index !== null) {
-        // stop on the winner after at least three more rounds of names
+        // in rows: first stop with the name before the winner in the window
+        // and the winner just peeking in; then at least eight more rows
+        const nearMiss = 0.85;
+        const lap = n * Math.ceil(8 / n);
         let to = Math.ceil(pos / n) * n + index;
-        while (to < pos + n * 3) to += n;
-        settle = { from: pos, to, at: now };
+        while (to - lap - nearMiss < pos + n * 3) to += n;
+        settle = { from: pos, legs: teaseLegs(to, lap, nearMiss, 0.45), at: now };
       }
       frame = requestAnimationFrame(loop);
     };
@@ -124,7 +124,7 @@ export function ReelSpinner({
 
   return (
     <div
-      className='relative mx-auto w-full max-w-72 overflow-hidden border bg-background'
+      className='relative mx-auto w-full max-w-sm overflow-hidden border bg-background'
       style={{ height: ROW * (SPREAD * 2 + 1) }}
     >
       <div style={{ filter: blur ? `blur(${blur}px)` : undefined }}>

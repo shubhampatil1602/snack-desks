@@ -106,10 +106,15 @@ export function CategoryRevenueChart({
                       nameKey='category'
                       formatter={(value, name, item) => {
                         const share = item?.payload?.share;
-                        return [
-                          `${formatCurrency(Number(value))}${share != null ? ` (${share}%)` : ""}`,
-                          String(name),
-                        ];
+                        return (
+                          <div className='grid gap-0.5'>
+                            <span className='font-medium'>{String(name)}</span>
+                            <span className='text-muted-foreground tabular-nums'>
+                              {formatCurrency(Number(value))}
+                              {share != null && ` · ${formatShare(share)}`}
+                            </span>
+                          </div>
+                        );
                       }}
                     />
                   }
