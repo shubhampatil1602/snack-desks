@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Trophy, Sparkles } from "lucide-react";
+import { useRef, useState } from "react";
+import { Trophy, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 
-import { spinWheelAction } from "@/actions/spin-wheel";
+import { getSpinDrawAction, spinWheelAction } from "@/actions/spin-wheel";
+import type { SpinCandidate, SittingOut } from "@/modules/order-window/spin-draw";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -21,12 +21,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useSpinSound } from "./spin/use-spin-sound";
+import { WheelSpinner } from "./spin/WheelSpinner";
+import { ReelSpinner } from "./spin/ReelSpinner";
 
 type Props = {
   windowId: string;
   winnerName?: string | null;
   hasUnspunLateOrders?: boolean;
 };
+
+type Style = "wheel" | "reel";
 
 function getShortName(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -40,59 +45,114 @@ export function SpinWheelButton({
   hasUnspunLateOrders,
 }: Props) {
   const router = useRouter();
+  const { muted, toggleMuted, tick } = useSpinSound();
 
   const [open, setOpen] = useState(false);
-  const [spinning, setSpinning] = useState(false);
+  // who is in the draw; null while loading
+  const [draw, setDraw] = useState<{
+    candidates: SpinCandidate[];
+    sittingOut: SittingOut[];
+  } | null>(null);
+  const [drawError, setDrawError] = useState<string | null>(null);
+  // the style picked with the spin button; set while it spins
+  const [style, setStyle] = useState<Style | null>(null);
+  const [target, setTarget] = useState<number | null>(null);
+  const pendingWinner = useRef<SpinCandidate | null>(null);
 
   const [winner, setWinner] = useState<{
     id: string;
     name: string;
   } | null>(null);
 
-  async function handleSpin() {
-    try {
-      setSpinning(true);
+  const spinning = style !== null;
+  // the spin action refreshes the page, so winnerName can arrive before the
+  // wheel stops; keep the wheel on screen until it has landed
+  const showResult =
+    !spinning && (winner || (!hasUnspunLateOrders && winnerName));
 
+  async function handleSpin(picked: Style) {
+    setTarget(null);
+    pendingWinner.current = null;
+    setStyle(picked);
+
+    try {
       const result = await spinWheelAction(windowId);
 
-      if (!result.success) {
-        toast.error(result.error);
+      if (!result.success || !result.winner || !result.candidates) {
+        toast.error(result.error ?? "Failed to select winner");
+        setStyle(null);
         setOpen(false);
         return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      setWinner(result.winner!);
-
-      confetti({
-        particleCount: 250,
-        spread: 100,
-        origin: {
-          y: 0.6,
-        },
-      });
-
-      toast.success(
-        `🏆 ${result?.winner?.name} was selected to collect the order`,
+      // draw from the server's list, in case someone ordered late meanwhile
+      const index = result.candidates.findIndex(
+        (user) => user.id === result.winner!.id,
       );
-
-      router.refresh();
+      setDraw((current) => ({
+        candidates: result.candidates,
+        sittingOut: current?.sittingOut ?? [],
+      }));
+      pendingWinner.current = result.winner;
+      setTarget(index);
     } catch (error) {
       console.error(error);
       toast.error("Failed to select winner");
-    } finally {
-      setSpinning(false);
+      setStyle(null);
     }
   }
 
-  function handleClose() {
-    setOpen(false);
-    setWinner(null);
+  // the wheel or reel has stopped on the winner: celebrate there, then
+  // show the winner screen once everyone has seen where it landed
+  function handleSettled() {
+    const picked = pendingWinner.current;
+    if (!picked) return;
+
+    setTimeout(() => {
+      setWinner(picked);
+      setStyle(null);
+    }, 1500);
+
+    confetti({
+      particleCount: 250,
+      spread: 100,
+      origin: {
+        y: 0.6,
+      },
+    });
+
+    toast.success(`🏆 ${picked.name} was selected to collect the order`);
+
+    router.refresh();
   }
 
+  function handleOpenChange(next: boolean) {
+    // no closing mid-spin
+    if (!next && spinning) return;
+    setOpen(next);
+    if (!next) {
+      setWinner(null);
+      setTarget(null);
+      return;
+    }
+
+    // load the names, unless the dialog only shows the result
+    if (!hasUnspunLateOrders && winnerName) return;
+    setDraw(null);
+    setDrawError(null);
+    getSpinDrawAction(windowId).then((result) => {
+      if (result.success) {
+        setDraw({ candidates: result.candidates, sittingOut: result.sittingOut });
+      } else {
+        setDrawError(result.error);
+      }
+    });
+  }
+
+  const names = draw?.candidates.map((user) => user.name) ?? [];
+
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
         <Button
           size='sm'
@@ -113,19 +173,29 @@ export function SpinWheelButton({
       </AlertDialogTrigger>
 
       <AlertDialogContent className='max-w-md'>
-        {!winner && !(!hasUnspunLateOrders && winnerName) ? (
+        {!showResult ? (
           <>
             <AlertDialogHeader>
-              <AlertDialogTitle>Select Order Collector</AlertDialogTitle>
+              <div className='flex items-start justify-between gap-3'>
+                <AlertDialogTitle>Select Order Collector</AlertDialogTitle>
+                <button
+                  type='button'
+                  onClick={toggleMuted}
+                  aria-label={muted ? "Turn spin sound on" : "Turn spin sound off"}
+                  className='text-muted-foreground transition-colors hover:text-foreground'
+                >
+                  {muted ? <VolumeX className='size-4' /> : <Volume2 className='size-4' />}
+                </button>
+              </div>
 
               <AlertDialogDescription>
                 A random participant from this order window will be selected.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
-            <div className='py-10 flex flex-col justify-center items-center gap-6'>
+            <div className='flex min-h-[300px] flex-col items-center justify-center gap-4 py-2'>
               {winnerName && !spinning && (
-                <div className='text-center space-y-1 bg-yellow-100/50 dark:bg-yellow-900/20 px-6 py-4 border border-yellow-200 dark:border-yellow-900/50'>
+                <div className='text-center space-y-1 bg-yellow-100/50 dark:bg-yellow-900/20 px-6 py-3 border border-yellow-200 dark:border-yellow-900/50'>
                   <p className='text-xs font-semibold text-yellow-600 dark:text-yellow-500 uppercase tracking-wider'>
                     Current Winner
                   </p>
@@ -135,37 +205,74 @@ export function SpinWheelButton({
                 </div>
               )}
 
-              {spinning ? (
-                <div className='text-center space-y-4'>
-                  <div className='animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mx-auto' />
+              {style === "wheel" && (
+                <WheelSpinner
+                  names={names}
+                  target={target}
+                  onTick={() => tick()}
+                  onSettled={handleSettled}
+                />
+              )}
+              {style === "reel" && (
+                <ReelSpinner
+                  names={names}
+                  target={target}
+                  onTick={() => tick(0.8)}
+                  onSettled={handleSettled}
+                />
+              )}
 
-                  <p className='text-sm text-muted-foreground'>
-                    Spinning the wheel...
-                  </p>
+              {!spinning && (
+                <div className='w-full space-y-2 text-center'>
+                  {drawError ? (
+                    <p className='text-sm text-destructive'>{drawError}</p>
+                  ) : !draw ? (
+                    <p className='text-sm text-muted-foreground'>Loading names…</p>
+                  ) : (
+                    <>
+                      <p className='text-xs font-semibold uppercase tracking-wider text-muted-foreground'>
+                        In the draw · {draw.candidates.length}
+                      </p>
+                      <div className='flex flex-wrap justify-center gap-1.5'>
+                        {draw.candidates.map((user) => (
+                          <span
+                            key={user.id}
+                            className='border bg-muted/50 px-2 py-0.5 text-xs'
+                          >
+                            {user.name}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
-              ) : (
-                <div className='text-center space-y-2'>
-                  <Sparkles className='size-12 mx-auto text-primary' />
+              )}
 
-                  <p className='text-sm text-muted-foreground'>
-                    Ready to pick the collector
-                  </p>
-                </div>
+              {draw && draw.sittingOut.length > 0 && (
+                <p className='text-center text-xs text-muted-foreground'>
+                  Sitting out:{" "}
+                  {draw.sittingOut
+                    .map((user) => `${user.name} (${user.reason})`)
+                    .join(", ")}
+                </p>
               )}
             </div>
 
             <AlertDialogFooter>
               <AlertDialogCancel disabled={spinning}>Cancel</AlertDialogCancel>
-
-              <AlertDialogAction
-                disabled={spinning}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleSpin();
-                }}
+              <Button
+                variant='outline'
+                disabled={spinning || !draw}
+                onClick={() => handleSpin("reel")}
               >
-                {spinning ? "Selecting..." : "Start Spin"}
-              </AlertDialogAction>
+                {style === "reel" ? "Rolling..." : "Roll reel"}
+              </Button>
+              <Button
+                disabled={spinning || !draw}
+                onClick={() => handleSpin("wheel")}
+              >
+                {style === "wheel" ? "Spinning..." : "Spin wheel"}
+              </Button>
             </AlertDialogFooter>
           </>
         ) : (
@@ -188,7 +295,7 @@ export function SpinWheelButton({
               Selected to collect this order.
             </p>
 
-            <Button onClick={handleClose}>Close</Button>
+            <Button onClick={() => handleOpenChange(false)}>Close</Button>
           </div>
         )}
       </AlertDialogContent>

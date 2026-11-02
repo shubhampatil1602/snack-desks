@@ -45,6 +45,7 @@ export function AddOrderOnBehalfDialog({
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [eligibleUsers, setEligibleUsers] = useState<EligibleUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState("");
 
   const router = useRouter();
@@ -56,8 +57,13 @@ export function AddOrderOnBehalfDialog({
           if (result.success && result.users) {
             setEligibleUsers(result.users);
           } else {
-            toast.error(result.error || "Failed to load users");
+            setLoadError(result.error || "Failed to load users");
           }
+        })
+        // e.g. the page is from an older deploy; don't fall through to the
+        // "everyone has ordered" message
+        .catch(() => {
+          setLoadError("Couldn't load users. Refresh the page and try again.");
         })
         .finally(() => {
           setIsLoadingUsers(false);
@@ -69,6 +75,7 @@ export function AddOrderOnBehalfDialog({
     setOpen(nextOpen);
     if (nextOpen) {
       setIsLoadingUsers(true);
+      setLoadError(null);
     } else {
       setSelectedUserId("");
       setUserSearch("");
@@ -138,6 +145,10 @@ export function AddOrderOnBehalfDialog({
               {isLoadingUsers ? (
                 <div className='flex items-center gap-2 text-sm text-muted-foreground p-2 border'>
                   <Spinner /> Loading eligible users...
+                </div>
+              ) : loadError ? (
+                <div className='text-sm text-destructive p-2 border border-destructive/40'>
+                  {loadError}
                 </div>
               ) : eligibleUsers.length === 0 ? (
                 <div className='text-sm text-muted-foreground p-2 border bg-muted/20'>
