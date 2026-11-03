@@ -676,13 +676,14 @@ export function AdminWindowHistory({
                   <div className='flex items-center justify-end gap-2'>
                     {window.winnerUserId &&
                       !window.paid &&
-                      !hasUnspunLateOrders && (
+                      !hasUnspunLateOrders &&
+                      !window.winnerLeft && (
                         <MarkAsPaidButton windowId={window.id} />
                       )}
                     <SpinWheelButton
                       windowId={window.id}
                       winnerName={window.winnerUser?.name ?? null}
-                      hasUnspunLateOrders={hasUnspunLateOrders}
+                      hasUnspunLateOrders={hasUnspunLateOrders || window.winnerLeft}
                     />
                     <OrderWindowSummaryDialog
                       window={{

@@ -4,7 +4,7 @@ import { expireOrgData } from "@/lib/cache-tags";
 import { authIsRequired, getCurrentMember, requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { getSpinDraw } from "@/modules/order-window/spin-draw";
+import { getSpinDraw, windowParticipants } from "@/modules/order-window/spin-draw";
 
 // Who is in the draw, so the spin dialog can put their names on the wheel
 export async function getSpinDrawAction(windowId: string) {
@@ -115,6 +115,11 @@ export async function markAsPaidAction(windowId: string) {
 
   if (window.paid) {
     return { success: false, error: "Already marked as paid" };
+  }
+
+  const participants = await windowParticipants(windowId);
+  if (!participants.some((user) => user.id === window.winnerUserId)) {
+    return { success: false, error: "The winner isn't in this window any more. Re-spin first" };
   }
 
   if (!window.winnerPaidAt) {

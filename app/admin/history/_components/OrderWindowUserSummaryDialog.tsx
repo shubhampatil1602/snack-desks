@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency, formatSplitNames, truncateText } from "@/lib/utils";
-import { Copy, Users, Check, ArrowUpDown } from "lucide-react";
+import { Copy, Users, Check, ArrowUpDown, Info } from "lucide-react";
 
 import {
   Dialog,
@@ -12,6 +12,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { toast } from "sonner";
 
 type OrderWindowUserSummaryDialogProps = {
@@ -298,28 +303,41 @@ ${userBreakdown
                 {userBreakdown.map((user) => (
                   <div
                     key={user.id}
-                    className='flex justify-between text-sm items-center py-0.5'
+                    className='flex justify-between gap-4 text-sm items-center py-0.5'
                   >
-                    <div className='flex flex-col'>
+                    <div className='flex min-w-0 flex-col'>
                       <span className='font-medium text-foreground'>
                         {user.name}
                       </span>
                       {user.splitNotes.length > 0 && (
-                        <div className='flex flex-col gap-0.5 mt-0.5'>
+                        <div className='flex flex-wrap gap-1 mt-0.5'>
                           {user.splitNotes.map((note, idx) => (
-                            <span
-                              key={idx}
-                              title={`Split with: ${note.withNames.join(", ")}`}
-                              className='text-[11px] text-emerald-600 dark:text-emerald-400 font-normal truncate max-w-sm cursor-help'
-                            >
-                              includes {note.fraction} {note.itemName} with{" "}
-                              {formatSplitNames(note.withNames)}
-                            </span>
+                            <HoverCard key={idx} openDelay={100}>
+                              <HoverCardTrigger asChild>
+                                <button
+                                  type='button'
+                                  className='inline-flex max-w-48 items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-px text-[11px] text-emerald-600 dark:text-emerald-400'
+                                >
+                                  <span className='truncate'>
+                                    {note.fraction} {note.itemName}
+                                  </span>
+                                  <Info className='size-3 shrink-0' />
+                                </button>
+                              </HoverCardTrigger>
+                              <HoverCardContent className='w-auto max-w-64 p-3 text-sm'>
+                                <div className='font-semibold mb-1'>
+                                  {note.itemName}
+                                </div>
+                                <div className='text-muted-foreground'>
+                                  Shared with {formatSplitNames(note.withNames)}
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
                           ))}
                         </div>
                       )}
                     </div>
-                    <span className='font-semibold'>
+                    <span className='shrink-0 font-semibold'>
                       {formatCurrency(user.total)}
                     </span>
                   </div>

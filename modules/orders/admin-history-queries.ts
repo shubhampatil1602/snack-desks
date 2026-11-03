@@ -1,5 +1,6 @@
 import { tagOrgData } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
+import { participantsOf } from "@/modules/order-window/spin-draw";
 
 export async function getOrganizationOrderHistoryGroupedByWindow(
   organizationId: string,
@@ -109,6 +110,11 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
     return {
       ...window,
       isLocked,
+      // the winner's order was cancelled or they were taken off a share
+      // after the spin, so the window needs a fresh spin
+      winnerLeft:
+        !!window.winnerUserId &&
+        !participantsOf(window.orders).some((user) => user.id === window.winnerUserId),
       orders: (() => {
         const seenUsers = new Set<string>();
         return window.orders

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { SPIN_EXCLUDED_USER_IDS } from "@/lib/constants";
+import type { Prisma } from "@/lib/generated/prisma/client";
 
 export type SpinCandidate = { id: string; name: string };
 export type SittingOut = SpinCandidate & { reason: string };
@@ -34,6 +35,52 @@ function pickEligible(
   if (notPreviousWinner.length > 0) return notPreviousWinner;
   if (notExcluded.length > 0) return notExcluded;
   return candidates;
+}
+
+type WindowOrder = {
+  status: string;
+  user: SpinCandidate;
+  items: { replacementApplied: boolean; splits: { user: SpinCandidate }[] }[];
+};
+
+// Everyone in these orders: whoever placed each one, plus anyone sharing one
+// of its items (shares don't get an order of their own). Cancelled orders and
+// swapped-out items don't count.
+export function participantsOf(orders: WindowOrder[]) {
+  const people = new Map<string, SpinCandidate>();
+  for (const order of orders) {
+    if (order.status === "cancelled") continue;
+    people.set(order.user.id, { id: order.user.id, name: order.user.name });
+    for (const item of order.items) {
+      if (item.replacementApplied) continue;
+      for (const { user } of item.splits) {
+        people.set(user.id, { id: user.id, name: user.name });
+      }
+    }
+  }
+  return [...people.values()];
+}
+
+async function orderParticipants(where: Prisma.OrderWhereInput) {
+  const orders = await prisma.order.findMany({
+    where,
+    select: {
+      status: true,
+      user: { select: { id: true, name: true } },
+      items: {
+        select: {
+          replacementApplied: true,
+          splits: { select: { user: { select: { id: true, name: true } } } },
+        },
+      },
+    },
+  });
+  return participantsOf(orders);
+}
+
+/** Everyone still in the window: its orders' owners and the people sharing their items. */
+export function windowParticipants(windowId: string) {
+  return orderParticipants({ windowId, status: { not: "cancelled" } });
 }
 
 /**
@@ -72,52 +119,43 @@ export async function getSpinDraw(
     console.error("Failed to fetch previous winner", e);
   }
 
+  const participants = await windowParticipants(windowId);
+  // the winner was taken off the window (order cancelled, or removed from a
+  // share) after the spin: spin everyone again
+  const winnerLeft =
+    !!window.winnerUserId &&
+    !participants.some((user) => user.id === window.winnerUserId);
+
   let candidates: SpinCandidate[] = [];
 
-  if (window.winnerUserId) {
+  if (window.winnerUserId && !winnerLeft) {
     // Late-spin: Re-spin between current winner and all late orders
-    const lateParticipants = await prisma.order.findMany({
-      where: {
-        windowId,
-        status: { not: "cancelled" },
-        createdByAdmin: true,
-        ...(window.lastSpunAt ? { createdAt: { gt: window.lastSpunAt } } : {}),
-      },
-      distinct: ["userId"],
-      select: { user: { select: { id: true, name: true } } },
+    const lateParticipants = await orderParticipants({
+      windowId,
+      status: { not: "cancelled" },
+      createdByAdmin: true,
+      ...(window.lastSpunAt ? { createdAt: { gt: window.lastSpunAt } } : {}),
     });
 
     if (lateParticipants.length === 0) {
       return { ok: false, error: "No late orders to spin" };
     }
 
-    const currentWinner = await prisma.user.findUnique({
-      where: { id: window.winnerUserId },
-      select: { id: true, name: true },
-    });
+    const currentWinner = participants.find(
+      (user) => user.id === window.winnerUserId,
+    );
 
-    candidates = lateParticipants.map((p) => p.user);
+    candidates = lateParticipants;
     if (currentWinner && !candidates.some((u) => u.id === currentWinner.id)) {
       candidates.push(currentWinner);
     }
   } else {
-    // Initial spin
-    const participants = await prisma.order.findMany({
-      where: {
-        windowId,
-        status: { not: "cancelled" },
-      },
-      distinct: ["userId"],
-      select: {
-        user: { select: { id: true, name: true } },
-      },
-    });
-
+    // Initial spin, or a fresh one after the winner left
     if (participants.length === 0) {
       return { ok: false, error: "No participants found" };
     }
 
-    candidates = participants.map((p) => p.user);
+    candidates = participants;
   }
 
   const eligible = pickEligible(candidates, previousWinnerId);
