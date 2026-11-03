@@ -320,6 +320,8 @@ model Shop {
 
   name                String
   paymentUpi          String?
+  // what the shop is, for Snacky (e.g. "Udupi place: dosa, idli, filter coffee")
+  description         String?
   isGroupOrderEnabled Boolean  @default(false)
   createdAt           DateTime @default(now())
 

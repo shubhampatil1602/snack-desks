@@ -387,6 +387,7 @@ export async function createShopAction(
       organizationId: member.organizationId,
       name: parsed.data.name.trim(),
       paymentUpi: parsed.data.paymentUpi?.trim() || null,
+      description: parsed.data.description?.trim() || null,
       isGroupOrderEnabled: parsed.data.isGroupOrderEnabled ?? false,
     },
   });
@@ -472,6 +473,7 @@ export async function updateShopAction(
     data: {
       name: parsed.data.name.trim(),
       paymentUpi: parsed.data.paymentUpi?.trim() || null,
+      description: parsed.data.description?.trim() || null,
       isGroupOrderEnabled: parsed.data.isGroupOrderEnabled ?? false,
     },
   });

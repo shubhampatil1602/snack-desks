@@ -80,7 +80,7 @@ export async function draftSnackyOrder({
         price: true,
         unit: true,
         isVeg: true,
-        shop: { select: { name: true, isGroupOrderEnabled: true } },
+        shop: { select: { name: true, isGroupOrderEnabled: true, description: true } },
       },
       orderBy: { name: "asc" },
     }),
@@ -110,6 +110,14 @@ export async function draftSnackyOrder({
   const groupShops = [
     ...new Set(menu.filter((item) => item.shop?.isGroupOrderEnabled).map((item) => item.shop!.name)),
   ];
+  // the admin's notes on each shop, so "the Udupi place" finds its shop
+  const shopNotes = [
+    ...new Map(
+      menu
+        .filter((item) => item.shop?.description)
+        .map((item) => [item.shop!.name, item.shop!.description!]),
+    ),
+  ];
   const usualLines = usual
     .filter((row) => keyOf.has(row.menuItemId))
     .slice(0, 5)
@@ -125,7 +133,7 @@ You turn what ${me?.name ?? "someone"} typed into a draft cart for the open "${w
 Menu of this window (key | item | shop | price | unit | veg or non-veg):
 ${[...itemKeys].map(([key, item]) => `${key} | ${item.name} | ${item.shop?.name ?? "-"} | ₹${item.price} | ${item.unit} | ${item.isVeg ? "veg" : "non-veg"}`).join("\n")}
 
-People they can share with, not counting themselves (key | name):
+${shopNotes.length > 0 ? `About the shops:\n${shopNotes.map(([shop, note]) => `${shop}: ${note}`).join("\n")}\n\n` : ""}People they can share with, not counting themselves (key | name):
 ${[...memberKeys].map(([key, user]) => `${key} | ${user.name}`).join("\n") || "- nobody"}
 
 What they usually order here, most first (keys): ${usualLines.join(", ") || "nothing yet"}

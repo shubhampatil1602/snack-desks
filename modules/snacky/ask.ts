@@ -3,6 +3,7 @@ import { SNACKY_VOICE, snackyNow } from "@/lib/snacky";
 import {
   describeHabits,
   describeShopMenus,
+  type ShopMenu,
   TAGLINE_EXAMPLES,
   TAGLINE_FOOD_RULE,
   type WindowHabit,
@@ -13,7 +14,7 @@ export function snackySystemPrompt(
   state: string,
   shops: string[],
   habits: WindowHabit[],
-  menus: Map<string, string[]>,
+  menus: Map<string, ShopMenu>,
 ) {
   return `${SNACKY_VOICE}
 Right now it is ${snackyNow()}.

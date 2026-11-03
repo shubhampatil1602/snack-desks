@@ -70,25 +70,45 @@ export function describeHabits(habits: WindowHabit[]) {
     .join("\n");
 }
 
+export type ShopMenu = {
+  // the admin's own words about the shop, if any
+  description: string | null;
+  items: string[];
+};
+
 /** Each shop's available items, so taglines only mention food it sells. */
 export async function getShopMenus(organizationId: string) {
-  const items = await prisma.menuItem.findMany({
-    where: { organizationId, isAvailable: true, shopId: { not: null } },
-    select: { name: true, shop: { select: { name: true } } },
+  const shops = await prisma.shop.findMany({
+    where: { organizationId },
+    select: {
+      name: true,
+      description: true,
+      menuItems: {
+        where: { isAvailable: true },
+        select: { name: true },
+        orderBy: { name: "asc" },
+      },
+    },
     orderBy: { name: "asc" },
   });
-  const menus = new Map<string, string[]>();
-  for (const item of items) {
-    const shop = item.shop!.name;
-    menus.set(shop, [...(menus.get(shop) ?? []), item.name]);
-  }
-  return menus;
+  return new Map<string, ShopMenu>(
+    shops.map((shop) => [
+      shop.name,
+      { description: shop.description, items: shop.menuItems.map((item) => item.name) },
+    ]),
+  );
 }
 
-export function describeShopMenus(menus: Map<string, string[]>) {
+export function describeShopMenus(menus: Map<string, ShopMenu>) {
   if (menus.size === 0) return "- No menus yet.";
   return [...menus.entries()]
-    .map(([shop, items]) => `- ${shop}: ${items.slice(0, 25).join(", ")}${items.length > 25 ? ", …" : ""}`)
+    .map(
+      ([shop, { description, items }]) =>
+        `- ${shop}${description ? ` (${description})` : ""}: ` +
+        (items.length > 0
+          ? `${items.slice(0, 25).join(", ")}${items.length > 25 ? ", …" : ""}`
+          : "nothing on the menu yet"),
+    )
     .join("\n");
 }
 

@@ -17,7 +17,16 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sparkles } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { createWindowAction } from "@/actions/order-window";
 import { suggestWindowNameAction } from "@/actions/snacky";
 import { DEFAULT_WINDOW_TAGLINE } from "@/lib/constants";
@@ -73,14 +82,17 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
   });
 
   const [suggesting, setSuggesting] = useState(false);
+  // shops ticked in the Suggest menu, to write the tagline for
+  const [forShopIds, setForShopIds] = useState<string[]>([]);
 
-  // Snacky fills in a label, tagline and the usual shops; the admin can
-  // still change all three
-  async function suggestName() {
+  // Snacky fills in a label, tagline and shops: the usual ones for this
+  // time of day, or the shops picked in the menu. The admin can still
+  // change all three.
+  async function suggestName(shopIds?: string[]) {
     setSuggesting(true);
     const result = await suggestWindowNameAction({
-      label: getValues("label"),
       tagline: getValues("tagline"),
+      forShopIds: shopIds,
     });
     setSuggesting(false);
     if (!result.success) {
@@ -119,7 +131,7 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className='space-y-4 w-full'>
-        <Field className='max-w-sm'>
+        <Field className='max-w-lg'>
           <FieldLabel htmlFor='label'>Window label</FieldLabel>
           <div className='flex gap-2'>
             <Input
@@ -128,16 +140,81 @@ export function CreateWindowForm({ shops }: { shops: Shop[] }) {
               className='border-input px-3 focus-visible:border-ring'
               {...register("label")}
             />
-            <Button
-              type='button'
-              onClick={suggestName}
-              disabled={suggesting}
-              title='Snacky suggests a label and tagline'
-              className='h-10'
-            >
-              {suggesting ? <Spinner /> : <Sparkles />}
-              Suggest
-            </Button>
+            {/* split button: one shape, with a faint seam before the menu */}
+            <div className='flex h-10 shrink-0'>
+              <Button
+                type='button'
+                // the shops ticked in the menu, else the usual ones
+                onClick={() =>
+                  suggestName(forShopIds.length > 0 ? forShopIds : undefined)
+                }
+                disabled={suggesting}
+                title={
+                  forShopIds.length > 0
+                    ? "Snacky suggests a label and tagline for the shops ticked in the menu"
+                    : "Snacky suggests a label, tagline and the usual shops"
+                }
+                className='h-10 rounded-r-none'
+              >
+                {suggesting ? <Spinner /> : <Sparkles />}
+                Suggest
+                {forShopIds.length > 0 && (
+                  <span className='tabular-nums opacity-80'>
+                    · {forShopIds.length}
+                  </span>
+                )}
+              </Button>
+              {shops.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type='button'
+                      disabled={suggesting}
+                      aria-label='Suggest for chosen shops'
+                      title='Suggest for chosen shops'
+                      className='h-10 rounded-l-none px-2 focus-visible:ring-0'
+                    >
+                      <ChevronDown />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align='end'
+                    className='w-56'
+                    // no focus ring left on the arrow after the menu closes
+                    onCloseAutoFocus={(event) => event.preventDefault()}
+                  >
+                    <DropdownMenuLabel>Suggest for shops</DropdownMenuLabel>
+                    {shops.map((shop) => (
+                      <DropdownMenuCheckboxItem
+                        key={shop.id}
+                        checked={forShopIds.includes(shop.id)}
+                        // keep the menu open to tick more than one
+                        onSelect={(event) => event.preventDefault()}
+                        onCheckedChange={(checked) =>
+                          setForShopIds((current) =>
+                            checked
+                              ? [...current, shop.id]
+                              : current.filter((id) => id !== shop.id),
+                          )
+                        }
+                      >
+                        {shop.name}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={forShopIds.length === 0}
+                      onSelect={() => suggestName(forShopIds)}
+                    >
+                      <Sparkles />
+                      {forShopIds.length === 0
+                        ? "Tick a shop first"
+                        : `Suggest for ${forShopIds.length === 1 ? "1 shop" : `${forShopIds.length} shops`}`}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
           <FieldDescription>
             This helps users know which session they&apos;re ordering for

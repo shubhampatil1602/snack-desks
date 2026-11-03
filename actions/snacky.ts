@@ -54,10 +54,16 @@ Taglines like: "Chaas mangalo", "Khaane ke saath thoda chakhna ho jaaye", "Lunch
 Taglines like: "Chai without Vada Pav? That's a crime", "Chai pe charcha, samose pe kharcha", "Weather forecast: 100% chance of Vada Pav"`;
 }
 
-/** A label and tagline for a new order window, from the time and past windows. */
-export async function suggestWindowNameAction(
-  current?: { label?: string; tagline?: string },
-): Promise<Result<{ label: string; tagline: string; shopIds: string[] }>> {
+/**
+ * A label and tagline for a new order window, from the time and past
+ * windows. With forShopIds (picked in the Suggest menu) it's for those
+ * shops; otherwise Snacky picks the usual shops for this time of day.
+ */
+export async function suggestWindowNameAction(current?: {
+  // the tagline on screen, so the next one is different
+  tagline?: string;
+  forShopIds?: string[];
+}): Promise<Result<{ label: string; tagline: string; shopIds: string[] }>> {
   const { member } = await requireAdmin();
 
   const limit = await checkRateLimit(`snacky:window-name:${member.userId}`, 10, 60_000);
@@ -75,6 +81,18 @@ export async function suggestWindowNameAction(
   ]);
   const hour = Number(formatInTimeZone(new Date(), "Asia/Kolkata", "H"));
 
+  // only this org's shops, whatever ids the browser sent
+  const forShops = shops.filter((shop) => current?.forShopIds?.includes(shop.id));
+  const shownMenus =
+    forShops.length > 0
+      ? new Map([...menus].filter(([name]) => forShops.some((shop) => shop.name === name)))
+      : menus;
+
+  const task =
+    forShops.length > 0
+      ? `This window is for ${forShops.map((shop) => shop.name).join(", ")}: return exactly ${forShops.length > 1 ? "those shops" : "that shop"}, use the label of a usual window with ${forShops.length > 1 ? "them" : "it"} if there is one (else a sensible new one for this time of day), and write the tagline about their food only.`
+      : "Pick the usual window that fits this time of day best (else a sensible new one) and use its label spelling and usual shops.";
+
   try {
     const { output } = await generateText({
       model: snackyModel,
@@ -85,13 +103,13 @@ export async function suggestWindowNameAction(
       prompt: `It is ${snackyNow()}. An admin in a Mumbai-style office is opening ${mealFor(hour)}
 This org's usual windows, most used first:
 ${describeHabits(habits)}
-Shop menus (what each shop sells):
-${describeShopMenus(menus)}
+Shop menus (what each shop sells, with the admin's note about it in brackets):
+${describeShopMenus(shownMenus)}
 
-Pick the usual window that fits this time of day best (else a sensible new one) and use its label spelling and usual shops.
+${task}
 Write a fresh tagline in the same fun Hinglish (Hindi in English letters) style, about that shop's food, like ${TAGLINE_EXAMPLES.map((t) => `"${t}"`).join(", ")}. Don't reuse a recent tagline word for word. ${TAGLINE_FOOD_RULE}
 The example lines above only show the style: their dishes don't count unless the shop sells them.
-${current?.tagline ? `Don't repeat this tagline: "${current.tagline}".` : ""} At most one emoji.`,
+${current?.tagline ? `Don't repeat this tagline: "${current.tagline.slice(0, 120)}".` : ""} At most one emoji.`,
     });
 
     const wanted = output.shops.map((name) => name.trim().toLowerCase());
@@ -100,7 +118,10 @@ ${current?.tagline ? `Don't repeat this tagline: "${current.tagline}".` : ""} At
       data: {
         label: output.label.trim().slice(0, 25),
         tagline: output.tagline.trim().slice(0, 120),
-        shopIds: shops.filter((shop) => wanted.includes(shop.name.toLowerCase())).map((shop) => shop.id),
+        shopIds:
+          forShops.length > 0
+            ? forShops.map((shop) => shop.id)
+            : shops.filter((shop) => wanted.includes(shop.name.toLowerCase())).map((shop) => shop.id),
       },
     };
   } catch (error) {

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
@@ -24,6 +25,13 @@ import {
   updateShopAction,
 } from "@/actions/menu";
 import { ShopCategory, ShopInput, shopSchema } from "@/types/menu";
+
+const EMPTY_SHOP = {
+  name: "",
+  paymentUpi: "",
+  description: "",
+  isGroupOrderEnabled: false,
+};
 
 interface ShopManagerProps {
   shops: ShopCategory[];
@@ -43,11 +51,7 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
     formState: { errors, isSubmitting },
   } = useForm<ShopInput>({
     resolver: zodResolver(shopSchema),
-    defaultValues: {
-      name: "",
-      paymentUpi: "",
-      isGroupOrderEnabled: false,
-    },
+    defaultValues: EMPTY_SHOP,
   });
 
   async function onSubmit(values: ShopInput) {
@@ -59,7 +63,7 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
       }
       toast.success("Shop updated");
       setEditingId(null);
-      reset({ name: "", paymentUpi: "", isGroupOrderEnabled: false });
+      reset(EMPTY_SHOP);
       router.refresh();
     } else {
       const result = await createShopAction(values);
@@ -68,7 +72,7 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
         return;
       }
       toast.success("Shop created");
-      reset({ name: "", paymentUpi: "", isGroupOrderEnabled: false });
+      reset(EMPTY_SHOP);
       router.refresh();
     }
   }
@@ -84,7 +88,7 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
     toast.success(`${name} deleted`);
     if (editingId === id) {
       setEditingId(null);
-      reset({ name: "", paymentUpi: "", isGroupOrderEnabled: false });
+      reset(EMPTY_SHOP);
     }
     router.refresh();
   }
@@ -106,11 +110,13 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
           {/* Shop Form */}
           <form onSubmit={handleSubmit(onSubmit)} className='space-y-3'>
             <Field>
-              <FieldLabel htmlFor='name'>{editingId ? "Update Shop" : "New Shop"}</FieldLabel>
+              <FieldLabel htmlFor='name'>
+                {editingId ? "Update Shop" : "New Shop"}
+              </FieldLabel>
               <div className='flex flex-col gap-2'>
                 <Input
                   id='name'
-                  placeholder='Shop Name (e.g. Domino&apos;s Pizza)'
+                  placeholder="Shop Name (e.g. Domino's Pizza)"
                   {...register("name")}
                 />
                 <Input
@@ -118,9 +124,18 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
                   placeholder='Payment UPI (Optional)'
                   {...register("paymentUpi")}
                 />
+                <Input
+                  id='description'
+                  placeholder='About the shop, for Snacky (Optional)'
+                  maxLength={400}
+                  {...register("description")}
+                />
                 <div className='flex items-center justify-between p-2.5 rounded-md border bg-muted/30'>
                   <div className='space-y-0.5'>
-                    <label htmlFor='isGroupOrderEnabled' className='text-xs font-medium cursor-pointer flex items-center gap-1.5'>
+                    <label
+                      htmlFor='isGroupOrderEnabled'
+                      className='text-xs font-medium cursor-pointer flex items-center gap-1.5'
+                    >
                       <Users className='h-3.5 w-3.5 text-primary' />
                       Allow Group Order
                     </label>
@@ -136,17 +151,28 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
                   />
                 </div>
                 <div className='flex gap-2 mt-1'>
-                  <Button type='submit' size='sm' disabled={isSubmitting} className='flex-1'>
-                    {isSubmitting ? <Spinner /> : (editingId ? "Update Shop" : "Add Shop")}
+                  <Button
+                    type='submit'
+                    size='sm'
+                    disabled={isSubmitting}
+                    className='flex-1'
+                  >
+                    {isSubmitting ? (
+                      <Spinner />
+                    ) : editingId ? (
+                      "Update Shop"
+                    ) : (
+                      "Add Shop"
+                    )}
                   </Button>
                   {editingId && (
-                    <Button 
-                      type='button' 
-                      variant='outline' 
-                      size='sm' 
+                    <Button
+                      type='button'
+                      variant='outline'
+                      size='sm'
                       onClick={() => {
                         setEditingId(null);
-                        reset({ name: "", paymentUpi: "", isGroupOrderEnabled: false });
+                        reset(EMPTY_SHOP);
                       }}
                     >
                       Cancel
@@ -156,6 +182,7 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
               </div>
               <FieldError>{errors.name?.message as string}</FieldError>
               <FieldError>{errors.paymentUpi?.message as string}</FieldError>
+              <FieldError>{errors.description?.message as string}</FieldError>
             </Field>
           </form>
 
@@ -169,20 +196,27 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
               initial.map((shop) => (
                 <div
                   key={shop.id}
-                  className={`flex items-center justify-between px-3 py-2 border ${editingId === shop.id ? 'bg-muted/30 border-primary' : ''}`}
+                  className={`flex items-center justify-between px-3 py-2 border ${editingId === shop.id ? "bg-muted/30 border-primary" : ""}`}
                 >
                   <div className='flex flex-col'>
                     <div className='flex items-center gap-2'>
                       <span className='text-sm font-medium'>{shop.name}</span>
                       {shop.isGroupOrderEnabled && (
-                        <Badge variant='outline' className='text-[10px] px-1.5 py-0 text-primary border-primary/30 bg-primary/5'>
+                        <Badge
+                          variant='outline'
+                          className='text-[10px] px-1.5 py-0 text-primary border-primary/30 bg-primary/5'
+                        >
                           Group Order
                         </Badge>
                       )}
                     </div>
-                    {shop.paymentUpi && <span className='text-[10px] text-muted-foreground'>{shop.paymentUpi}</span>}
+                    {shop.paymentUpi && (
+                      <span className='text-[10px] text-muted-foreground'>
+                        {shop.paymentUpi}
+                      </span>
+                    )}
                   </div>
-                  
+
                   <div className='flex items-center gap-1'>
                     <Button
                       variant='ghost'
@@ -192,7 +226,8 @@ export function ShopManager({ shops: initial }: ShopManagerProps) {
                         reset({
                           name: shop.name,
                           paymentUpi: shop.paymentUpi || "",
-                          isGroupOrderEnabled: (shop as any).isGroupOrderEnabled ?? false,
+                          description: shop.description || "",
+                          isGroupOrderEnabled: shop.isGroupOrderEnabled,
                         });
                       }}
                     >

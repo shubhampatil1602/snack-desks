@@ -66,6 +66,12 @@ export const shopSchema = z.object({
     .trim()
     .optional()
     .nullable(),
+  description: z
+    .string()
+    .trim()
+    .max(200, "Keep the description under 200 characters")
+    .optional()
+    .nullable(),
   isGroupOrderEnabled: z.boolean().optional(),
 });
 

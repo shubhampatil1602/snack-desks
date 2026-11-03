@@ -29,6 +29,7 @@ Internal office snack-ordering app (multi-tenant). Live: snackdesk.shubhamspatil
 - `OrderItemSplit` = item shared with other users; each participant (owner + split users) pays `price × qty / participants`. History does this in JS (`modules/orders/user-history-queries.ts`); per-user spend SQL (user dashboard, rankings) uses `spendLinesCte` in `lib/spend-lines.ts`. Org-level revenue ignores splits (shares sum to the full price).
 - Only items from shops with `isGroupOrderEnabled` can be split; `validateOrderItems` (`actions/orders.ts`) refuses other splits when a user places or updates an order. Admin edits of older orders aren't checked.
 - Prices are read from the current `MenuItem.price` (no price snapshot on OrderItem).
+- `Shop.description` (optional, admin's words) is shown to Snacky with each shop's menu (`describeShopMenus` in `modules/snacky/window-habits.ts`) and in order-by-typing.
 
 **Layout:** `app/` routes (`(auth)`, `(user)`, `admin`, `super-admin`, `api`) · `modules/<feature>/queries.ts` read queries · `actions/` server actions · `lib/sse` real-time (Postgres LISTEN/NOTIFY → SSE) · `lib/date-utils.ts` IST helpers.
 
