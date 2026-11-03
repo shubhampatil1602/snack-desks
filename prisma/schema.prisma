@@ -158,6 +158,8 @@ model OrderWindow {
   originalWinnerUserId String?
   lastSpunAt           DateTime?
   paid                 Boolean      @default(false)
+  // when the spin winner said they paid the shop; admin can mark paid only after
+  winnerPaidAt         DateTime?
   shops                Shop[]
 
   @@index([organizationId])

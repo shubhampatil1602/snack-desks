@@ -1,7 +1,7 @@
 "use server";
 
 import { expireOrgData } from "@/lib/cache-tags";
-import { requireAdmin } from "@/actions/user";
+import { authIsRequired, getCurrentMember, requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getSpinDraw } from "@/modules/order-window/spin-draw";
@@ -40,6 +40,7 @@ export async function spinWheelAction(windowId: string) {
       originalWinnerUserId: draw.window.originalWinnerUserId || winner.id,
       lastSpunAt: new Date(),
       paid: false,
+      winnerPaidAt: null,
     },
   });
 
@@ -56,6 +57,41 @@ export async function spinWheelAction(windowId: string) {
   };
 }
 
+// The spin winner says they paid the shop's bill, so the admin can mark it paid
+export async function markBillPaidAction(windowId: string) {
+  await authIsRequired();
+  const member = await getCurrentMember();
+  if (!member) return { success: false, error: "You're not in an organization" };
+
+  const window = await prisma.orderWindow.findFirst({
+    where: { id: windowId, organizationId: member.organizationId },
+    select: { winnerUserId: true, winnerPaidAt: true, paid: true },
+  });
+
+  if (!window) {
+    return { success: false, error: "Window not found" };
+  }
+
+  if (window.winnerUserId !== member.userId) {
+    return { success: false, error: "Only the split master can say the bill is paid" };
+  }
+
+  if (window.paid || window.winnerPaidAt) {
+    return { success: false, error: "Already marked as paid" };
+  }
+
+  await prisma.orderWindow.update({
+    where: { id: windowId },
+    data: { winnerPaidAt: new Date() },
+  });
+
+  expireOrgData(member.organizationId, "orders");
+  revalidatePath("/admin/history");
+  revalidatePath("/history");
+
+  return { success: true };
+}
+
 export async function markAsPaidAction(windowId: string) {
   const { member } = await requireAdmin();
 
@@ -63,7 +99,9 @@ export async function markAsPaidAction(windowId: string) {
     where: { id: windowId, organizationId: member.organizationId },
     select: {
       winnerUserId: true,
+      winnerPaidAt: true,
       paid: true,
+      winnerUser: { select: { name: true } },
     },
   });
 
@@ -77,6 +115,11 @@ export async function markAsPaidAction(windowId: string) {
 
   if (window.paid) {
     return { success: false, error: "Already marked as paid" };
+  }
+
+  if (!window.winnerPaidAt) {
+    const name = window.winnerUser?.name.split(" ")[0] ?? "The winner";
+    return { success: false, error: `${name} hasn't paid the bill yet` };
   }
 
   await prisma.orderWindow.update({

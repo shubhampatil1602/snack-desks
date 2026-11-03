@@ -34,6 +34,7 @@ import { OrderHistoryDetails } from "@/components/orders/OrderHistoryDetails";
 import { Badge } from "@/components/ui/badge";
 import { OrderWindowUserSummaryDialog } from "../../../admin/history/_components/OrderWindowUserSummaryDialog";
 import { OrderWindowSummaryDialog } from "@/app/admin/history/_components/OrderWindowSummaryDialog";
+import { BillPaidButton } from "./BillPaidButton";
 
 type UserHistoryTableProps = {
   orders: UserOrderHistory;
@@ -223,6 +224,12 @@ export function UserHistoryTable({ orders }: UserHistoryTableProps) {
                         <Badge className='bg-linear-to-r from-emerald-400 via-green-500 to-emerald-500 text-white hover:from-emerald-500 hover:via-emerald-600 hover:to-emerald-600 border border-emerald-600 shadow-md dark:from-emerald-600 dark:via-emerald-600 dark:to-emerald-700 dark:border-emerald-500 rounded-full py-0.5 px-2'>
                           Paid
                         </Badge>
+                      ) : order.orderWindow.winnerPaidAt ? (
+                        <Badge className='bg-linear-to-r from-amber-400 via-yellow-500 to-amber-500 text-white border border-amber-600 shadow-md dark:from-amber-600 dark:via-yellow-600 dark:to-amber-700 dark:border-amber-500 rounded-full py-0.5 px-2'>
+                          Bill paid
+                        </Badge>
+                      ) : order.orderWindow.winnerUserId === order.userId ? (
+                        <BillPaidButton windowId={order.orderWindow.id} />
                       ) : (
                         <Badge className='bg-linear-to-r from-red-400 via-orange-500 to-red-500 text-white hover:from-red-500 hover:via-red-600 hover:to-red-600 border border-red-600 shadow-md dark:from-red-600 dark:via-red-600 dark:to-red-700 dark:border-red-500 rounded-full py-0.5 px-2'>
                           Unpaid

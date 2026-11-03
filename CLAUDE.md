@@ -22,7 +22,7 @@ Internal office snack-ordering app (multi-tenant). Live: snackdesk.shubhamspatil
 
 **Roles:** Super Admin (platform) · Admin (org) · User (employee). Users join orgs via invite code.
 
-**Core flow:** Admin opens an **Order Window** (label like tea/lunch, countdown, linked Shops) → users place/edit/cancel **Orders** of **Menu Items** → admin approves/rejects → window closes; a spin wheel picks the window's winner (`winnerUserId`, "split master"). Order status: `pending | approved | rejected | cancelled`. Window status: `active | closed`.
+**Core flow:** Admin opens an **Order Window** (label like tea/lunch, countdown, linked Shops) → users place/edit/cancel **Orders** of **Menu Items** → admin approves/rejects → window closes; a spin wheel picks the window's winner (`winnerUserId`, "split master"). The winner pays the shop and taps "I paid the bill" on their History (`winnerPaidAt`); only then can the admin mark the window `paid` (a respin clears both). Order status: `pending | approved | rejected | cancelled`. Window status: `active | closed`.
 
 **Data notes (prisma/schema.prisma):**
 - `OrderItem.replacementApplied = true` means the item was swapped out; replacement items are separate OrderItems (`originalOrderItemId`). Spend queries filter `replacementApplied: false`.

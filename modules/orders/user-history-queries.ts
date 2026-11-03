@@ -45,6 +45,7 @@ export async function getUserOrderHistory(
     id: true,
     label: true,
     paid: true,
+    winnerPaidAt: true,
     createdAt: true,
     endsAt: true,
     winnerUserId: true,
@@ -382,6 +383,7 @@ export async function getUserOrderHistory(
       id: string;
       label: string;
       paid: boolean;
+      winnerPaidAt: Date | null;
       createdAt: Date;
       endsAt: Date | null;
       winnerUserId: string | null;

@@ -49,7 +49,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { SpinWheelButton } from "./SpinWheelButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { markAsPaidAction } from "@/actions/spin-wheel";
+import { MarkAsPaidButton } from "./MarkAsPaidButton";
 import { AddLateOrderDialog } from "./AddLateOrderDialog";
 
 export type ParticipantOrder = {
@@ -661,6 +661,10 @@ export function AdminWindowHistory({
                         <Badge className='bg-linear-to-r from-emerald-400 via-green-500 to-emerald-500 text-white hover:from-emerald-500 hover:via-emerald-600 hover:to-emerald-600 border border-emerald-600 shadow-md dark:from-emerald-600 dark:via-emerald-600 dark:to-emerald-700 dark:border-emerald-500 rounded-full py-0.5 px-2'>
                           Paid
                         </Badge>
+                      ) : window.winnerPaidAt ? (
+                        <Badge className='bg-linear-to-r from-amber-400 via-yellow-500 to-amber-500 text-white border border-amber-600 shadow-md dark:from-amber-600 dark:via-yellow-600 dark:to-amber-700 dark:border-amber-500 rounded-full py-0.5 px-2'>
+                          Bill paid
+                        </Badge>
                       ) : (
                         <Badge className='bg-linear-to-r from-red-400 via-orange-500 to-red-500 text-white hover:from-red-500 hover:via-red-600 hover:to-red-600 border border-red-600 shadow-md dark:from-red-600 dark:via-red-600 dark:to-red-700 dark:border-red-500 rounded-full py-0.5 px-2'>
                           Unpaid
@@ -673,12 +677,7 @@ export function AdminWindowHistory({
                     {window.winnerUserId &&
                       !window.paid &&
                       !hasUnspunLateOrders && (
-                        <Button
-                          size='sm'
-                          onClick={() => markAsPaidAction(window.id)}
-                        >
-                          Mark as Paid
-                        </Button>
+                        <MarkAsPaidButton windowId={window.id} />
                       )}
                     <SpinWheelButton
                       windowId={window.id}
