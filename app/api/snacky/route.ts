@@ -11,7 +11,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { getCurrentMember } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { snackyModel } from "@/lib/snacky";
+import { snackyErrorMessage, snackyModel } from "@/lib/snacky";
 import { snackySystemPrompt, withKnownTools } from "@/modules/snacky/ask";
 import { getShopMenus, getWindowHabits } from "@/modules/snacky/window-habits";
 import { snackyDataTools } from "@/modules/snacky/data-tools";
@@ -143,7 +143,7 @@ export async function POST(req: Request) {
     },
     onError: (error) => {
       console.error("Ask Snacky failed", error);
-      return "Snacky couldn't answer that just now. Try again in a bit.";
+      return snackyErrorMessage(error);
     },
   });
 }
