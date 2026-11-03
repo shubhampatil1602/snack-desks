@@ -42,6 +42,7 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import { MenuNav } from "./MenuNav";
 import { CartBar, OrderCard } from "./OrderCard";
+import { SnackyOrderBox } from "./SnackyOrderBox";
 import { FoodTypeToggles, type FoodType } from "@/components/food-type-toggles";
 
 // Grid or list, remembered in this browser. Kept in memory too, in case
@@ -272,6 +273,10 @@ export function OrdersClient({
 
   const favouriteItems = menuItems.filter((item) => favourites.has(item.id));
 
+  // only items from shops that take group orders can be shared
+  const groupItems = menuItems.filter((item) => item.shop?.isGroupOrderEnabled);
+  const groupShops = [...new Set(groupItems.map((item) => item.shop!.name))];
+
   // the veg / non-veg toggles only help when the window sells both
   const vegCount = menuItems.filter((item) => item.isVeg).length;
   const hasBothFoodTypes = vegCount > 0 && vegCount < menuItems.length;
@@ -393,6 +398,12 @@ export function OrdersClient({
         </nav>
 
         <div className='min-w-0 space-y-4'>
+          <SnackyOrderBox
+            windowId={windowId}
+            groupShops={groupShops}
+            groupItem={groupItems[0]?.name}
+          />
+
           {/* Filters stay on screen while the menu scrolls */}
           <div
             ref={toolbarRef}

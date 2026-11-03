@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { SNACKY_VOICE, snackyModel, snackyNow } from "@/lib/snacky";
 import { refreshSnackySummary, type SnackySummary } from "@/modules/snacky/summary";
+import { draftSnackyOrder, type SnackyOrderDraft } from "@/modules/snacky/order-draft";
 import {
   deleteSnackyChat,
   getSnackyChat,
@@ -155,6 +156,66 @@ export async function refreshMySnackySummaryAction(
     console.error("Snacky personal summary failed", error);
     return { success: false, error: "Snacky couldn't write your roast just now" };
   }
+}
+
+/** A cart draft from what the person typed; they place the order themselves. */
+export async function snackyOrderDraftAction(
+  windowId: string,
+  text: string,
+): Promise<Result<SnackyOrderDraft>> {
+  await authIsRequired();
+  const member = await getCurrentMember();
+  if (!member) return { success: false, error: "Organization not found" };
+
+  const message = text.trim();
+  if (!message) return { success: false, error: "Tell Snacky what you'd like" };
+  if (message.length > 300) return { success: false, error: "Keep it under 300 characters" };
+
+  const limit = await checkRateLimit(`snacky:order:${member.userId}`, 8, 60_000);
+  if (!limit.success) {
+    return { success: false, error: `Snacky needs a breather. Try again in ${limit.retryAfterSec}s.` };
+  }
+
+  try {
+    const draft = await draftSnackyOrder({
+      organizationId: member.organizationId,
+      userId: member.userId,
+      windowId,
+      text: message,
+    });
+    if ("error" in draft) return { success: false, error: draft.error };
+    return { success: true, data: draft };
+  } catch (error) {
+    console.error("Snacky order draft failed", error);
+    return { success: false, error: "Snacky couldn't read that just now. Try again?" };
+  }
+}
+
+/** The window as it is in the database, for Snacky's delete card. */
+export async function getWindowToDeleteAction(windowId: string): Promise<
+  Result<{ label: string; opened: string; status: string; orders: number; people: number }>
+> {
+  const { member } = await requireAdmin();
+  const window = await prisma.orderWindow.findFirst({
+    where: { id: windowId, organizationId: member.organizationId },
+    select: {
+      label: true,
+      status: true,
+      createdAt: true,
+      orders: { where: { status: { not: "cancelled" } }, select: { userId: true } },
+    },
+  });
+  if (!window) return { success: false, error: "That window doesn't exist (any more)" };
+  return {
+    success: true,
+    data: {
+      label: window.label,
+      opened: formatInTimeZone(window.createdAt, "Asia/Kolkata", "EEE d MMM yyyy, h:mm a"),
+      status: window.status,
+      orders: window.orders.length,
+      people: new Set(window.orders.map((order) => order.userId)).size,
+    },
+  };
 }
 
 export async function listSnackyChatsAction(): Promise<SnackyChatSummary[]> {

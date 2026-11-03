@@ -184,6 +184,7 @@ async function orderWindows(
 ) {
   const rows = await prisma.$queryRaw<
     {
+      id: string;
       label: string;
       opened: string;
       status: string;
@@ -196,6 +197,7 @@ async function orderWindows(
     }[]
   >`
     SELECT
+      w.id,
       w.label,
       TO_CHAR(${ist(`w."createdAt"`)}, 'Dy DD Mon YYYY, HH12:MI AM') AS opened,
       w.status,
@@ -222,6 +224,7 @@ async function orderWindows(
 
   return {
     windows: rows.map((row) => ({
+      id: row.id,
       label: row.label,
       opened: row.opened,
       status: row.status,
@@ -376,6 +379,7 @@ async function windowSummary(
     // more windows matched; this is the newest of them
     otherMatches: windows.length - 1,
     window: {
+      id: window.id,
       label: window.label,
       opened: formatInTimeZone(window.createdAt, "Asia/Kolkata", "EEE dd MMM yyyy, h:mm a"),
       status: window.status,
@@ -426,6 +430,16 @@ export function snackyDataTools(organizationId: string, shopNames: string[] = []
         label: z.string().describe("The open window's label"),
       }),
       outputSchema: z.object({ closed: z.boolean(), note: z.string() }),
+    }),
+    // also confirmed by the admin on the page, which shows the window as it is in the database
+    deleteOrderWindow: tool({
+      description:
+        "Propose deleting one order window with all its orders, for good. Take its id from orderWindows or windowSummary, never guess it. The admin confirms or cancels; the result says which.",
+      inputSchema: z.object({
+        windowId: z.string().describe("The window's id from orderWindows or windowSummary"),
+        label: z.string().describe("The window's label"),
+      }),
+      outputSchema: z.object({ deleted: z.boolean(), note: z.string() }),
     }),
     spendBreakdown: tool({
       description:

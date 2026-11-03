@@ -1254,7 +1254,13 @@ async function validateOrderItems(
   const [menuItems, window] = await Promise.all([
     prisma.menuItem.findMany({
       where: { id: { in: menuItemIds }, organizationId },
-      select: { id: true, name: true, isAvailable: true, shopId: true },
+      select: {
+        id: true,
+        name: true,
+        isAvailable: true,
+        shopId: true,
+        shop: { select: { isGroupOrderEnabled: true } },
+      },
     }),
     prisma.orderWindow.findUnique({
       where: { id: windowId },
@@ -1287,6 +1293,21 @@ async function validateOrderItems(
     );
     if (unavailable) {
       return `${unavailable.name} is no longer available`;
+    }
+
+    // only shops that take group orders can have an item split; admins
+    // editing older orders keep the splits those orders already have
+    const splitNotAllowed = menuItems.find(
+      (menuItem) =>
+        !menuItem.shop?.isGroupOrderEnabled &&
+        items.some(
+          (item) =>
+            item.menuItemId === menuItem.id &&
+            (item.splitUserIds ?? []).length > 0,
+        ),
+    );
+    if (splitNotAllowed) {
+      return `${splitNotAllowed.name}'s shop doesn't take group orders, so it can't be split`;
     }
   }
 

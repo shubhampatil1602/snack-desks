@@ -25,8 +25,13 @@ import {
 
 import type { SnackyDataTools } from "@/modules/snacky/data-tools";
 import type { SnackyChatSummary } from "@/modules/snacky/chats";
-import { deleteSnackyChatAction, getSnackyChatAction } from "@/actions/snacky";
+import {
+  deleteSnackyChatAction,
+  getSnackyChatAction,
+  getWindowToDeleteAction,
+} from "@/actions/snacky";
 import { closeWindowAction, createWindowAction } from "@/actions/order-window";
+import { deleteOrderWindowAction } from "@/actions/delete-order-window";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -51,6 +56,7 @@ const LOOKING_AT: Record<string, string> = {
   "tool-menuItems": "Reading the menu…",
   "tool-openOrderWindow": "Getting the window ready…",
   "tool-closeOrderWindow": "Getting ready to close the window…",
+  "tool-deleteOrderWindow": "Finding the window to delete…",
 };
 
 const DISCLAIMER = "Chats are deleted 24 hours after they start.";
@@ -314,6 +320,18 @@ function ChatPane({
                       onDone={(output) =>
                         addToolOutput({
                           tool: "openOrderWindow",
+                          toolCallId: part.toolCallId,
+                          output,
+                        })
+                      }
+                    />
+                  ) : part.type === "tool-deleteOrderWindow" ? (
+                    <DeleteProposal
+                      key={index}
+                      part={part}
+                      onDone={(output) =>
+                        addToolOutput({
+                          tool: "deleteOrderWindow",
                           toolCallId: part.toolCallId,
                           output,
                         })
@@ -626,6 +644,111 @@ function CloseProposal({
           onClick={() => onDone({ closed: false, note: "The admin kept it open" })}
         >
           Keep open
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+type DeletePart = Extract<Part, { type: "tool-deleteOrderWindow" }>;
+type WindowToDelete = Awaited<ReturnType<typeof getWindowToDeleteAction>>;
+
+// deleting can't be undone, so the card shows the window as it is in the
+// database (not Snacky's description of it) and the admin confirms
+function DeleteProposal({
+  part,
+  onDone,
+}: {
+  part: DeletePart;
+  onDone: (outcome: { deleted: boolean; note: string }) => void;
+}) {
+  const windowId = part.state === "input-available" ? part.input.windowId : null;
+  const [found, setFound] = useState<{ id: string; result: WindowToDelete } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!windowId) return;
+    let live = true;
+    getWindowToDeleteAction(windowId).then((result) => {
+      if (live) setFound({ id: windowId, result });
+    });
+    return () => {
+      live = false;
+    };
+  }, [windowId]);
+
+  if (part.state === "output-available") {
+    return part.output.deleted ? (
+      <p className='flex items-center gap-2 text-sm'>
+        <CircleCheck className='size-4 text-emerald-600' /> Window deleted.
+      </p>
+    ) : (
+      <p className='flex items-center gap-2 text-sm text-muted-foreground'>
+        <CircleX className='size-4' /> Not deleted: {part.output.note}
+      </p>
+    );
+  }
+  if (!windowId || found?.id !== windowId) {
+    return part.state === "input-streaming" || part.state === "input-available" ? (
+      <p className='flex items-center gap-2 text-sm text-muted-foreground'>
+        <Spinner /> {LOOKING_AT[part.type]}
+      </p>
+    ) : null;
+  }
+
+  const result = found.result;
+  if (!result.success) {
+    return (
+      <div className='max-w-md space-y-3 border p-4'>
+        <p className='text-sm text-muted-foreground'>{result.error}</p>
+        <Button size='sm' variant='outline' onClick={() => onDone({ deleted: false, note: result.error })}>
+          OK
+        </Button>
+      </div>
+    );
+  }
+  const target = result.data;
+
+  async function remove() {
+    setDeleting(true);
+    const outcome = await deleteOrderWindowAction(windowId!);
+    setDeleting(false);
+    if (outcome.success) {
+      toast.success("Order window deleted");
+      onDone({ deleted: true, note: `Deleted "${target.label}" from ${target.opened}` });
+    } else {
+      onDone({ deleted: false, note: outcome.error ?? "It couldn't be deleted" });
+    }
+  }
+
+  return (
+    <div className='max-w-md space-y-3 border border-destructive/40 p-4'>
+      <p className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>
+        Delete this order window?
+      </p>
+      <div>
+        <p className='font-heading text-lg leading-tight'>{target.label}</p>
+        <p className='text-sm text-muted-foreground'>
+          Opened {target.opened} · {target.status === "active" ? "open now" : "closed"}
+        </p>
+      </div>
+      <p className='text-sm text-muted-foreground'>
+        {target.orders > 0
+          ? `Its ${target.orders} order${target.orders === 1 ? "" : "s"} from ${target.people} ${target.people === 1 ? "person" : "people"} go with it. `
+          : "It has no orders. "}
+        This can&apos;t be undone.
+      </p>
+      <div className='flex gap-2'>
+        <Button size='sm' variant='destructive' onClick={remove} disabled={deleting}>
+          {deleting ? <Spinner /> : <Trash2 />} Delete window
+        </Button>
+        <Button
+          size='sm'
+          variant='outline'
+          disabled={deleting}
+          onClick={() => onDone({ deleted: false, note: "The admin kept it" })}
+        >
+          Keep it
         </Button>
       </div>
     </div>
