@@ -18,7 +18,7 @@ Don't use git unless told!
 
 Internal office snack-ordering app (multi-tenant). Live: snackdesk.shubhamspatil.me. Package name `snack-desk`, pnpm.
 
-**Stack:** Next.js 16 (App Router, server actions) · React 19 · TypeScript · Prisma 7 + `@prisma/adapter-pg` on Postgres (Neon in `.env`, local via `docker-compose`) · Better Auth · Tailwind 4 + shadcn/ui · Zustand · react-hook-form + zod · Recharts · Vercel AI SDK (Gemini).
+**Stack:** Next.js 16 (App Router, server actions) · React 19 · TypeScript · Prisma 7 + `@prisma/adapter-pg` on Postgres (Neon in `.env`, local via `docker-compose`) · Better Auth · Tailwind 4 + shadcn/ui · Zustand · react-hook-form + zod · Recharts · Vercel AI SDK (Gemini) · TipTap (Snacky order box: `/` menu and `@` people chips, `SnackyInput.tsx`).
 
 **Roles:** Super Admin (platform) · Admin (org) · User (employee). Users join orgs via invite code.
 
@@ -29,6 +29,7 @@ Internal office snack-ordering app (multi-tenant). Live: snackdesk.shubhamspatil
 - `OrderItemSplit` = item shared with other users; each participant (owner + split users) pays `price × qty / participants`. History does this in JS (`modules/orders/user-history-queries.ts`); per-user spend SQL (user dashboard, rankings) uses `spendLinesCte` in `lib/spend-lines.ts`. Org-level revenue ignores splits (shares sum to the full price).
 - Only items from shops with `isGroupOrderEnabled` can be split; `validateOrderItems` (`actions/orders.ts`) refuses other splits when a user places or updates an order. Admin edits of older orders aren't checked.
 - Prices are read from the current `MenuItem.price` (no price snapshot on OrderItem).
+- Order by typing (`SnackyOrderBox` + `modules/snacky/order-draft.ts`): Snacky returns only the cart lines that change (new total, 0 removes), plus variant choices, favourites and cancel; the box keeps them as changes over the live cart and nothing happens until the user taps.
 - `Shop.description` (optional, admin's words) is shown to Snacky with each shop's menu (`describeShopMenus` in `modules/snacky/window-habits.ts`) and in order-by-typing.
 
 **Layout:** `app/` routes (`(auth)`, `(user)`, `admin`, `super-admin`, `api`) · `modules/<feature>/queries.ts` read queries · `actions/` server actions · `lib/sse` real-time (Postgres LISTEN/NOTIFY → SSE) · `lib/date-utils.ts` IST helpers.

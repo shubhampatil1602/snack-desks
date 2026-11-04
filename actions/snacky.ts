@@ -180,15 +180,38 @@ export async function refreshMySnackySummaryAction(
 }
 
 /** A cart draft from what the person typed; they place the order themselves. */
+const orderLines = z
+  .array(
+    z.object({
+      menuItemId: z.string().max(64),
+      quantity: z.number().int().min(1).max(99),
+      splitUserIds: z.array(z.string().max(64)).max(20),
+      backups: z
+        .array(z.object({ menuItemId: z.string().max(64), quantity: z.number().int().min(1).max(99) }))
+        .max(5),
+    }),
+  )
+  .max(40);
+
+const draftInput = z.object({
+  text: z.string(),
+  // the cart with Snacky's changes so far
+  cart: orderLines.default([]),
+  earlier: z.array(z.string().max(300)).max(4).default([]),
+});
+
 export async function snackyOrderDraftAction(
   windowId: string,
-  text: string,
+  input: z.input<typeof draftInput>,
 ): Promise<Result<SnackyOrderDraft>> {
   await authIsRequired();
   const member = await getCurrentMember();
   if (!member) return { success: false, error: "Organization not found" };
 
-  const message = text.trim();
+  const parsed = draftInput.safeParse(input);
+  if (!parsed.success) return { success: false, error: "Snacky couldn't read that. Try again?" };
+  const { cart, earlier } = parsed.data;
+  const message = parsed.data.text.trim();
   if (!message) return { success: false, error: "Tell Snacky what you'd like" };
   if (message.length > 300) return { success: false, error: "Keep it under 300 characters" };
 
@@ -198,14 +221,16 @@ export async function snackyOrderDraftAction(
   }
 
   try {
-    const draft = await draftSnackyOrder({
+    const result = await draftSnackyOrder({
       organizationId: member.organizationId,
       userId: member.userId,
       windowId,
       text: message,
+      cart,
+      earlier,
     });
-    if ("error" in draft) return { success: false, error: draft.error };
-    return { success: true, data: draft };
+    if ("error" in result) return { success: false, error: result.error };
+    return { success: true, data: result };
   } catch (error) {
     console.error("Snacky order draft failed", error);
     return { success: false, error: "Snacky couldn't read that just now. Try again?" };

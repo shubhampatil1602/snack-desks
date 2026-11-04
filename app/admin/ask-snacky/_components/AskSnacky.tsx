@@ -62,6 +62,20 @@ const LOOKING_AT: Record<string, string> = {
 const DISCLAIMER = "Chats are deleted 24 hours after they start.";
 
 // keeps ?chat= in the address bar, so a reload comes back to the same chat
+// a short "yes" or "no" typed under a card answers the card. Anything that
+// changes it ("yes but only RK") goes to Snacky to propose again
+const CHANGES = /\b(but|only|without|instead|change|add|remove|except|also|not|with)\b/i;
+const YES = /^(y|ya|yes|yeah|yep|yup|haan|han|ha|ok|okay|sure|confirm|confirmed|go|go ahead|do it|done|open|open it|close|close it|delete|delete it)\b/i;
+const NO = /^(n|no|nope|nah|nahi|cancel|stop|dont|don't|keep it|keep it open|leave it)\b/i;
+
+function typedAnswer(text: string): "yes" | "no" | null {
+  const clean = text.trim().replace(/[.!]+$/, "");
+  if (clean.split(/\s+/).length > 6 || CHANGES.test(clean)) return null;
+  if (NO.test(clean)) return "no";
+  if (YES.test(clean)) return "yes";
+  return null;
+}
+
 function showChatInUrl(id: string | null) {
   window.history.replaceState(null, "", id ? `?chat=${id}` : window.location.pathname);
 }
@@ -267,6 +281,20 @@ function ChatPane({
   function ask(text: string) {
     const question = text.trim();
     if (!question || busy) return;
+    // the card's own button, so a typed yes does exactly what a click does
+    const answer = typedAnswer(question);
+    const button =
+      answer &&
+      [
+        ...(scrollRef.current?.querySelectorAll<HTMLButtonElement>(
+          answer === "yes" ? "[data-card-yes]" : "[data-card-no]",
+        ) ?? []),
+      ].at(-1);
+    if (button) {
+      if (!button.disabled) button.click();
+      setInput("");
+      return;
+    }
     clearError();
     if (messages.length === 0) onStarted(question);
     sendMessage({ text: question });
@@ -559,13 +587,14 @@ function WindowProposal({
         {durationMinutes ? `Closes in ${durationMinutes} min` : "No timer"}
       </p>
       <div className='flex gap-2'>
-        <Button size='sm' onClick={open} disabled={opening || picked.length === 0}>
+        <Button size='sm' data-card-yes onClick={open} disabled={opening || picked.length === 0}>
           {opening && <Spinner />} Open window
         </Button>
         <Button
           size='sm'
           variant='outline'
           disabled={opening}
+          data-card-no
           onClick={() => onDone({ opened: false, note: "The admin cancelled" })}
         >
           Cancel
@@ -634,13 +663,14 @@ function CloseProposal({
         People won&apos;t be able to place or change orders after this.
       </p>
       <div className='flex gap-2'>
-        <Button size='sm' variant='destructive' onClick={close} disabled={closing}>
+        <Button size='sm' variant='destructive' data-card-yes onClick={close} disabled={closing}>
           {closing && <Spinner />} Close window
         </Button>
         <Button
           size='sm'
           variant='outline'
           disabled={closing}
+          data-card-no
           onClick={() => onDone({ closed: false, note: "The admin kept it open" })}
         >
           Keep open
@@ -739,13 +769,14 @@ function DeleteProposal({
         This can&apos;t be undone.
       </p>
       <div className='flex gap-2'>
-        <Button size='sm' variant='destructive' onClick={remove} disabled={deleting}>
+        <Button size='sm' variant='destructive' data-card-yes onClick={remove} disabled={deleting}>
           {deleting ? <Spinner /> : <Trash2 />} Delete window
         </Button>
         <Button
           size='sm'
           variant='outline'
           disabled={deleting}
+          data-card-no
           onClick={() => onDone({ deleted: false, note: "The admin kept it" })}
         >
           Keep it

@@ -123,14 +123,17 @@ export function OrdersClient({
   }
 
   // optimistic; reverted if the server refuses
-  async function toggleFavourite(menuItemId: string) {
-    const value = !favourites.has(menuItemId);
+  async function saveFavourite(menuItemId: string, value: boolean) {
     setFavourite(menuItemId, value);
     const result = await toggleFavouriteMenuItemAction(menuItemId, value);
     if (!result.success) {
       setFavourite(menuItemId, !value);
       toast.error(result.error);
     }
+  }
+
+  function toggleFavourite(menuItemId: string) {
+    return saveFavourite(menuItemId, !favourites.has(menuItemId));
   }
 
   const loadExistingOrder = useCartStore((state) => state.loadExistingOrder);
@@ -276,6 +279,17 @@ export function OrdersClient({
   // only items from shops that take group orders can be shared
   const groupItems = menuItems.filter((item) => item.shop?.isGroupOrderEnabled);
   const groupShops = [...new Set(groupItems.map((item) => item.shop!.name))];
+  const snackyMenu = useMemo(
+    () =>
+      menuItems.map((item) => ({
+        menuItemId: item.id,
+        name: item.name,
+        price: item.price,
+        shop: item.shop?.name ?? null,
+        isGroupOrderEnabled: item.shop?.isGroupOrderEnabled ?? false,
+      })),
+    [menuItems],
+  );
 
   // the veg / non-veg toggles only help when the window sells both
   const vegCount = menuItems.filter((item) => item.isVeg).length;
@@ -331,20 +345,20 @@ export function OrdersClient({
     loadExistingOrder({
       orderId: existingOrder.id,
       status: existingOrder.status,
-      items: existingOrder.items.map((item: any) => ({
+      items: existingOrder.items.map((item) => ({
         menuItemId: item.menuItem.id,
         name: item.menuItem.name,
         price: item.menuItem.price.toString(),
         quantity: item.quantity,
         isGroupOrderEnabled: item.menuItem.shop?.isGroupOrderEnabled ?? false,
         splitUsers:
-          item.splits?.map((s: any) => ({
+          item.splits?.map((s) => ({
             id: s.user.id,
             name: s.user.name,
             email: s.user.email,
           })) || [],
         replacements:
-          item.replacementPreferences?.map((rep: any) => ({
+          item.replacementPreferences?.map((rep) => ({
             menuItemId: rep.menuItemId,
             name: rep.menuItem.name,
             price: rep.menuItem.price.toString(),
@@ -400,6 +414,8 @@ export function OrdersClient({
         <div className='min-w-0 space-y-4'>
           <SnackyOrderBox
             windowId={windowId}
+            menu={snackyMenu}
+            onFavourite={saveFavourite}
             groupShops={groupShops}
             groupItem={groupItems[0]?.name}
           />
