@@ -28,7 +28,7 @@ Internal office snack-ordering app (multi-tenant). Live: snackdesk.shubhamspatil
 - `OrderItem.replacementApplied = true` means the item was swapped out; replacement items are separate OrderItems (`originalOrderItemId`). Spend queries filter `replacementApplied: false`.
 - `OrderItemSplit` = item shared with other users; each participant (owner + split users) pays `price × qty / participants`. History does this in JS (`modules/orders/user-history-queries.ts`); per-user spend SQL (user dashboard, rankings) uses `spendLinesCte` in `lib/spend-lines.ts`. Org-level revenue ignores splits (shares sum to the full price).
 - Only items from shops with `isGroupOrderEnabled` can be split; `validateOrderItems` (`actions/orders.ts`) refuses other splits when a user places or updates an order. Admin edits of older orders aren't checked.
-- Prices are read from the current `MenuItem.price` (no price snapshot on OrderItem).
+- `OrderItem.unitPrice` is the price when the line was ordered; spend and history read it, not `MenuItem.price`. `createOrderItems` (`actions/orders.ts`) sets it: lines kept through an edit keep their old price, new lines and applied backups take today's menu price. Order queries put it in `menuItem.price` for the UI. Backup preferences and the cart's menu still show live prices.
 - Order by typing (`SnackyOrderBox` + `modules/snacky/order-draft.ts`): Snacky returns only the cart lines that change (new total, 0 removes), plus variant choices, favourites and cancel; the box keeps them as changes over the live cart and nothing happens until the user taps.
 - `Shop.description` (optional, admin's words) is shown to Snacky with each shop's menu (`describeShopMenus` in `modules/snacky/window-habits.ts`) and in order-by-typing.
 

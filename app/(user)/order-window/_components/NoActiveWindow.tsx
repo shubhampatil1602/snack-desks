@@ -1,37 +1,23 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { sendNotification } from "@/hooks/use-notification-permission";
-import { WindowOpenedPayload } from "@/types/sse";
+import { useNotifications } from "@/hooks/use-notification-permission";
 import { useSSEEvent } from "@/providers/sse-provider";
 import { Bell, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
 
 export function NoActiveWindow() {
   const router = useRouter();
-  const [notifPermission, setNotifPermission] =
-    useState<NotificationPermission | null>(() => {
-      if (typeof window === "undefined" || !("Notification" in window))
-        return null;
-      return Notification.permission;
-    });
+  const notifications = useNotifications();
 
   async function handleEnableNotifications() {
-    const permission = await Notification.requestPermission();
-    setNotifPermission(permission);
-    if (permission === "granted") {
+    if ((await notifications.turnOn()) === "on") {
       toast.success("Notifications enabled!");
     }
   }
-  useSSEEvent<WindowOpenedPayload>("window_opened", (payload) => {
-    sendNotification(
-      `🍱 ${payload.label} order window is now open!`,
-      payload.endsAt
-        ? `Closes in ${Math.round((new Date(payload.endsAt).getTime() - Date.now()) / 60000)} mins`
-        : "Place your order now",
-    );
+  // the "window is open" notification comes by web push (lib/push.ts)
+  useSSEEvent("window_opened", () => {
     router.refresh();
   });
   return (
@@ -47,14 +33,14 @@ export function NoActiveWindow() {
         </p>
       </div>
       {/* Notification permission */}
-      {notifPermission === "default" && (
+      {notifications.status === "off" && (
         <Button variant='outline' size='sm' onClick={handleEnableNotifications}>
           <Bell className='h-4 w-4 mr-2' />
           Enable notifications
         </Button>
       )}
 
-      {notifPermission === "granted" && (
+      {notifications.status === "on" && (
         <p className='text-xs text-muted-foreground flex items-center gap-1'>
           <Bell className='h-3 w-3' />
           Notifications enabled

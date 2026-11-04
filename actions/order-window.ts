@@ -7,6 +7,8 @@ import { notify } from "@/lib/sse/pg-notify";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { pushToOrg } from "@/lib/push";
 import { closeWindowInternal } from "@/modules/order-window/close-window";
 
 const createWindowSchema = z.object({
@@ -97,6 +99,22 @@ export async function createWindowAction(
       startsAt: window.startsAt.toISOString(),
     },
   });
+
+  // sent after the response, so the admin isn't kept waiting
+  after(() =>
+    pushToOrg(
+      member.organizationId,
+      {
+        title: `🍱 ${window.label} order window is open`,
+        body: window.endsAt
+          ? `Closes in ${parsed.data.duration} min. Place your order now.`
+          : "Place your order now.",
+        url: "/order-window",
+        tag: `window-${window.id}`,
+      },
+      { roles: ["member"], exceptUserIds: [session.user.id] },
+    ),
+  );
 
   expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/order-window");

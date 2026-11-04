@@ -127,9 +127,11 @@ export async function getOrganizationOrderHistoryGroupedByWindow(
             ...order,
             items: order.items.map((item) => ({
               ...item,
+              unitPrice: item.unitPrice.toString(),
+              // a line shows the price it was ordered at, not today's menu price
               menuItem: {
                 ...item.menuItem,
-                price: item.menuItem.price.toString(),
+                price: item.unitPrice.toString(),
                 shop: item.menuItem.shop,
               },
               replacementPreferences: item.replacementPreferences.map((rep) => ({

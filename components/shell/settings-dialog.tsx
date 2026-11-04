@@ -3,16 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Bell, Check, Palette, User } from "lucide-react";
+import { Check, Palette, User } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateMyNameAction } from "@/actions/account";
+import { useNotifications } from "@/hooks/use-notification-permission";
 import { cn } from "@/lib/utils";
 import { SectionDialog, SectionHeading } from "@/components/shell/section-dialog";
 import { useThemeColor } from "@/components/theme/theme-color-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 
 type SettingsUser = { name: string; email: string; avatar?: string | null };
 
@@ -107,14 +109,12 @@ const COLORS = [
 function PreferencesSection() {
   const { theme, setTheme } = useTheme();
   const { themeColor, setThemeColor } = useThemeColor();
-  const [permission, setPermission] = useState<NotificationPermission | null>(() =>
-    typeof window !== "undefined" && "Notification" in window ? Notification.permission : null,
-  );
+  const notifications = useNotifications();
 
-  async function enableNotifications() {
-    const result = await Notification.requestPermission();
-    setPermission(result);
-    if (result === "granted") toast.success("Notifications on");
+  async function toggleNotifications(on: boolean) {
+    if (!on) return notifications.turnOff();
+    const result = await notifications.turnOn();
+    if (result === "on") toast.success("Notifications on");
   }
 
   return (
@@ -156,21 +156,18 @@ function PreferencesSection() {
           ))}
         </div>
       </Row>
-      <Row label='Notifications' hint='When an order window opens or closes.'>
-        {permission === null ? (
+      <Row label='Notifications' hint='Windows opening and closing, the split master and paid bills. On this browser.'>
+        {notifications.status === "unsupported" ? (
           <p className='py-1.5 text-sm text-muted-foreground'>This browser doesn&apos;t support notifications.</p>
-        ) : permission === "granted" ? (
-          <p className='flex items-center gap-1.5 py-1.5 text-sm'>
-            <Bell className='size-4 text-primary' /> On
-          </p>
-        ) : permission === "denied" ? (
+        ) : notifications.status === "blocked" ? (
           <p className='py-1.5 text-sm text-muted-foreground'>
             Blocked. Allow notifications for this site in your browser&apos;s settings.
           </p>
         ) : (
-          <Button variant='outline' onClick={enableNotifications}>
-            <Bell /> Turn on
-          </Button>
+          <label className='flex items-center gap-2 py-1.5 text-sm'>
+            <Switch checked={notifications.status === "on"} onCheckedChange={toggleNotifications} />
+            {notifications.status === "on" ? "On" : "Off"}
+          </label>
         )}
       </Row>
     </>

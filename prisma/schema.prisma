@@ -30,6 +30,7 @@ model User {
   orderItemSplits    OrderItemSplit[]
   favouriteMenuItems FavouriteMenuItem[]
   snackyChats        SnackyChat[]
+  pushSubscriptions  PushSubscription[]
 
   @@unique([email])
   @@map("user")
@@ -201,6 +202,9 @@ model OrderItem {
   menuItemId String
 
   quantity  Int
+  // the menu price when this line was ordered; later menu price changes
+  // don't touch it, so old orders keep what they cost
+  unitPrice Decimal  @db.Decimal(10, 2)
   createdAt DateTime @default(now())
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem  MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
@@ -366,4 +370,21 @@ model SnackySummary {
 
   @@id([organizationId, period, scope])
   @@map("snacky_summary")
+}
+
+// A browser that turned on notifications (web push). One user can have
+// several: a phone and a laptop. Removed when they turn notifications off or
+// the push service says the browser is gone.
+model PushSubscription {
+  id        String   @id
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscription")
 }

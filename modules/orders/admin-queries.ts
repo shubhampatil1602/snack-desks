@@ -46,9 +46,11 @@ export async function getLiveOrders(windowId: string) {
 
       items: order.items.map((item) => ({
         ...item,
+        unitPrice: item.unitPrice.toString(),
+        // a line shows the price it was ordered at, not today's menu price
         menuItem: {
           ...item.menuItem,
-          price: item.menuItem.price.toString(),
+          price: item.unitPrice.toString(),
         },
         replacementPreferences: item.replacementPreferences.map((rep) => ({
           ...rep,
@@ -60,7 +62,7 @@ export async function getLiveOrders(windowId: string) {
       })),
 
       total: activeItems.reduce(
-        (sum, item) => sum + Number(item.menuItem.price) * item.quantity,
+        (sum, item) => sum + Number(item.unitPrice) * item.quantity,
         0,
       ),
     };

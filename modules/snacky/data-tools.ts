@@ -113,7 +113,7 @@ async function spendBreakdown(
         o."createdAt",
         oi."menuItemId",
         oi.quantity::float / (1 + COUNT(s.id)) AS qty,
-        (oi.quantity * m.price)::float / (1 + COUNT(s.id)) AS amount
+        (oi.quantity * oi."unitPrice")::float / (1 + COUNT(s.id)) AS amount
       FROM "order" o
       INNER JOIN "order_item" oi ON o.id = oi."orderId"
       INNER JOIN "menu_item" m ON oi."menuItemId" = m.id
@@ -205,7 +205,7 @@ async function orderWindows(
       wu.name AS winner,
       COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'approved')::int AS orders,
       COUNT(DISTINCT o."userId") FILTER (WHERE o.status = 'approved')::int AS people,
-      COALESCE(SUM(oi.quantity * m.price) FILTER (
+      COALESCE(SUM(oi.quantity * oi."unitPrice") FILTER (
         WHERE o.status = 'approved' AND oi."replacementApplied" = false
       ), 0)::float AS spend,
       (COUNT(*) OVER ())::int AS total
@@ -340,7 +340,8 @@ async function windowSummary(
         where: { replacementApplied: false },
         select: {
           quantity: true,
-          menuItem: { select: { name: true, price: true, shop: { select: { name: true } } } },
+          unitPrice: true,
+          menuItem: { select: { name: true, shop: { select: { name: true } } } },
           splits: { select: { user: { select: { name: true } } } },
         },
       },
@@ -358,7 +359,7 @@ async function windowSummary(
     statuses[order.status] = (statuses[order.status] ?? 0) + 1;
     if (order.status === "rejected" || order.status === "cancelled") continue;
     for (const item of order.items) {
-      const cost = Number(item.menuItem.price) * item.quantity;
+      const cost = Number(item.unitPrice) * item.quantity;
       const shop = item.menuItem.shop?.name ?? "Other";
       const lines = buy.get(shop) ?? new Map<string, number>();
       lines.set(item.menuItem.name, (lines.get(item.menuItem.name) ?? 0) + item.quantity);

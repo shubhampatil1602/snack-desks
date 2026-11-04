@@ -7,6 +7,8 @@ import { notify } from "@/lib/sse/pg-notify";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { pushSplitMaster } from "@/modules/order-window/split-master-push";
 import { closeWindowInternal } from "@/modules/order-window/close-window";
 import { checkRateLimit } from "@/lib/rate-limit";
 import type { Prisma } from "@/lib/generated/prisma/client";
@@ -266,7 +268,7 @@ export async function updateOrderAction(
     // Delete many cascades and automatically deletes orderItemReplacements
     await tx.orderItem.deleteMany({ where: { orderId } });
 
-    await createOrderItems(tx, orderId, items, session.user.id);
+    await createOrderItems(tx, orderId, items, session.user.id, keptPricesOf(order.items));
 
     await tx.order.update({
       where: { id: orderId },
@@ -564,7 +566,7 @@ export async function updateAdminOrderAction(
   // linked to the window (orders from before shops were enforced)
   const existingItems = await prisma.orderItem.findMany({
     where: { orderId },
-    select: { menuItemId: true },
+    select: { menuItemId: true, unitPrice: true, replacementApplied: true },
   });
 
   const itemsError = await validateOrderItems(
@@ -588,7 +590,14 @@ export async function updateAdminOrderAction(
       },
     });
 
-    await createOrderItems(tx, orderId, items, order.userId);
+    // lines the admin keeps stay at their old price, even on an old window
+    await createOrderItems(
+      tx,
+      orderId,
+      items,
+      order.userId,
+      keptPricesOf(existingItems.filter((item) => !item.replacementApplied)),
+    );
 
     await tx.order.update({
       where: {
@@ -698,6 +707,8 @@ export async function applyReplacementAction(
           orderId: orderItem.orderId,
           menuItemId: pref.menuItemId,
           quantity: pref.quantity,
+          // the backup costs what it costs now, when it's swapped in
+          unitPrice: pref.menuItem.price,
           originalOrderItemId: orderItemId,
         },
       });
@@ -840,6 +851,7 @@ export async function createLateOrderAction(
   }
 
   // create order + items in a transaction
+  let winnerRestored = false;
   const order = await prisma.$transaction(async (tx) => {
     const newOrder = await tx.order.create({
       data: {
@@ -862,10 +874,14 @@ export async function createLateOrderAction(
         where: { id: windowId },
         data: { winnerUserId: userId },
       });
+      winnerRestored = true;
     }
 
     return newOrder;
   });
+
+  // the spin winner left and came back with this late order
+  if (winnerRestored) after(() => pushSplitMaster(windowId, userId));
 
   await notify({
     type: "order_placed",
@@ -1206,7 +1222,7 @@ export async function getUserActiveSharedSplitsAction() {
     splits: splits.map((split) => {
       const item = split.orderItem;
       const participantCount = item.splits.length + 1;
-      const itemTotal = Number(item.menuItem.price) * item.quantity;
+      const itemTotal = Number(item.unitPrice) * item.quantity;
       const userShare = itemTotal / participantCount;
 
       return {
@@ -1216,7 +1232,7 @@ export async function getUserActiveSharedSplitsAction() {
         initiatorName: item.order.user.name,
         menuItemId: item.menuItemId,
         name: item.menuItem.name,
-        unitPrice: item.menuItem.price.toString(),
+        unitPrice: item.unitPrice.toString(),
         quantity: item.quantity,
         participantCount,
         splitFraction: `1/${participantCount}`,
@@ -1327,14 +1343,30 @@ async function validateOrderItems(
   return null;
 }
 
-// Helper to DRY order item creation
+// prices of the lines an order already has, so an edit keeps them
+function keptPricesOf(lines: { menuItemId: string; unitPrice: Prisma.Decimal }[]) {
+  return new Map(lines.map((line) => [line.menuItemId, line.unitPrice]));
+}
+
+// Helper to DRY order item creation. A line keeps the price it was first
+// ordered at (keptPrices); a new line takes today's menu price.
 async function createOrderItems(
   tx: Prisma.TransactionClient,
   orderId: string,
   items: OrderItemInput[],
   ownerUserId: string,
+  keptPrices: Map<string, Prisma.Decimal> = new Map(),
 ) {
+  const menuItems = await tx.menuItem.findMany({
+    where: { id: { in: items.map((item) => item.menuItemId) } },
+    select: { id: true, price: true },
+  });
+  const menuPrices = new Map(menuItems.map((menuItem) => [menuItem.id, menuItem.price]));
+
   for (const item of items) {
+    const unitPrice = keptPrices.get(item.menuItemId) ?? menuPrices.get(item.menuItemId);
+    if (unitPrice === undefined) throw new Error("Menu item not found");
+
     const orderItemId = nanoid();
     await tx.orderItem.create({
       data: {
@@ -1342,6 +1374,7 @@ async function createOrderItems(
         orderId,
         menuItemId: item.menuItemId,
         quantity: item.quantity,
+        unitPrice,
       },
     });
 

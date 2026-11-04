@@ -4,6 +4,9 @@ import { expireOrgData } from "@/lib/cache-tags";
 import { authIsRequired, getCurrentMember, requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { pushToOrg } from "@/lib/push";
+import { pushSplitMaster } from "@/modules/order-window/split-master-push";
 import { getSpinDraw, windowParticipants } from "@/modules/order-window/spin-draw";
 
 // Who is in the draw, so the spin dialog can put their names on the wheel
@@ -44,6 +47,8 @@ export async function spinWheelAction(windowId: string) {
     },
   });
 
+  after(() => pushSplitMaster(windowId, winner.id));
+
   expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/history");
   revalidatePath("/history");
@@ -65,7 +70,7 @@ export async function markBillPaidAction(windowId: string) {
 
   const window = await prisma.orderWindow.findFirst({
     where: { id: windowId, organizationId: member.organizationId },
-    select: { winnerUserId: true, winnerPaidAt: true, paid: true },
+    select: { winnerUserId: true, winnerPaidAt: true, paid: true, label: true, winnerUser: { select: { name: true } } },
   });
 
   if (!window) {
@@ -84,6 +89,19 @@ export async function markBillPaidAction(windowId: string) {
     where: { id: windowId },
     data: { winnerPaidAt: new Date() },
   });
+
+  after(() =>
+    pushToOrg(
+      member.organizationId,
+      {
+        title: "💸 Bill paid",
+        body: `${window.winnerUser?.name ?? "The split master"} paid the ${window.label} bill. You can mark it paid now.`,
+        url: "/admin/history",
+        tag: `paid-${windowId}`,
+      },
+      { roles: ["admin", "owner"] },
+    ),
+  );
 
   expireOrgData(member.organizationId, "orders");
   revalidatePath("/admin/history");

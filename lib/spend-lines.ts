@@ -29,7 +29,7 @@ export function spendLinesCte(
         o."windowId",
         o."createdAt",
         oi."menuItemId",
-        oi.quantity * m.price / (1 + COUNT(s.id)) AS amount
+        oi.quantity * oi."unitPrice" / (1 + COUNT(s.id)) AS amount
       FROM "order" o
       INNER JOIN "order_item" oi ON o.id = oi."orderId"
       INNER JOIN "menu_item" m ON oi."menuItemId" = m.id

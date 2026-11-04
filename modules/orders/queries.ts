@@ -78,9 +78,11 @@ export async function getUserActiveOrder(windowId: string, userId: string) {
     ...order,
     items: order.items.map((item) => ({
       ...item,
+      unitPrice: item.unitPrice.toString(),
+      // a line shows the price it was ordered at, not today's menu price
       menuItem: {
         ...item.menuItem,
-        price: item.menuItem.price.toString(),
+        price: item.unitPrice.toString(),
       },
       replacementPreferences: item.replacementPreferences.map((rep) => ({
         ...rep,

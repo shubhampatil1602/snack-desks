@@ -6,6 +6,7 @@ import { requireAdmin } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { SSEProvider } from "@/providers/sse-provider";
 import { AppFooter } from "@/components/app-footer";
+import { NotificationBanner } from "@/components/shell/notification-banner";
 
 export default async function SuperAdminLayout({
   children,
@@ -27,6 +28,7 @@ export default async function SuperAdminLayout({
   return (
     <SSEProvider enabled={organization?.realtimeEnabled}>
       <TooltipProvider>
+        <NotificationBanner message='Turn on notifications to know when a split master pays the bill.' />
         <SidebarProvider
           style={
             {

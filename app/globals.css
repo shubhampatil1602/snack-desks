@@ -240,3 +240,14 @@ html.dark[data-theme="claude"] {
 html {
   scroll-behavior: smooth;
 }
+
+/* The notification banner is pinned to the top of the screen and sets
+   --notification-banner-height while it's shown; the page and the fixed
+   sidebar start below it instead of under it */
+[data-slot="sidebar-wrapper"] {
+  padding-top: var(--notification-banner-height, 0px);
+}
+[data-slot="sidebar-container"] {
+  top: var(--notification-banner-height, 0px) !important;
+  height: calc(100svh - var(--notification-banner-height, 0px)) !important;
+}

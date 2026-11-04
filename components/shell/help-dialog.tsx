@@ -103,7 +103,7 @@ const WINDOWS: Faq[] = [
 const MENUS: Faq[] = [
   {
     q: "How do I add shops and items?",
-    a: "In Menus, add a shop, then its items with prices. Prices are read live, so a change affects open orders too.",
+    a: "In Menus, add a shop, then its items with prices. A new price applies to orders placed from then on; orders already placed keep the price they were ordered at.",
   },
   {
     q: "How do I let people share items?",

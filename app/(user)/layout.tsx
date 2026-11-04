@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { SSEProvider } from "@/providers/sse-provider";
 import { AppFooter } from "@/components/app-footer";
 import { CartSync } from "./_components/cart-sync";
+import { NotificationBanner } from "@/components/shell/notification-banner";
 
 export default async function UserLayout({
   children,
@@ -45,6 +46,7 @@ export default async function UserLayout({
   return (
     <SSEProvider enabled={organization?.realtimeEnabled}>
       <TooltipProvider>
+        <NotificationBanner message='Turn on notifications to know when a window opens or closes and who the split master is.' />
         <SidebarProvider
           style={
             {

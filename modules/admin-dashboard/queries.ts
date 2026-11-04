@@ -60,7 +60,7 @@ export async function getDashboardStats(organizationId: string, period: string) 
 
       // Total Revenue for Period
       prisma.orderItem.groupBy({
-        by: ["menuItemId"],
+        by: ["menuItemId", "unitPrice"],
         where: {
           order: { organizationId, status: "approved", ...dateFilter },
           replacementApplied: false,
@@ -70,7 +70,7 @@ export async function getDashboardStats(organizationId: string, period: string) 
 
       // Today Revenue (if applicable)
       prisma.orderItem.groupBy({
-        by: ["menuItemId"],
+        by: ["menuItemId", "unitPrice"],
         where: {
           order: {
             organizationId,
@@ -85,7 +85,7 @@ export async function getDashboardStats(organizationId: string, period: string) 
 
   // We still need all-time revenue (unfiltered by period)
   const allTimeRaw = await prisma.orderItem.groupBy({
-    by: ["menuItemId"],
+    by: ["menuItemId", "unitPrice"],
     where: {
       order: { organizationId, status: "approved" },
       replacementApplied: false,
@@ -93,7 +93,8 @@ export async function getDashboardStats(organizationId: string, period: string) 
     _sum: { quantity: true },
   });
 
-  // Get all unique menu items involved to fetch prices and shop names once
+  // lines are grouped by item and the price they were ordered at; look up
+  // shop names once
   const menuItemIds = new Set([
     ...rawAllTime.map((i) => i.menuItemId),
     ...currentMonthRaw.map((i) => i.menuItemId),
@@ -102,17 +103,17 @@ export async function getDashboardStats(organizationId: string, period: string) 
 
   const menuItems = await prisma.menuItem.findMany({
     where: { id: { in: Array.from(menuItemIds) } },
-    select: { id: true, price: true, shop: { select: { name: true } } },
+    select: { id: true, shop: { select: { name: true } } },
   });
   
-  const menuLookup = new Map(menuItems.map((m) => [m.id, { price: Number(m.price), shopName: m.shop?.name || "Unknown Shop" }]));
+  const menuLookup = new Map(menuItems.map((m) => [m.id, { shopName: m.shop?.name || "Unknown Shop" }]));
 
   let totalRevenue = 0;
   const totalRevenueShopBreakdown: Record<string, number> = {};
   rawAllTime.forEach((item) => {
     const qty = item._sum.quantity ?? 0;
-    const menuInfo = menuLookup.get(item.menuItemId) ?? { price: 0, shopName: "Unknown Shop" };
-    const amt = qty * menuInfo.price;
+    const menuInfo = menuLookup.get(item.menuItemId) ?? { shopName: "Unknown Shop" };
+    const amt = qty * Number(item.unitPrice);
     totalRevenue += amt;
     totalRevenueShopBreakdown[menuInfo.shopName] = (totalRevenueShopBreakdown[menuInfo.shopName] || 0) + amt;
   });
@@ -121,8 +122,8 @@ export async function getDashboardStats(organizationId: string, period: string) 
   const allTimeRevenueShopBreakdown: Record<string, number> = {};
   allTimeRaw.forEach((item) => {
     const qty = item._sum.quantity ?? 0;
-    const menuInfo = menuLookup.get(item.menuItemId) ?? { price: 0, shopName: "Unknown Shop" };
-    const amt = qty * menuInfo.price;
+    const menuInfo = menuLookup.get(item.menuItemId) ?? { shopName: "Unknown Shop" };
+    const amt = qty * Number(item.unitPrice);
     allTimeRevenue += amt;
     allTimeRevenueShopBreakdown[menuInfo.shopName] = (allTimeRevenueShopBreakdown[menuInfo.shopName] || 0) + amt;
   });
@@ -146,8 +147,8 @@ export async function getDashboardStats(organizationId: string, period: string) 
     todayRevenue = 0;
     currentMonthRaw.forEach((item) => {
       const qty = item._sum.quantity ?? 0;
-      const menuInfo = menuLookup.get(item.menuItemId) ?? { price: 0, shopName: "Unknown Shop" };
-      const amt = qty * menuInfo.price;
+      const menuInfo = menuLookup.get(item.menuItemId) ?? { shopName: "Unknown Shop" };
+      const amt = qty * Number(item.unitPrice);
       todayRevenue! += amt;
       todayRevenueShopBreakdown[menuInfo.shopName] = (todayRevenueShopBreakdown[menuInfo.shopName] || 0) + amt;
     });
@@ -200,7 +201,7 @@ export async function getRevenueTimeSeries(
   >`
     SELECT
       DATE_TRUNC(${trunc}, (o."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata') AS bucket,
-      COALESCE(SUM(oi.quantity * m.price), 0)::float AS revenue,
+      COALESCE(SUM(oi.quantity * oi."unitPrice"), 0)::float AS revenue,
       COUNT(DISTINCT o.id)::bigint AS orders
     FROM "order" o
     INNER JOIN "order_item" oi ON o.id = oi."orderId"
@@ -245,7 +246,7 @@ export async function getRevenueByCategory(
   const rows = await prisma.$queryRaw<{ category: string; revenue: number }[]>`
     SELECT
       mc.name AS category,
-      COALESCE(SUM(oi.quantity * m.price), 0)::float AS revenue
+      COALESCE(SUM(oi.quantity * oi."unitPrice"), 0)::float AS revenue
     FROM "order" o
     INNER JOIN "order_item" oi ON o.id = oi."orderId"
     INNER JOIN "menu_item" m ON oi."menuItemId" = m.id
@@ -367,7 +368,7 @@ export async function getRecentWindows(
         select: {
           items: {
             where: { replacementApplied: false },
-            select: { quantity: true, menuItem: { select: { price: true } } },
+            select: { quantity: true, unitPrice: true },
           },
         },
       },
@@ -382,7 +383,7 @@ export async function getRecentWindows(
         sum +
         order.items.reduce(
           (itemSum, item) =>
-            itemSum + Number(item.menuItem.price) * item.quantity,
+            itemSum + Number(item.unitPrice) * item.quantity,
           0
         )
       );
@@ -409,7 +410,7 @@ export async function getDashboardHeatmap(organizationId: string) {
   const rawData = await prisma.$queryRaw<{ date: string; spent: number }[]>`
     SELECT
       TO_CHAR((o."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM-DD') as "date",
-      SUM(oi.quantity * m.price)::float as "spent"
+      SUM(oi.quantity * oi."unitPrice")::float as "spent"
     FROM "order" o
     JOIN "order_item" oi ON o.id = oi."orderId"
     JOIN "menu_item" m ON oi."menuItemId" = m.id

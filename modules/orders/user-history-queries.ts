@@ -75,6 +75,7 @@ export async function getUserOrderHistory(
             menuItemId: true,
             replacementApplied: true,
             originalOrderItemId: true,
+            unitPrice: true,
             menuItem: {
               select: {
                 name: true,
@@ -123,6 +124,7 @@ export async function getUserOrderHistory(
     menuItemId: true,
     replacementApplied: true,
     originalOrderItemId: true,
+    unitPrice: true,
     menuItem: {
       select: {
         name: true,
@@ -231,9 +233,11 @@ export async function getUserOrderHistory(
   const formatRawOrderItems = (rawItems: any[]) =>
     rawItems.map((item) => ({
       ...item,
+      unitPrice: item.unitPrice.toString(),
+      // a line shows the price it was ordered at, not today's menu price
       menuItem: {
         ...item.menuItem,
-        price: item.menuItem.price.toString(),
+        price: item.unitPrice.toString(),
       },
       replacementPreferences: (item.replacementPreferences || []).map(
         (rep: any) => ({
@@ -252,6 +256,7 @@ export async function getUserOrderHistory(
     menuItemId: string;
     replacementApplied: boolean;
     originalOrderItemId: string | null;
+    unitPrice: string;
     splitFraction?: string;
     menuItem: {
       name: string;
@@ -286,11 +291,12 @@ export async function getUserOrderHistory(
     const isSplit = splits.length > 0;
     const participantCount = splits.length + 1;
     const effectivePrice = isSplit
-      ? (Number(item.menuItem.price) / participantCount).toFixed(2)
-      : item.menuItem.price.toString();
+      ? (Number(item.unitPrice) / participantCount).toFixed(2)
+      : item.unitPrice.toString();
 
     return {
       ...item,
+      unitPrice: item.unitPrice.toString(),
       splitFraction: isSplit ? `1/${participantCount}` : undefined,
       menuItem: {
         ...item.menuItem,
@@ -322,7 +328,7 @@ export async function getUserOrderHistory(
     const splits = item.splits || [];
     const participantCount = splits.length + 1;
     const effectivePrice = (
-      Number(item.menuItem.price) / participantCount
+      Number(item.unitPrice) / participantCount
     ).toFixed(2);
 
     const otherParticipants = [
@@ -351,6 +357,7 @@ export async function getUserOrderHistory(
     return {
       ...item,
       id: `${item.id}-split-${userId}`,
+      unitPrice: item.unitPrice.toString(),
       splitFraction: `1/${participantCount}`,
       menuItem: {
         ...item.menuItem,
