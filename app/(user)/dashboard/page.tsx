@@ -16,8 +16,6 @@ import { PeriodPicker } from "@/components/period-picker";
 import { Suspense } from "react";
 import { DashboardSSE } from "@/app/admin/dashboard/_components/DashboardSSE";
 import { redirect } from "next/navigation";
-import { getActiveWindowWithMenu } from "@/modules/orders/queries";
-import { CartSync } from "../_components/cart-sync";
 import { getPeriodCookie } from "@/actions/period-cookie";
 import {
   UserStatsSkeleton,
@@ -80,14 +78,12 @@ export default async function UserDashboard({
   const rawPeriod = params.period ?? cookiePeriod ?? undefined;
   const period = getActivePeriod(rawPeriod);
 
-  const activeWindow = await getActiveWindowWithMenu(member.organizationId);
 
   const months = generateMonthsFromDate(member.organization.createdAt);
   const periodLabel = getPeriodLabel(period, months);
 
   return (
     <div className='space-y-3 px-4'>
-      <CartSync hasActiveWindow={!!activeWindow} />
 
       <div className='flex items-start justify-between gap-4 flex-wrap'>
         <div className='mb-3'>

@@ -6,6 +6,7 @@ import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
 import { SSEProvider } from "@/providers/sse-provider";
 import { AppFooter } from "@/components/app-footer";
+import { CartSync } from "./_components/cart-sync";
 
 export default async function UserLayout({
   children,
@@ -54,6 +55,7 @@ export default async function UserLayout({
         >
           <AppSidebar variant='inset' session={session} />
           <SidebarInset>
+            <CartSync activeWindowId={activeWindow?.id ?? null} />
             <SiteHeader activeWindow={activeWindow} />
             <div className='flex flex-1 flex-col bg-for'>
               <div className='@container/main flex flex-1 flex-col gap-2'>

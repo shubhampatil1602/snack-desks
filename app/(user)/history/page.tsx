@@ -7,8 +7,6 @@ export const metadata: Metadata = {
   description:
     "View your past snack orders, statuses, alternatives, and spending summary.",
 };
-import { getActiveWindowWithMenu } from "@/modules/orders/queries";
-import { CartSync } from "../_components/cart-sync";
 import { prisma } from "@/lib/db";
 import { PeriodPicker } from "@/components/period-picker";
 import { Suspense } from "react";
@@ -55,11 +53,9 @@ export default async function OrderHistoryPage({
   const months = generateMonthsFromDate(member.organization.createdAt);
   const periodLabel = getPeriodLabel(period, months);
 
-  const activeWindow = await getActiveWindowWithMenu(member.organizationId);
 
   return (
     <div className='px-4 space-y-6'>
-      <CartSync hasActiveWindow={!!activeWindow} />
 
       <div className='flex justify-between items-center pb-4 border-b flex-wrap gap-4'>
         <div>

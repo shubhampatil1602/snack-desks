@@ -6,8 +6,6 @@ export const metadata: Metadata = {
   title: "Team Rankings",
   description: "Check the top snackers and leaderboards in your organization.",
 };
-import { getActiveWindowWithMenu } from "@/modules/orders/queries";
-import { CartSync } from "../_components/cart-sync";
 import { Suspense } from "react";
 import { PeriodPicker } from "@/components/period-picker";
 
@@ -50,11 +48,9 @@ export default async function RankingsPage({
   const months = generateMonthsFromDate(member.createdAt);
   const periodLabel = getPeriodLabel(period, months);
 
-  const activeWindow = await getActiveWindowWithMenu(member.organizationId);
 
   return (
     <div className='space-y-6 px-4'>
-      <CartSync hasActiveWindow={!!activeWindow} />
 
       <div className='flex items-start justify-between gap-4 flex-wrap'>
         <div>

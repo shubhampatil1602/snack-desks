@@ -12,6 +12,9 @@ import {
 import { NavMain } from "./nav-main";
 import { NavSecondary } from "./nav-secondary";
 import { NavUser } from "./nav-user";
+import { HelpDialog } from "@/components/shell/help-dialog";
+import { SettingsDialog } from "@/components/shell/settings-dialog";
+import { openShellDialog } from "@/store/shell-dialog-store";
 import {
   Sidebar,
   SidebarContent,
@@ -49,11 +52,13 @@ const data = {
       title: "Settings",
       url: "#",
       icon: IconSettings,
+      onClick: () => openShellDialog("settings"),
     },
     {
       title: "Get Help",
       url: "#",
       icon: IconHelp,
+      onClick: () => openShellDialog("help"),
     },
   ],
 };
@@ -86,13 +91,23 @@ export function AppSidebar({ session, ...props }: AppSidebarProps) {
       </SidebarContent>
       <SidebarFooter>
         {session?.user && (
-          <NavUser
-            user={{
-              name: session.user.name,
-              email: session.user.email,
-              avatar: session.user.image ?? "",
-            }}
-          />
+          <>
+            <NavUser
+              user={{
+                name: session.user.name,
+                email: session.user.email,
+                avatar: session.user.image ?? "",
+              }}
+            />
+            <SettingsDialog
+              user={{
+                name: session.user.name,
+                email: session.user.email,
+                avatar: session.user.image,
+              }}
+            />
+            <HelpDialog role='super-admin' />
+          </>
         )}
       </SidebarFooter>
     </Sidebar>

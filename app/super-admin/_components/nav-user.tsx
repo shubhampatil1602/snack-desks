@@ -3,7 +3,6 @@
 import {
   IconDotsVertical,
   IconLogout,
-  IconNotification,
   IconUserCircle,
 } from "@tabler/icons-react";
 
@@ -24,6 +23,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { signOutAction } from "@/actions/auth";
+import { openShellDialog } from "@/store/shell-dialog-store";
 
 export function NavUser({
   user,
@@ -94,9 +94,9 @@ export function NavUser({
                 <IconUserCircle />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconNotification />
-                Notifications
+              <DropdownMenuItem onSelect={() => openShellDialog("settings")}>
+                <IconUserCircle />
+                Account
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
