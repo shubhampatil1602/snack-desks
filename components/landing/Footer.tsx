@@ -1,101 +1,23 @@
-import {
-  IconBrandGithub,
-  IconBrandLinkedin,
-  IconBrandX,
-} from "@tabler/icons-react";
 import Link from "next/link";
-import { Logo } from "../logo";
+
+const LINKS = [
+  { href: "/terms", label: "Terms & Conditions" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "mailto:shubhamspatilnbr@gmail.com?subject=SnackDesk Inquiry", label: "Contact" },
+];
 
 export function Footer() {
   return (
-    <footer className='border-t relative overflow-hidden' id='footer'>
-      {/* Balanced bottom gradient */}
-      <div className='absolute bottom-0 left-0 right-0 h-[200px] bg-linear-to-t from-primary/8 via-primary/3 to-transparent pointer-events-none' />
-
-      {/* Subtle glowing orb */}
-      <div className='absolute bottom-0 left-1/2 -translate-x-1/2 h-[150px] w-[400px] rounded-full bg-primary/12 blur-[120px] pointer-events-none' />
-
-      <div className='mx-auto max-w-7xl px-6 py-12 relative z-10'>
-        <div className='grid gap-8 md:grid-cols-3'>
-          {/* Brand */}
-          <div>
-            <div className='flex items-center gap-1'>
-              <Logo />
-              <span className='text-base font-semibold'>SnackDesk.</span>
-            </div>
-            <p className='mt-3 text-sm text-muted-foreground'>
-              Office snack ordering platform for modern teams.
-            </p>
-          </div>
-
-          {/* Links */}
-          <div>
-            <h4 className='font-medium'>Links</h4>
-
-            <div className='mt-3 flex flex-col gap-2 text-sm text-muted-foreground'>
-              <Link href='#features'>Features</Link>
-              <Link href='#dashboard'>Dashboard</Link>
-              <Link href='#rankings'>Rankings</Link>
-              <Link href='mailto:your-email@gmail.com?subject=SnackDesk Inquiry'>
-                Contact
-              </Link>
-            </div>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className='font-medium'>Contact</h4>
-
-            <Link
-              href='mailto:shubhamspatilnbr@gmail.com'
-              className='mt-3 block text-sm text-muted-foreground hover:text-foreground'
-            >
-              shubhamspatilnbr@gmail.com
+    <footer id='footer' className='mt-20 border-t text-sm text-muted-foreground lg:mt-28'>
+      <div className='mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-4 sm:px-6'>
+        <p>© 2026 SnackDesk. Names and numbers in the sample office are made up.</p>
+        <nav aria-label='Footer' className='flex flex-wrap gap-x-5'>
+          {LINKS.map((link) => (
+            <Link key={link.label} href={link.href} className='py-2 transition-colors hover:text-foreground'>
+              {link.label}
             </Link>
-            <Link
-              href='https://www.shubhamspatil.me/'
-              target='_blank'
-              className='block text-sm text-muted-foreground hover:text-foreground'
-            >
-              shubhamspatil.me
-            </Link>
-            <div className='flex space-x-2 mt-2'>
-              <Link
-                href='https://github.com/shubhampatil1602'
-                target='_blank'
-                className='block text-sm text-muted-foreground hover:text-foreground'
-              >
-                <IconBrandGithub stroke={2} size={20} />
-              </Link>
-              <Link
-                href='https://www.linkedin.com/in/shubhmpatil/'
-                target='_blank'
-                className='block text-sm text-muted-foreground hover:text-foreground'
-              >
-                <IconBrandLinkedin stroke={2} size={20} />
-              </Link>
-              <Link
-                href='https://x.com/shubhamsp1602'
-                target='_blank'
-                className='block text-sm text-muted-foreground hover:text-foreground'
-              >
-                <IconBrandX stroke={2} size={20} />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className='mt-10 border-t pt-6 text-sm text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-4'>
-          <p>© 2026 SnackDesk. All rights reserved.</p>
-          <div className='flex gap-4 text-xs'>
-            <Link href='/terms' className='hover:text-foreground transition-colors'>
-              Terms & Conditions
-            </Link>
-            <Link href='/privacy' className='hover:text-foreground transition-colors'>
-              Privacy Policy
-            </Link>
-          </div>
-        </div>
+          ))}
+        </nav>
       </div>
     </footer>
   );

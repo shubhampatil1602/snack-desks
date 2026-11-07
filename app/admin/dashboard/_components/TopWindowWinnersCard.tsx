@@ -50,9 +50,9 @@ const RANK_THEMES: Record<
     badge: "bg-amber-500 text-black",
     winsBadge:
       "bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800",
-    size: "size-20 sm:size-24",
-    textSize: "text-lg sm:text-xl",
-    elevation: "-translate-y-2 sm:-translate-y-3",
+    size: "size-20 @[34rem]:size-24",
+    textSize: "text-lg @[34rem]:text-xl",
+    elevation: "-translate-y-2 @[34rem]:-translate-y-3",
   },
   2: {
     ring: "border border-indigo-400 dark:border-indigo-500",
@@ -61,8 +61,8 @@ const RANK_THEMES: Record<
     badge: "bg-indigo-500 text-white",
     winsBadge:
       "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800",
-    size: "size-16 sm:size-20",
-    textSize: "text-base sm:text-lg",
+    size: "size-16 @[34rem]:size-20",
+    textSize: "text-base @[34rem]:text-lg",
     elevation: "translate-y-0",
   },
   3: {
@@ -72,8 +72,8 @@ const RANK_THEMES: Record<
     badge: "bg-rose-500 text-white",
     winsBadge:
       "bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800",
-    size: "size-16 sm:size-20",
-    textSize: "text-base sm:text-lg",
+    size: "size-16 @[34rem]:size-20",
+    textSize: "text-base @[34rem]:text-lg",
     elevation: "translate-y-0",
   },
   4: {
@@ -83,9 +83,9 @@ const RANK_THEMES: Record<
     badge: "bg-emerald-500 text-white",
     winsBadge:
       "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
-    size: "size-14 sm:size-16",
-    textSize: "text-sm sm:text-base",
-    elevation: "translate-y-2 sm:translate-y-2",
+    size: "size-14 @[34rem]:size-16",
+    textSize: "text-sm @[34rem]:text-base",
+    elevation: "translate-y-2",
   },
   5: {
     ring: "border border-cyan-400 dark:border-cyan-500",
@@ -94,9 +94,9 @@ const RANK_THEMES: Record<
     badge: "bg-cyan-500 text-white",
     winsBadge:
       "bg-cyan-50 dark:bg-cyan-950/30 text-cyan-800 dark:text-cyan-300 border-cyan-300 dark:border-cyan-800",
-    size: "size-14 sm:size-16",
-    textSize: "text-sm sm:text-base",
-    elevation: "translate-y-2 sm:translate-y-2",
+    size: "size-14 @[34rem]:size-16",
+    textSize: "text-sm @[34rem]:text-base",
+    elevation: "translate-y-2",
   },
 };
 
@@ -133,7 +133,7 @@ export function TopWindowWinnersCard({ winners }: TopWindowWinnersCardProps) {
         </CardAction>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className='@container'>
         {winners.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-12 text-center'>
             <Trophy className='size-10 text-muted-foreground/30 mb-2 stroke-[1.5]' />
@@ -142,7 +142,7 @@ export function TopWindowWinnersCard({ winners }: TopWindowWinnersCardProps) {
             </p>
           </div>
         ) : (
-          <div className='flex items-end justify-center gap-3 sm:gap-5 min-h-[190px] py-4 px-1 overflow-x-auto'>
+          <div className='flex items-end justify-center gap-1.5 @[34rem]:gap-5 min-h-[190px] py-4 @[34rem]:px-1'>
             {displayWinners.map((winner) => {
               const theme = RANK_THEMES[winner.rank] ?? RANK_THEMES[5];
               const isFirst = winner.rank === 1;
@@ -150,7 +150,7 @@ export function TopWindowWinnersCard({ winners }: TopWindowWinnersCardProps) {
               return (
                 <div
                   key={winner.userId}
-                  className={`flex flex-col items-center gap-2 text-center ${theme.elevation}`}
+                  className={`flex-col items-center gap-2 text-center ${winner.rank > 3 ? "hidden @[24rem]:flex" : "flex"} ${theme.elevation}`}
                 >
                   {/* Clean Colored Circle without glow or hover effect */}
                   <div
@@ -180,7 +180,7 @@ export function TopWindowWinnersCard({ winners }: TopWindowWinnersCardProps) {
                   <div className='flex flex-col items-center mt-1'>
                     <p
                       title={winner.name}
-                      className='text-xs font-semibold text-foreground truncate max-w-[70px] sm:max-w-[90px] leading-tight'
+                      className={`text-xs font-semibold text-foreground truncate @[34rem]:max-w-[90px] leading-tight ${isFirst ? "max-w-20" : "max-w-[70px]"}`}
                     >
                       {winner.name}
                     </p>

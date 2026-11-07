@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
 import { authSession } from "@/actions/user";
-import { GradientPatternEffect } from "@/components/gradient-pattern-effect";
 
 export const metadata: Metadata = {
   title: "SnackDesk - Office Snack Ordering Platform",
   description:
-    "The modern snack ordering and team engagement platform. Live order windows, gamified treats, group order coordination, and spending insights.",
+    "Office snacks without the group chat. Open an order window, let everyone order, split what's shared, and spin to decide who pays the shop.",
 };
-import { BenefitsSection } from "@/components/landing/BenefitsSection";
 import { CTASection } from "@/components/landing/CTASection";
-import { DashboardPreview } from "@/components/landing/DashboardPreview";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { Footer } from "@/components/landing/Footer";
 import { HeroSection } from "@/components/landing/HeroSection";
@@ -22,12 +19,9 @@ export default async function Home() {
   return (
     <div>
       <LandingNavbar session={session} />
-      <GradientPatternEffect />
       <HeroSection />
-      <DashboardPreview />
       <FeaturesSection />
       <HowItWorksSection />
-      <BenefitsSection />
       <CTASection />
       <Footer />
     </div>

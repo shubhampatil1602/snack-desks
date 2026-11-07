@@ -1,93 +1,25 @@
-import { Clock3, ShoppingCart, ClipboardCheck } from "lucide-react";
 import { Heading, SubHeading } from "./FadeIn";
 
-const steps = [
-  {
-    number: "01",
-    title: "Create a Window",
-    description:
-      "Admins create snack ordering sessions with optional countdown timers and availability controls.",
-    icon: Clock3,
-  },
-  {
-    number: "02",
-    title: "Employees Order",
-    description:
-      "Employees browse available snacks and place, update or cancel orders within seconds.",
-    icon: ShoppingCart,
-  },
-  {
-    number: "03",
-    title: "Review & Fulfill",
-    description:
-      "Admins approve requests and coordinate fulfillment with vendors.",
-    icon: ClipboardCheck,
-  },
+const STEPS = [
+  { title: "Open a window", body: "Pick the shops and set a countdown. Everyone gets an alert." },
+  { title: "Everyone orders", body: "Tap the menu or type to Snacky. Share an item with anyone." },
+  { title: "Spin the wheel", body: "The window closes and the wheel picks who collects the order." },
+  { title: "Settle up", body: "They pay the shop, and everyone else pays them their share." },
 ];
 
 export function HowItWorksSection() {
   return (
-    <section className='py-16' id='how-it-works'>
-      <div className='mx-auto max-w-7xl px-6'>
-        <div className='mx-auto max-w-2xl text-center'>
-          <Heading className='text-4xl font-heading'>
-            How SnackDesk Works
-          </Heading>
-
-          <SubHeading className='mt-4 text-muted-foreground max-w-lg mx-auto'>
-            From creating an order window to collecting snacks, everything
-            happens in three simple steps.
-          </SubHeading>
-        </div>
-
-        <div className='relative mt-16'>
-          {/* connector line */}
-          <div className='absolute left-0 right-0 top-12 hidden h-px bg-linear-to-r from-transparent via-border to-transparent lg:block' />
-
-          <div className='grid gap-6 lg:grid-cols-3'>
-            {steps.map((step) => {
-              const Icon = step.icon;
-
-              return (
-                <div
-                  key={step.number}
-                  className='group relative overflow-hidden border bg-background/70 backdrop-blur-sm p-6 transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]'
-                >
-                  {/* subtle top glow */}
-                  <div className='absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100' />
-
-                  {/* step number */}
-                  <span className='text-xs font-medium tracking-[0.3em] text-muted-foreground/60'>
-                    {step.number}
-                  </span>
-
-                  {/* icon */}
-                  <div className='mt-3 flex h-12 w-12 items-center justify-center border border-border/50 bg-muted/50 transition-all duration-300 group-hover:scale-105 group-hover:bg-primary/5'>
-                    <Icon className='h-5 w-5' />
-                  </div>
-
-                  {/* content */}
-                  <div className='mt-6'>
-                    <Heading
-                      as='h3'
-                      className='text-lg font-semibold tracking-tight'
-                    >
-                      {step.title}
-                    </Heading>
-
-                    <SubHeading
-                      as='h4'
-                      className='mt-2 text-sm text-muted-foreground'
-                    >
-                      {step.description}
-                    </SubHeading>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+    <section id='how-it-works' className='mx-auto max-w-7xl scroll-mt-20 px-4 pt-20 sm:px-6 lg:pt-28'>
+      <Heading as='h2' className='text-center font-heading text-4xl md:text-6xl'>How it works</Heading>
+      <ol className='mt-12 grid divide-y border bg-card sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x'>
+        {STEPS.map((step, index) => (
+          <li key={step.title} className='min-w-0 p-5'>
+            <p className='text-xs text-muted-foreground'>Step {index + 1}</p>
+            <Heading as='h3' className='mt-1 font-heading text-2xl'>{step.title}</Heading>
+            <SubHeading as='p' className='mt-1.5 text-sm text-muted-foreground'>{step.body}</SubHeading>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

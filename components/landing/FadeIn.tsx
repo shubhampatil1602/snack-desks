@@ -40,7 +40,7 @@ export function SubHeading({
   children,
   className,
 }: {
-  as?: "h2" | "h3" | "h4" | "h5" | "h6";
+  as?: "h2" | "h3" | "h4" | "h5" | "h6" | "p";
   children: React.ReactNode;
   className?: string;
 }) {
@@ -64,6 +64,32 @@ export function SubHeading({
       viewport={{ once: true }}
     >
       <Tag className={cn("", className)}>{children}</Tag>
+    </motion.div>
+  );
+}
+
+// the same entrance for the dashboard window
+export function FadeInBlock({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{
+        opacity: 0,
+        filter: "blur(10px)",
+        y: 10,
+      }}
+      whileInView={{
+        opacity: 1,
+        filter: "blur(0px)",
+        y: 0,
+      }}
+      transition={{
+        duration: 0.3,
+        delay: 0.1,
+        ease: "easeInOut",
+      }}
+      viewport={{ once: true }}
+    >
+      {children}
     </motion.div>
   );
 }

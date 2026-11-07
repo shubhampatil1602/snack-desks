@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import type { Session } from "@/lib/auth/auth";
 import { ModeToggle } from "../theme/theme-button";
 import { Logo } from "../logo";
+import { GET_STARTED_MAILTO } from "./links";
 
 type LandingNavbarProps = {
   session: Session | null;
@@ -21,17 +22,17 @@ export function LandingNavbar({ session }: LandingNavbarProps) {
 
           <nav className='hidden items-center gap-6 text-sm text-muted-foreground md:flex'>
             <Link
+              href='#how-it-works'
+              className='transition-colors hover:text-foreground'
+            >
+              How it works
+            </Link>
+
+            <Link
               href='#features'
               className='transition-colors hover:text-foreground'
             >
               Features
-            </Link>
-
-            <Link
-              href='#dashboard'
-              className='transition-colors hover:text-foreground'
-            >
-              Dashboard
             </Link>
 
             <Link
@@ -62,9 +63,14 @@ export function LandingNavbar({ session }: LandingNavbarProps) {
               </Button>
             )
           ) : (
-            <Button asChild size='sm'>
-              <Link href='/register'>Register</Link>
-            </Button>
+            <>
+              <Button asChild size='sm' variant='ghost'>
+                <Link href='/login'>Log in</Link>
+              </Button>
+              <Button asChild size='sm' className='hidden sm:inline-flex'>
+                <Link href={GET_STARTED_MAILTO}>Get started</Link>
+              </Button>
+            </>
           )}
         </div>
       </div>
