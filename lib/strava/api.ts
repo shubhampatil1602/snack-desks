@@ -80,15 +80,19 @@ export function athletePhoto(athlete: StravaAthlete) {
   return url?.startsWith("http") ? url : null;
 }
 
-/** A working access token for this user, refreshed when it's about to expire. */
-async function accessTokenFor(userId: string) {
+/**
+ * A working access token for this user, refreshed when it has less than
+ * `minValidMs` left. Strava only hands out a new token once the current one
+ * has an hour or less left.
+ */
+export async function accessTokenFor(userId: string, minValidMs = 5 * 60 * 1000) {
   const connection = await prisma.stravaConnection.findUnique({
     where: { userId },
     select: { accessToken: true, refreshToken: true, expiresAt: true },
   });
   if (!connection) return null;
 
-  if (connection.expiresAt.getTime() > Date.now() + 5 * 60 * 1000) {
+  if (connection.expiresAt.getTime() > Date.now() + minValidMs) {
     return connection.accessToken;
   }
 
