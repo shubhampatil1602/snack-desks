@@ -31,6 +31,8 @@ model User {
   favouriteMenuItems FavouriteMenuItem[]
   snackyChats        SnackyChat[]
   pushSubscriptions  PushSubscription[]
+  stravaConnection   StravaConnection?
+  runsEntries        RunsLeaderboardEntry[]
 
   @@unique([email])
   @@map("user")
@@ -104,6 +106,7 @@ model Organization {
   shops          Shop[]
   snackyChats    SnackyChat[]
   snackySummaries SnackySummary[]
+  runsLocks       RunsLeaderboardLock[]
 
   @@map("organization")
 }
@@ -387,4 +390,74 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscription")
+}
+
+// A user's link to their Strava account. Deleted (with their activities and
+// leaderboard rows) when they disconnect, here or from inside Strava.
+model StravaConnection {
+  userId       String    @id
+  athleteId    BigInt    @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  scope        String
+  firstName    String?
+  lastName     String?
+  photoUrl     String?
+  // when they agreed that admins see their runs ranking (Strava's API terms)
+  consentedAt  DateTime
+  connectedAt  DateTime  @default(now())
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activities StravaActivity[]
+
+  @@map("strava_connection")
+}
+
+// Every activity type is kept for the user's charts; only Runs score
+// (see modules/strava/run-score.ts)
+model StravaActivity {
+  id          BigInt   @id // Strava's activity id
+  userId      String
+  name        String
+  sportType   String
+  startDate   DateTime // UTC
+  distance    Float // metres
+  movingTime  Int // seconds
+  elapsedTime Int // seconds
+  manual      Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  connection StravaConnection @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, startDate])
+  @@map("strava_activity")
+}
+
+// The org's Runs Leaderboard for one IST day, fixed at its first spin that
+// day (ADR 0003). A lock with no entries means nobody had run.
+model RunsLeaderboardLock {
+  organizationId String
+  day            String // YYYY-MM-DD in IST
+  lockedAt       DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, day])
+  @@map("runs_leaderboard_lock")
+}
+
+model RunsLeaderboardEntry {
+  organizationId String
+  day            String // YYYY-MM-DD in IST
+  userId         String
+  distance       Float // metres
+  movingTime     Int // seconds
+  score          Float
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, day, userId])
+  @@index([userId])
+  @@map("runs_leaderboard_entry")
 }

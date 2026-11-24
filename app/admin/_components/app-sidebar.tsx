@@ -11,6 +11,7 @@ import {
   IconChartBar,
   IconHistory,
   IconSparkles,
+  IconRun,
 } from "@tabler/icons-react";
 
 import { NavMain } from "./nav-main";
@@ -64,6 +65,11 @@ const data = {
       title: "Rankings",
       url: "/admin/rankings",
       icon: IconChartBar,
+    },
+    {
+      title: "Runs Leaderboard",
+      url: "/admin/runs",
+      icon: IconRun,
     },
     {
       title: "History",

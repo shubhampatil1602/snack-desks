@@ -8,6 +8,8 @@ import {
   IconChartBar,
   IconHistory,
   IconHelp,
+  IconBrandStrava,
+  IconRun,
 } from "@tabler/icons-react";
 
 import { NavMain } from "./nav-main";
@@ -71,9 +73,28 @@ const data = {
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   session: Session;
+  stravaConnected: boolean;
 }
 
-export function AppSidebar({ session, ...props }: AppSidebarProps) {
+export function AppSidebar({
+  session,
+  stravaConnected,
+  ...props
+}: AppSidebarProps) {
+  const navMain = [
+    ...data.navMain,
+    {
+      title: "Runs Leaderboard",
+      url: "/runs",
+      icon: IconRun,
+    },
+    {
+      title: stravaConnected ? "Your Strava activity" : "Connect with Strava",
+      url: "/strava",
+      icon: IconBrandStrava,
+    },
+  ];
+
   return (
     <Sidebar collapsible='icon' {...props}>
       <SidebarHeader>
@@ -92,7 +113,7 @@ export function AppSidebar({ session, ...props }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
         <NavSecondary items={data.navSecondary} className='mt-auto' />
       </SidebarContent>
       <SidebarFooter>

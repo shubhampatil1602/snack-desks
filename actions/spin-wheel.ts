@@ -18,14 +18,17 @@ export async function getSpinDrawAction(windowId: string) {
 
   return {
     success: true as const,
-    candidates: draw.onWheel,
+    candidates: draw.eligible,
     sittingOut: draw.sittingOut,
+    fastestOn: draw.fastestOn,
   };
 }
 
 export async function spinWheelAction(windowId: string) {
   const { member } = await requireAdmin();
-  const draw = await getSpinDraw(windowId, member.organizationId);
+  const draw = await getSpinDraw(windowId, member.organizationId, {
+    lock: true,
+  });
 
   if (!draw.ok) {
     return {
@@ -58,7 +61,10 @@ export async function spinWheelAction(windowId: string) {
   return {
     success: true,
     winner,
-    candidates: draw.onWheel,
+    candidates: draw.eligible,
+    // locking can pull in a run uploaded after the dialog opened
+    sittingOut: draw.sittingOut,
+    fastestOn: draw.fastestOn,
   };
 }
 

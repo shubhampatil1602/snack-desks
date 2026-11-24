@@ -8,6 +8,7 @@ import { SSEProvider } from "@/providers/sse-provider";
 import { AppFooter } from "@/components/app-footer";
 import { CartSync } from "./_components/cart-sync";
 import { NotificationBanner } from "@/components/shell/notification-banner";
+import { isStravaConnected } from "@/modules/strava/queries";
 
 export default async function UserLayout({
   children,
@@ -34,6 +35,8 @@ export default async function UserLayout({
     },
   });
 
+  const stravaConnected = await isStravaConnected(session.user.id);
+
   const organization = await prisma.organization.findUnique({
     where: {
       id: member.organizationId,
@@ -55,7 +58,11 @@ export default async function UserLayout({
             } as React.CSSProperties
           }
         >
-          <AppSidebar variant='inset' session={session} />
+          <AppSidebar
+            variant='inset'
+            session={session}
+            stravaConnected={stravaConnected}
+          />
           <SidebarInset>
             <CartSync activeWindowId={activeWindow?.id ?? null} />
             <SiteHeader activeWindow={activeWindow} />

@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "snackdesk-local-db",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DATABASE_URL=postgresql://admin:admin@localhost:5432/tech-snacks",
+        "PG_NOTIFY_URL=postgresql://admin:admin@localhost:5432/tech-snacks",
+        "BETTER_AUTH_URL=http://localhost:3100",
+        "pnpm", "dev", "--port", "3100"
+      ],
+      "port": 3100
+    }
+  ]
+}

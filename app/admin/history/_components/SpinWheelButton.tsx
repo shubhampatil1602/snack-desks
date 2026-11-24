@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Trophy, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { Trophy, Sparkles, Volume2, VolumeX, Footprints } from "lucide-react";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 
 import { getSpinDrawAction, spinWheelAction } from "@/actions/spin-wheel";
-import type { SpinCandidate, SittingOut } from "@/modules/order-window/spin-draw";
+import type { SpinCandidate } from "@/modules/order-window/spin-draw";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +51,8 @@ export function SpinWheelButton({
   // who is in the draw; null while loading
   const [draw, setDraw] = useState<{
     candidates: SpinCandidate[];
-    sittingOut: SittingOut[];
+    sittingOut: SpinCandidate[];
+    fastestOn: string | null;
   } | null>(null);
   const [drawError, setDrawError] = useState<string | null>(null);
   // the style picked with the spin button; set while it spins
@@ -89,10 +90,11 @@ export function SpinWheelButton({
       const index = result.candidates.findIndex(
         (user) => user.id === result.winner!.id,
       );
-      setDraw((current) => ({
+      setDraw({
         candidates: result.candidates,
-        sittingOut: current?.sittingOut ?? [],
-      }));
+        sittingOut: result.sittingOut ?? [],
+        fastestOn: result.fastestOn ?? null,
+      });
       pendingWinner.current = result.winner;
       setTarget(index);
     } catch (error) {
@@ -142,7 +144,11 @@ export function SpinWheelButton({
     setDrawError(null);
     getSpinDrawAction(windowId).then((result) => {
       if (result.success) {
-        setDraw({ candidates: result.candidates, sittingOut: result.sittingOut });
+        setDraw({
+          candidates: result.candidates,
+          sittingOut: result.sittingOut,
+          fastestOn: result.fastestOn,
+        });
       } else {
         setDrawError(result.error);
       }
@@ -205,6 +211,13 @@ export function SpinWheelButton({
                 </div>
               )}
 
+              {draw && draw.sittingOut.length > 0 && (
+                <TopRunnerNotice
+                  names={draw.sittingOut.map((user) => user.name)}
+                  fastestOn={draw.fastestOn}
+                />
+              )}
+
               {drawError ? (
                 <p className='text-sm text-destructive'>{drawError}</p>
               ) : !draw ? (
@@ -227,14 +240,6 @@ export function SpinWheelButton({
                 />
               )}
 
-              {draw && draw.sittingOut.length > 0 && (
-                <p className='text-center text-xs text-muted-foreground'>
-                  Sitting out:{" "}
-                  {draw.sittingOut
-                    .map((user) => `${user.name} (${user.reason})`)
-                    .join(", ")}
-                </p>
-              )}
             </div>
 
             <AlertDialogFooter className='sm:grid sm:grid-cols-3'>
@@ -279,5 +284,37 @@ export function SpinWheelButton({
         )}
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function joinNames(names: string[]) {
+  return names.length <= 1
+    ? (names[0] ?? "")
+    : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+// The Top Runner skips the spin; only shown when others are left to draw
+function TopRunnerNotice({
+  names,
+  fastestOn,
+}: {
+  names: string[];
+  fastestOn: string | null;
+}) {
+  const tied = names.length > 1;
+  // "in this window": the org's best runner may not have ordered, and then
+  // the one sitting out isn't the fastest in the whole org
+  const runners = `fastest runner${tied ? "s" : ""} in this window`;
+  const when = fastestOn ? `on ${fastestOn}` : "today";
+
+  return (
+    <div className='flex w-full items-start gap-3 border border-primary/30 bg-primary/5 px-4 py-3 text-sm'>
+      <Footprints className='mt-0.5 size-4 shrink-0 text-primary' />
+      <p>
+        <span className='font-semibold'>{joinNames(names)}</span>{" "}
+        {tied ? "sit" : "sits"} out this spin as the {runners} {when}
+        {tied ? " (tied)" : ""}.
+      </p>
+    </div>
   );
 }
