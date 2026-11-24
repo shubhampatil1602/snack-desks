@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
@@ -6,19 +5,29 @@ import { toZonedTime } from "date-fns-tz";
 import { stravaConfigured } from "@/lib/strava/api";
 import {
   getStravaOverview,
+  LOG_DAYS,
   stravaSpotsLeft,
-  type RecentActivity,
   type StravaOverview,
 } from "@/modules/strava/queries";
 import { formatKm, formatPace } from "@/modules/strava/run-score";
 
+import { StatGroup, type Stat } from "@/components/dashboard/StatGroup";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { ACTIVITY_STATUS, formatMinute } from "./activity-status";
 import { ConnectStravaForm } from "./ConnectStravaForm";
 import { DisconnectStravaButton } from "./DisconnectStravaButton";
+import { RunScoreCalculator } from "./RunScoreCalculator";
 import { RunScoreInfo } from "./RunScoreInfo";
-import { StravaDistanceChart, StravaScoreChart } from "./StravaCharts";
+import { StravaTrainingLog } from "./StravaTrainingLog";
 
 const ERRORS: Record<string, string> = {
   consent: "Tick the box to agree before connecting.",
@@ -36,8 +45,10 @@ function istTime(date: Date) {
   return format(toZonedTime(date, "Asia/Kolkata"), "h:mm a");
 }
 
-function istDate(date: Date) {
-  return format(toZonedTime(date, "Asia/Kolkata"), "d MMM, h:mm a");
+/** "2026-11-21" → "21 Nov 2026" (format reads the date parts, so any server timezone works) */
+function dayLabel(key: string, pattern: string) {
+  const [year, month, day] = key.split("-").map(Number);
+  return format(new Date(year, month - 1, day), pattern);
 }
 
 type Props = {
@@ -57,14 +68,17 @@ export async function StravaPage({
 
   return (
     <div className='space-y-3 px-3'>
-      <div>
-        <h1 className='text-2xl font-heading'>
-          {overview ? "Your Strava activity" : "Connect with Strava"}
-        </h1>
-        <p className='text-sm text-muted-foreground'>
-          The day&apos;s best runner in a window sits out its spin, so they
-          won&apos;t be split master.
-        </p>
+      <div className='flex flex-wrap items-start justify-between gap-4'>
+        <div className='mb-3'>
+          <h1 className='text-2xl font-heading tracking-wide'>
+            {overview ? "Your Strava activity" : "Connect with Strava"}
+          </h1>
+          <p className='mt-1 text-sm text-muted-foreground'>
+            The day&apos;s best runner in a window sits out its spin, so they
+            won&apos;t be split master.
+          </p>
+        </div>
+        <RunScoreCalculator />
       </div>
 
       {error && ERRORS[error] && (
@@ -125,132 +139,105 @@ async function ConnectCard() {
   );
 }
 
-const STATUS_LABEL: Record<RecentActivity["status"], string> = {
-  scores: "Counts",
-  "too-slow": "Too slow to score",
-  manual: "Typed in",
-  "not-a-run": "Not a run",
-};
-
-function ConnectedView({
-  overview,
-}: {
-  overview: NonNullable<Awaited<ReturnType<typeof getStravaOverview>>>;
-}) {
-  const { athlete, today, chart, recent, totals } = overview;
+function ConnectedView({ overview }: { overview: StravaOverview }) {
+  const { athlete, today, log, recent } = overview;
+  const name =
+    [athlete.firstName, athlete.lastName].filter(Boolean).join(" ") ||
+    "your Strava athlete";
 
   return (
     <div className='space-y-3'>
-      {/* profile and Today each get a full row, so neither stretches the
-          other when it grows */}
-      <AthleteCard athlete={athlete} />
-
       <Card size='sm'>
-        <CardHeader>
-          <CardTitle>Today</CardTitle>
-          <p className='text-sm text-muted-foreground'>
-            {today.lockedAt
-              ? `Locked at ${istTime(today.lockedAt)}. Runs after that count from tomorrow.`
-              : "Live until today's first spin locks it."}
-          </p>
-        </CardHeader>
-        <CardContent>
-          {today.entry ? (
-            <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
-              <Stat
-                label='Rank'
-                value={`#${today.entry.rank} of ${today.rankedCount}`}
-              />
-              <Stat
-                label='Run score'
-                value={today.entry.score.toFixed(2)}
-                info={<RunScoreInfo className='-my-1' />}
-              />
-              <Stat label='Distance' value={formatKm(today.entry.distance)} />
-              <Stat
-                label='Pace'
-                value={formatPace(
-                  today.entry.distance,
-                  today.entry.movingTime,
-                )}
-              />
-            </div>
-          ) : (
-            <p className='text-sm text-muted-foreground'>
-              No scoring run today
-              {today.lockedAt ? " before the lock" : " yet"}.
+        <CardContent className='flex flex-wrap items-center gap-3'>
+          <Avatar size='lg' className='size-12'>
+            {athlete.photoUrl && <AvatarImage src={athlete.photoUrl} alt='' />}
+            <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className='min-w-0 flex-1'>
+            <p className='truncate font-medium'>{name}</p>
+            <p className='text-xs text-muted-foreground'>
+              Connected to Strava on{" "}
+              {format(toZonedTime(athlete.connectedAt, "Asia/Kolkata"), "d MMM yyyy")}
             </p>
-          )}
-          <Link
-            href='/runs'
-            className='mt-3 inline-block text-sm underline underline-offset-4 hover:text-muted-foreground'
-          >
-            See today&apos;s leaderboard
-          </Link>
+          </div>
+          <DisconnectStravaButton />
         </CardContent>
       </Card>
 
-      <div className='grid grid-cols-3 gap-3'>
-        <Card size='sm'>
-          <CardContent>
-            <Stat label='Runs, 30 days' value={String(totals.runs)} />
-          </CardContent>
-        </Card>
-        <Card size='sm'>
-          <CardContent>
-            <Stat label='Run km' value={totals.runKm.toFixed(1)} />
-          </CardContent>
-        </Card>
-        <Card size='sm'>
-          <CardContent>
-            <Stat label='Walk km' value={totals.walkKm.toFixed(1)} />
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className='grid gap-3 lg:grid-cols-2'>
-        <StravaDistanceChart data={chart} />
-        <StravaScoreChart data={chart} />
-      </div>
+      <TodayCard today={today} />
 
       <Card size='sm'>
         <CardHeader>
-          <CardTitle>Recent activities</CardTitle>
+          <CardTitle>Training log</CardTitle>
+          <CardDescription>
+            Last {LOG_DAYS} days. Tap a day to see it.
+          </CardDescription>
+          <CardAction>
+            <div aria-hidden className='flex gap-3 pt-1.5 text-xs text-muted-foreground'>
+              <span className='inline-flex items-center gap-1.5'>
+                <span className='size-2 bg-chart-1' />
+                Run km
+              </span>
+              <span className='inline-flex items-center gap-1.5'>
+                <span className='size-2 bg-chart-2' />
+                Walk km
+              </span>
+            </div>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <StravaTrainingLog firstDay={log.firstDay} today={log.today} days={log.days} />
+        </CardContent>
+      </Card>
+
+      <Card size='sm'>
+        <CardHeader>
+          <CardTitle>Activities</CardTitle>
+          <CardAction>
+            <span className='text-xs text-muted-foreground'>Latest on Strava</span>
+          </CardAction>
         </CardHeader>
         <CardContent>
           {recent.length === 0 ? (
-            <p className='text-sm text-muted-foreground'>
-              Nothing on Strava in the last 30 days.
-            </p>
+            <p className='text-sm text-muted-foreground'>Nothing on Strava yet.</p>
           ) : (
-            <ul className='divide-y'>
-              {recent.map((activity) => (
-                <li
-                  key={activity.id}
-                  className='flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2'
-                >
-                  <div className='min-w-0'>
-                    <p className='truncate font-medium'>{activity.name}</p>
-                    <p className='text-xs text-muted-foreground'>
-                      {activity.sportType} · {istDate(activity.startDate)}
-                    </p>
-                  </div>
-                  <div className='flex items-center gap-3 text-sm tabular-nums'>
-                    <span>{formatKm(activity.distance)}</span>
-                    <span className='text-muted-foreground'>
-                      {formatPace(activity.distance, activity.movingTime)}
+            <ol className='divide-y'>
+              {recent.map((activity) => {
+                const status = ACTIVITY_STATUS[activity.status];
+                return (
+                  <li
+                    key={activity.id}
+                    className='grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-baseline gap-x-4 py-3 tabular-nums first:pt-0 last:pb-0 sm:grid-cols-[7rem_minmax(0,1fr)_auto]'
+                  >
+                    <span className='text-xs font-semibold text-muted-foreground'>
+                      {activity.day === log.today
+                        ? "Today"
+                        : dayLabel(activity.day, "EEE d MMM")}
                     </span>
-                    <Badge
-                      variant={
-                        activity.status === "scores" ? "default" : "outline"
-                      }
-                    >
-                      {STATUS_LABEL[activity.status]}
-                    </Badge>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                    <span className='min-w-0'>
+                      <span className='flex items-baseline gap-2'>
+                        <span className='truncate font-medium'>{activity.name}</span>
+                        <span
+                          className={cn(
+                            "shrink-0 text-[10px] font-semibold tracking-widest uppercase",
+                            status.className,
+                          )}
+                        >
+                          {status.label}
+                        </span>
+                      </span>
+                      <span className='mt-0.5 block text-xs text-muted-foreground'>
+                        {activity.sportType} · {formatMinute(activity.startMinute)} ·{" "}
+                        {formatPace(activity.distance, activity.movingTime)}
+                      </span>
+                    </span>
+                    <span className='text-right font-semibold'>
+                      {formatKm(activity.distance)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
           )}
         </CardContent>
       </Card>
@@ -258,46 +245,56 @@ function ConnectedView({
   );
 }
 
-function AthleteCard({ athlete }: { athlete: StravaOverview["athlete"] }) {
-  const name = [athlete.firstName, athlete.lastName].filter(Boolean).join(" ");
+// the same strip as the dashboard and the leaderboard
+function TodayCard({ today }: { today: StravaOverview["today"] }) {
+  const { entry, rankedCount, lockedAt } = today;
+  const status = lockedAt
+    ? `locked at ${istTime(lockedAt)}`
+    : "live until the first spin";
+  const runners = `${rankedCount} runner${rankedCount === 1 ? "" : "s"}`;
+
+  const stats: Stat[] = entry
+    ? [
+        { label: "Rank", value: `#${entry.rank}`, note: `of ${runners}` },
+        {
+          label: "Run score",
+          value: entry.score.toFixed(2),
+          note: lockedAt ? "at the spin" : "so far today",
+        },
+        {
+          label: "Distance",
+          value: formatKm(entry.distance),
+          note: `at ${formatPace(entry.distance, entry.movingTime)}`,
+        },
+      ]
+    : [
+        {
+          label: "Rank",
+          value: "–",
+          note: lockedAt ? "no run before the spin" : "no scoring run yet",
+          dim: true,
+        },
+        { label: "Run score", value: "–", note: "no scoring run", dim: true },
+        {
+          label: "On the board",
+          value: String(rankedCount),
+          note: rankedCount === 1 ? "runner today" : "runners today",
+          dim: rankedCount === 0,
+        },
+      ];
 
   return (
-    <Card size='sm'>
-      <CardContent className='flex items-center gap-3'>
-        <Avatar size='lg' className='size-12'>
-          {athlete.photoUrl && <AvatarImage src={athlete.photoUrl} alt='' />}
-          <AvatarFallback>
-            {name.slice(0, 2).toUpperCase() || "S"}
-          </AvatarFallback>
-        </Avatar>
-        <div className='min-w-0 flex-1'>
-          <p className='truncate font-medium'>{name || "Strava athlete"}</p>
-          <p className='text-xs text-muted-foreground'>
-            Connected {istDate(athlete.connectedAt)}
-          </p>
-        </div>
-        <DisconnectStravaButton />
-      </CardContent>
-    </Card>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  info,
-}: {
-  label: string;
-  value: string;
-  info?: ReactNode;
-}) {
-  return (
-    <div>
-      <p className='flex items-center gap-1 text-xs text-muted-foreground'>
-        {label}
-        {info}
-      </p>
-      <p className='text-lg font-semibold tabular-nums'>{value}</p>
-    </div>
+    <StatGroup
+      title={`Today · ${status}`}
+      stats={stats}
+      action={
+        <Link
+          href='/runs'
+          className='text-xs font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground'
+        >
+          See the leaderboard
+        </Link>
+      }
+    />
   );
 }

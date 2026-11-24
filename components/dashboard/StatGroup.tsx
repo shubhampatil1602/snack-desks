@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { cn } from "@/lib/utils";
 import { ShopBreakdownInfo } from "@/components/orders/ShopBreakdownInfo";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,13 +12,23 @@ export type Stat = {
   dim?: boolean;
 };
 
-// a titled strip of three numbers; stacked rows on narrow phones
-export function StatGroup({ title, stats }: { title: string; stats: Stat[] }) {
+// a titled strip of three numbers; stacked rows on narrow phones. `action`
+// (a link) sits at the right of the title bar.
+export function StatGroup({
+  title,
+  stats,
+  action,
+}: {
+  title: string;
+  stats: Stat[];
+  action?: ReactNode;
+}) {
   return (
     <section className='border bg-card'>
-      <h2 className='border-b px-4 py-2.5 text-xs font-semibold text-muted-foreground'>
-        {title}
-      </h2>
+      <div className='flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b px-4 py-2.5'>
+        <h2 className='text-xs font-semibold text-muted-foreground'>{title}</h2>
+        {action}
+      </div>
       <div className='grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0'>
         {stats.map((stat) => (
           <div
