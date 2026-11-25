@@ -5,6 +5,7 @@ import type {
   RevenueTimeSeriesPoint,
 } from "@/modules/admin-dashboard/queries";
 import type { EmployeeRanking } from "@/modules/rankings/queries";
+import type { RunsLeaderboard } from "@/modules/strava/leaderboard";
 import type { HeatmapDay } from "@/types/profile";
 
 // The sample office behind the landing page's demo. Every name and number
@@ -266,3 +267,16 @@ export const userAwards = [
 ];
 
 export const userRoastFooter = "38 orders · ₹2,910.00 · most ordered: Samosa";
+
+// a day on the runs leaderboard (scores from modules/strava/run-score.ts)
+export const runsBoard: RunsLeaderboard = {
+  day: "2026-10-14",
+  lockedAt: null,
+  entries: [
+    { userId: "meera", name: "Meera Nair", photoUrl: null, distance: 5200, movingTime: 1622, score: 22.32, rank: 1 },
+    { userId: "kabir", name: "Kabir Verma", photoUrl: null, distance: 3100, movingTime: 1070, score: 16.41, rank: 2 },
+    { userId: "riya", name: "Riya Shah", photoUrl: null, distance: 2400, movingTime: 768, score: 15.97, rank: 3 },
+    { userId: "arjun", name: "Arjun Kulkarni", photoUrl: null, distance: 4000, movingTime: 1800, score: 13.93, rank: 4 },
+    { userId: "isha", name: "Isha Joshi", photoUrl: null, distance: 1800, movingTime: 738, score: 11.11, rank: 5 },
+  ],
+};

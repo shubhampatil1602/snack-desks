@@ -4,7 +4,11 @@ import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 
-import { refreshMySnackySummaryAction, refreshSnackySummaryAction } from "@/actions/snacky";
+import {
+  refreshMySnackySummaryAction,
+  refreshRunsRoastAction,
+  refreshSnackySummaryAction,
+} from "@/actions/snacky";
 import type { SnackySummary } from "@/modules/snacky/summary";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,21 +16,34 @@ import { SnackyMark } from "@/components/snacky-mark";
 import { cn } from "@/lib/utils";
 
 // Snacky's cheeky take on the picked period: roasts to flip through, then
-// its made-up awards as the last slide. It stays as written until the admin
-// asks for a fresh one.
+// its made-up awards as the last slide. It stays as written until someone
+// asks for a fresh one. "org" is the admin's office roast, "mine" a person's
+// own, "runs" a day's runs leaderboard (period is then the day).
+
+const TITLES = {
+  org: { roast: "Snacky's roast", awards: "The Snacky awards" },
+  mine: { roast: "Snacky roasts you", awards: "Your Snacky awards" },
+  runs: { roast: "Snacky on the runs", awards: "The Snacky run awards" },
+};
+
+const REFRESH = {
+  org: refreshSnackySummaryAction,
+  mine: refreshMySnackySummaryAction,
+  runs: refreshRunsRoastAction,
+};
+
 export function SnackySummaryCard({
   period,
   periodLabel,
   initial,
   initialError,
-  mine = false,
+  variant = "org",
 }: {
   period: string;
   periodLabel: string;
   initial: SnackySummary | null;
   initialError?: string;
-  // the signed-in person's own roast, on their dashboard
-  mine?: boolean;
+  variant?: keyof typeof TITLES;
 }) {
   const [summary, setSummary] = useState(initial);
   const [error, setError] = useState(initialError ?? null);
@@ -42,9 +59,7 @@ export function SnackySummaryCard({
   async function refresh() {
     setLoading(true);
     setError(null);
-    const result = mine
-      ? await refreshMySnackySummaryAction(period)
-      : await refreshSnackySummaryAction(period);
+    const result = await REFRESH[variant](period);
     setLoading(false);
     if (result.success) {
       setSummary(result.data);
@@ -62,13 +77,7 @@ export function SnackySummaryCard({
       <header className='flex items-center gap-2 border-b py-1 pr-1 pl-4'>
         <SnackyMark className='size-5' />
         <h2 className='min-w-0 flex-1 truncate text-xs font-semibold text-muted-foreground'>
-          {onAwards
-            ? mine
-              ? "Your Snacky awards"
-              : "The Snacky awards"
-            : mine
-              ? "Snacky roasts you"
-              : "Snacky's roast"}{" "}
+          {onAwards ? TITLES[variant].awards : TITLES[variant].roast}{" "}
           · {periodLabel}
           {summary && (
             <span suppressHydrationWarning className='hidden font-normal sm:inline'>
@@ -112,7 +121,7 @@ export function SnackySummaryCard({
           </div>
         ) : (
           <p className='px-4 py-3.5 text-sm text-muted-foreground'>
-            Snacky hasn&apos;t roasted this period yet.
+            Snacky hasn&apos;t roasted this yet.
           </p>
         )
       ) : (

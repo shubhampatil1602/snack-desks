@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { addDays, format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 
@@ -11,6 +11,7 @@ import {
 } from "@/modules/strava/leaderboard";
 import { formatKm, formatPace } from "@/modules/strava/run-score";
 
+import { SnackySummarySkeleton } from "@/app/admin/dashboard/_components/SnackySummaryCard";
 import { StatGroup, type Stat } from "@/components/dashboard/StatGroup";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -34,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { DayPicker } from "./DayPicker";
 import { RunScoreCalculator } from "./RunScoreCalculator";
 import { RunScoreInfo } from "./RunScoreInfo";
+import { RunsRoast } from "./RunsRoast";
 
 // One page for admins (/admin/runs) and members (/runs). Everyone in the org
 // sees it: connecting Strava means agreeing to that (ADR 0002).
@@ -96,6 +98,15 @@ export async function RunsLeaderboardView({
         leaderboard={leaderboard}
         isToday={day === today}
         viewerId={viewerId}
+        roast={
+          <Suspense fallback={<SnackySummarySkeleton />}>
+            <RunsRoast
+              organizationId={organizationId}
+              leaderboard={leaderboard}
+              label={format(toZonedTime(start, "Asia/Kolkata"), "EEE d MMM")}
+            />
+          </Suspense>
+        }
       />
     </div>
   );
@@ -106,10 +117,12 @@ export function RunsLeaderboardBody({
   leaderboard,
   isToday,
   viewerId,
+  roast,
 }: {
   leaderboard: RunsLeaderboard;
   isToday: boolean;
   viewerId?: string;
+  roast?: ReactNode; // Snacky's take, between the numbers and the table
 }) {
   const { entries, lockedAt } = leaderboard;
   // start is IST midnight as a UTC instant; the server runs in UTC
@@ -162,6 +175,8 @@ export function RunsLeaderboardBody({
   return (
     <>
       <StatGroup title={`${date} · ${status}`} stats={stats} />
+
+      {roast}
 
       <Card size='sm'>
         <CardHeader>

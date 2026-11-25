@@ -3,7 +3,7 @@ import { authIsRequired } from "@/actions/user";
 import { prisma } from "@/lib/db";
 
 export const metadata: Metadata = {
-  title: "Team Rankings",
+  title: "Spend Rankings",
   description: "Check the top snackers and leaderboards in your organization.",
 };
 import { Suspense } from "react";
@@ -54,7 +54,7 @@ export default async function RankingsPage({
 
       <div className='flex items-start justify-between gap-4 flex-wrap'>
         <div>
-          <h1 className='text-2xl font-heading'>Rankings</h1>
+          <h1 className='text-2xl font-heading'>Spend Rankings</h1>
           <p className='text-sm text-muted-foreground'>
             See how you compare with your coworkers{" "}
             {period === "all" ? "of all time" : `in ${periodLabel}`}.

@@ -3,7 +3,7 @@ import { requireAdmin } from "@/actions/user";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "Admin Rankings",
+  title: "Spend Rankings",
   description:
     "Detailed employee snack rankings, win frequencies, and spending metrics.",
 };
@@ -55,7 +55,7 @@ export default async function AdminRankingsPage({
     <div className='space-y-6 px-4'>
       <div className='flex items-start justify-between gap-4 flex-wrap'>
         <div>
-          <h1 className='text-2xl font-heading'>Employee Rankings</h1>
+          <h1 className='text-2xl font-heading'>Spend Rankings</h1>
           <p className='text-sm text-muted-foreground'>
             Most active employees based on approved orders{" "}
             {period === "all" ? "of all time" : `in ${periodLabel}`}.

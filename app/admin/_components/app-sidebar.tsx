@@ -62,7 +62,7 @@ const data = {
       icon: IconUsersGroup,
     },
     {
-      title: "Rankings",
+      title: "Spend Rankings",
       url: "/admin/rankings",
       icon: IconChartBar,
     },

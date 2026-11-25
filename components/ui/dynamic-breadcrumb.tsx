@@ -26,7 +26,7 @@ const segmentLabels: Record<string, string> = {
   "live-orders": "Live Orders",
   users: "User Management",
   history: "History",
-  rankings: "Rankings",
+  rankings: "Spend Rankings",
 
   // user
   orders: "Orders",

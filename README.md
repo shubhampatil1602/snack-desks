@@ -21,7 +21,11 @@ Admins can create ordering windows, manage menus, approve orders, track spending
 - Group item splitting (cost shared between participants)
 - Spin-the-wheel "split master" winner per window, with paid tracking
 - Real-time updates using PostgreSQL LISTEN/NOTIFY + SSE
-- Employee rankings
+- Spend rankings
+- Strava runs: connect Strava and compete with coworkers on a daily Runs Leaderboard; the day's best runner in a window sits out the spin, so they can't be split master
+- Your Strava activity: a 90-day training log calendar, a day view with score, rank and a timeline, and runs after the first spin marked "After the spin"
+- Run score calculator (distance and pace)
+- Snacky, the AI helper: order by typing, Ask Snacky, and roasts of your spending and your runs, plus a roast of each day's runs leaderboard
 - Spending analytics, charts & activity heatmap
 - Order history
 - Responsive dashboard
@@ -157,6 +161,27 @@ Email used for the initial Super Admin account.
 
 Password used for the initial Super Admin account.
 
+### Strava (optional)
+
+Without these, the Strava pages say Strava isn't set up. One Strava API app serves every organization; set its Authorization Callback Domain to your app's domain.
+
+```env
+STRAVA_CLIENT_ID=
+STRAVA_CLIENT_SECRET=
+STRAVA_WEBHOOK_VERIFY_TOKEN=     # any random string, used when subscribing the webhook
+STRAVA_WEBHOOK_SUBSCRIPTION_ID=  # optional, checked on incoming webhook events
+STRAVA_ATHLETE_CAPACITY=10       # optional, how many people can connect (default 10)
+```
+
+Connecting imports the last 90 days of activities; new ones arrive through the webhook at `/api/strava/webhook`.
+
+Optional, to share one athlete's token with another app of the same owner (`/api/strava/share-token`):
+
+```env
+STRAVA_SHARE_SECRET=
+STRAVA_SHARE_ATHLETE_ID=
+```
+
 ---
 
 ## Available Scripts
@@ -246,7 +271,8 @@ pnpm db:reset
 - Approve or reject orders, apply replacements, add late orders
 - Spin the wheel and mark windows as paid
 - Manage members and generate password reset tokens
-- View analytics and rankings
+- View analytics and spend rankings
+- View the Runs Leaderboard and Snacky's roast of each day's runs
 
 ### User
 
@@ -255,7 +281,8 @@ pnpm db:reset
 - Cancel orders
 - Split items with teammates
 - Repeat the previous order, star favourite menu items, grid or list menu
-- View rankings and history
+- View spend rankings and history
+- Connect Strava, see the training log and compete on the Runs Leaderboard
 
 ---
 

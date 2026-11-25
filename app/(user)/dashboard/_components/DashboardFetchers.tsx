@@ -189,7 +189,7 @@ export async function UserSnackySummaryFetcher({
   }
   return (
     <SnackySummaryCard
-      mine
+      variant='mine'
       period={period}
       periodLabel={periodLabel}
       initial={summary}

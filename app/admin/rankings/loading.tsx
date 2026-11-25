@@ -5,7 +5,7 @@ export default function RankingsLoading() {
     <div className='space-y-6 px-4 w-full'>
       <div className='flex items-start justify-between gap-4 flex-wrap'>
         <div>
-          <h1 className='text-2xl font-heading'>Employee Rankings</h1>
+          <h1 className='text-2xl font-heading'>Spend Rankings</h1>
           <p className='text-sm text-muted-foreground'>
             Most active employees based on approved orders in ...
           </p>

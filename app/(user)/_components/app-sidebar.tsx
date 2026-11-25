@@ -45,7 +45,7 @@ const data = {
       icon: IconMenuOrder,
     },
     {
-      title: "Rankings",
+      title: "Spend Rankings",
       url: "/rankings",
       icon: IconChartBar,
     },

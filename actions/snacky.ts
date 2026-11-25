@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { SNACKY_VOICE, snackyModel, snackyNow } from "@/lib/snacky";
 import { refreshSnackySummary, type SnackySummary } from "@/modules/snacky/summary";
+import { isDayKey, istDay } from "@/modules/strava/leaderboard";
 import { draftSnackyOrder, type SnackyOrderDraft } from "@/modules/snacky/order-draft";
 import {
   deleteSnackyChat,
@@ -176,6 +177,31 @@ export async function refreshMySnackySummaryAction(
   } catch (error) {
     console.error("Snacky personal summary failed", error);
     return { success: false, error: "Snacky couldn't write your roast just now" };
+  }
+}
+
+/** Writes Snacky's roast of a day's runs leaderboard afresh and saves it. */
+export async function refreshRunsRoastAction(day: string): Promise<Result<SnackySummary>> {
+  await authIsRequired();
+  const member = await getCurrentMember();
+  if (!member) return { success: false, error: "Organization not found" };
+  if (!isDayKey(day) || day > istDay()) {
+    return { success: false, error: "Unknown day" };
+  }
+
+  const limit = await checkRateLimit(`snacky:runs-roast:${member.userId}`, 6, 60_000);
+  if (!limit.success) {
+    return { success: false, error: `Snacky needs a breather. Try again in ${limit.retryAfterSec}s.` };
+  }
+
+  try {
+    return {
+      success: true,
+      data: await refreshSnackySummary(member.organizationId, day, "runs"),
+    };
+  } catch (error) {
+    console.error("Snacky runs roast failed", error);
+    return { success: false, error: "Snacky couldn't roast the runs just now" };
   }
 }
 

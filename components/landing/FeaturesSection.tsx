@@ -2,22 +2,35 @@ import type { ReactNode } from "react";
 
 import { TopSellingItemsCard } from "@/app/admin/dashboard/_components/TopSellingItemsCard";
 import { SnackyMark } from "@/components/snacky-mark";
+import { RunsLeaderboardBody } from "@/components/strava/RunsLeaderboardView";
 import { VegMark } from "@/components/veg-mark";
-import { formatPrice } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import { Heading, SubHeading } from "./FadeIn";
 import { DemoOwe } from "./demo/DemoOwe";
 import { DemoRoastCard } from "./demo/DemoRoastCard";
 import { DemoSnackyBox } from "./demo/DemoSnackyBox";
 import { DemoSpinPanel } from "./demo/DemoSpinPanel";
 import { SPIN_SECTION_ID } from "./demo/use-demo-office";
-import { menu, topItems } from "./demo/sample-data";
+import { menu, runsBoard, topItems } from "./demo/sample-data";
 
 const DISH_IDS = ["samosa", "cold-coffee", "pizza"];
 const dishes = menu.filter((item) => DISH_IDS.includes(item.id));
 
-function Feature({ id, title, body, children }: { id?: string; title: string; body: string; children: ReactNode }) {
+function Feature({
+  id,
+  title,
+  body,
+  className,
+  children,
+}: {
+  id?: string;
+  title: string;
+  body: string;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <article id={id} className='flex min-w-0 scroll-mt-20 flex-col border bg-muted/30'>
+    <article id={id} className={cn('flex min-w-0 scroll-mt-20 flex-col border bg-muted/30', className)}>
       <div className='p-5 pb-4'>
         <Heading as='h3' className='font-heading text-3xl leading-tight'>{title}</Heading>
         <SubHeading as='p' className='mt-1.5 max-w-lg text-[0.9375rem] text-pretty text-muted-foreground'>{body}</SubHeading>
@@ -35,7 +48,7 @@ export function FeaturesSection() {
           Everything around the snack break
         </Heading>
         <SubHeading as='p' className='mt-4 text-lg text-muted-foreground'>
-          Ordering, splitting, paying and the monthly roast, all in one place.
+          Ordering, splitting, paying, the runs leaderboard and the monthly roast, all in one place.
         </SubHeading>
       </div>
 
@@ -96,6 +109,14 @@ export function FeaturesSection() {
           <div inert>
             <TopSellingItemsCard items={topItems} />
           </div>
+        </Feature>
+
+        <Feature
+          className='lg:col-span-2'
+          title='Run to skip the bill'
+          body='Connect Strava and race your coworkers. Runs score on distance and pace, and the day’s best runner sits out the spin, so they never end up paying the shop.'
+        >
+          <RunsLeaderboardBody leaderboard={runsBoard} isToday viewerId='riya' />
         </Feature>
       </div>
     </section>

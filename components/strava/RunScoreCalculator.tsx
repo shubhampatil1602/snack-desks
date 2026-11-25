@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import { Calculator } from "lucide-react";
+import { z } from "zod";
 
-import { runScore, WALK_PACE_SECONDS_PER_KM } from "@/modules/strava/run-score";
+import {
+  formatPace,
+  runScore,
+  WALK_PACE_SECONDS_PER_KM,
+} from "@/modules/strava/run-score";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,29 +23,53 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDuration } from "./activity-status";
 
-// Type a distance and a pace to see the run score and the sum behind it
-// (modules/strava/run-score.ts). On the runs leaderboard and the Strava page.
+// Type a distance and a pace to see the run score (modules/strava/run-score.ts).
+// On the runs leaderboard and the Strava page.
 
-/** "6:30" or "6" (minutes per km) as seconds, or null if it isn't a pace. */
-function parsePace(text: string): number | null {
-  const clock = text.trim().match(/^(\d{1,2})(?::([0-5]\d))?$/);
-  if (!clock) return null;
-  const seconds = Number(clock[1]) * 60 + Number(clock[2] ?? 0);
-  return seconds > 0 ? seconds : null;
+/** A field's text as a number in a range, with a message for each way it can be wrong. */
+function decimalField(
+  name: string,
+  { min, max, minMessage }: { min: number; max: number; minMessage: string },
+) {
+  return z
+    .string()
+    .trim()
+    .min(1, `Type the ${name}`)
+    .pipe(
+      z.coerce
+        .number<string>({ error: `Type the ${name} as a number` })
+        .min(min, minMessage)
+        .max(max, `Keep the ${name} to ${max} or less`),
+    );
 }
 
-/** 5 → "5", 5.25 → "5.25" */
-function trimNumber(value: number) {
-  return String(Math.round(value * 100) / 100);
-}
+const calculatorSchema = z.object({
+  km: decimalField("distance", {
+    min: 0.01,
+    max: 100,
+    minMessage: "Type a distance above 0",
+  }),
+  // minutes per km as a decimal: 6.5 is 6:30/km
+  pace: decimalField("pace", {
+    min: 2,
+    max: 30,
+    minMessage: "Faster than 2 min/km isn't a run",
+  }),
+});
+
+type Fields = z.input<typeof calculatorSchema>;
 
 export function RunScoreCalculator() {
-  const [distanceText, setDistanceText] = useState("5");
-  const [paceText, setPaceText] = useState("6:30");
+  const [fields, setFields] = useState<Fields>({ km: "5", pace: "6.5" });
+  const parsed = calculatorSchema.safeParse(fields);
+  const errors = parsed.success ? {} : z.flattenError(parsed.error).fieldErrors;
 
-  const km = Number(distanceText);
-  const distanceOk = distanceText.trim() !== "" && km > 0 && km <= 100;
-  const pace = parsePace(paceText);
+  const set = (name: keyof Fields) => (event: React.ChangeEvent<HTMLInputElement>) =>
+    setFields((current) => ({ ...current, [name]: event.target.value }));
+
+  // the pace as m:ss, once it is valid on its own
+  const paceOk = !errors.pace && fields.pace.trim() !== "";
+  const paceClock = paceOk ? formatPace(1000, Number(fields.pace) * 60) : null;
 
   return (
     <Dialog>
@@ -60,63 +89,91 @@ export function RunScoreCalculator() {
 
         <div className='grid grid-cols-2 gap-4'>
           <div className='space-y-1'>
-            <Label htmlFor='calc-distance'>Distance (km)</Label>
+            <Label htmlFor='calc-km'>Distance (km)</Label>
             <Input
-              id='calc-distance'
+              id='calc-km'
               type='number'
               inputMode='decimal'
               min={0}
               max={100}
               step={0.01}
-              value={distanceText}
-              onChange={(event) => setDistanceText(event.target.value)}
-              aria-invalid={!distanceOk}
+              value={fields.km}
+              onChange={set("km")}
+              aria-invalid={!!errors.km}
+              aria-describedby='calc-km-hint'
             />
+            <FieldHint id='calc-km-hint' error={errors.km?.[0]} />
           </div>
           <div className='space-y-1'>
             <Label htmlFor='calc-pace'>Pace (min/km)</Label>
             <Input
               id='calc-pace'
-              inputMode='numeric'
-              placeholder='6:30'
-              value={paceText}
-              onChange={(event) => setPaceText(event.target.value)}
-              aria-invalid={pace === null}
+              type='number'
+              inputMode='decimal'
+              min={2}
+              max={30}
+              step={0.01}
+              placeholder='6.5'
+              value={fields.pace}
+              onChange={set("pace")}
+              aria-invalid={!!errors.pace}
+              aria-describedby='calc-pace-hint'
+            />
+            <FieldHint
+              id='calc-pace-hint'
+              error={errors.pace?.[0]}
+              hint={paceClock ? `That's ${paceClock}` : undefined}
             />
           </div>
         </div>
 
-        <Result km={distanceOk ? km : null} pace={pace} />
+        <Result values={parsed.success ? parsed.data : null} />
       </DialogContent>
     </Dialog>
   );
 }
 
-function Result({ km, pace }: { km: number | null; pace: number | null }) {
-  let message: string | null = null;
-  if (km === null) message = "Type a distance between 0 and 100 km.";
-  else if (pace === null) message = "Type the pace like 6:30.";
-  else if (pace > WALK_PACE_SECONDS_PER_KM)
-    message = "Slower than 11:30/km counts as a walk, so it scores 0.";
+function FieldHint({ id, error, hint }: { id: string; error?: string; hint?: string }) {
+  return (
+    <p
+      id={id}
+      className={error ? "text-xs text-destructive" : "text-xs text-muted-foreground"}
+    >
+      {error ?? hint ?? " "}
+    </p>
+  );
+}
 
-  if (message || km === null || pace === null) {
+function Result({ values }: { values: { km: number; pace: number } | null }) {
+  if (!values) {
     return (
       <p aria-live='polite' className='border-t pt-4 text-muted-foreground'>
-        {message}
+        Fix the fields above to see the score.
       </p>
     );
   }
 
-  const speed = 3600 / pace;
-  const score = runScore(km * 1000, pace * km);
+  const paceSeconds = values.pace * 60;
+  if (paceSeconds > WALK_PACE_SECONDS_PER_KM) {
+    return (
+      <p aria-live='polite' className='border-t pt-4 text-muted-foreground'>
+        Slower than 11:30/km counts as a walk, so it scores 0.
+      </p>
+    );
+  }
+
+  const distance = values.km * 1000;
+  const movingTime = Math.round(paceSeconds * values.km);
 
   return (
     <div aria-live='polite' className='space-y-1 border-t pt-4'>
       <p className='text-xs text-muted-foreground'>Run score</p>
-      <p className='text-2xl font-semibold tabular-nums'>{score.toFixed(2)}</p>
+      <p className='text-2xl font-semibold tabular-nums'>
+        {runScore(distance, movingTime).toFixed(2)}
+      </p>
       <p className='text-xs text-muted-foreground tabular-nums'>
-        {trimNumber(km)} km in {formatDuration(Math.round(pace * km))} ·{" "}
-        {speed.toFixed(2)} km/h
+        {values.km} km in {formatDuration(movingTime)} ·{" "}
+        {(3600 / paceSeconds).toFixed(2)} km/h
       </p>
     </div>
   );
