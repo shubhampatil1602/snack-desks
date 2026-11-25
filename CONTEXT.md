@@ -31,7 +31,7 @@ _Avoid_: excluded, banned
 ### Strava
 
 **Run**:
-A Strava activity recorded (not typed in by hand) as Run, at a moving-time pace of 11:30/km or faster. Slower ones are walks and don't score.
+A Strava activity recorded (not typed in by hand) as Run, at a moving-time pace of 12:00/km or faster. Slower ones are walks and don't score, but the person still shows on the Runs Leaderboard, unranked at the bottom.
 _Avoid_: workout, activity
 
 **Run Score**:

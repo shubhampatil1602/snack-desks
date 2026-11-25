@@ -93,7 +93,7 @@ const ROAST_LIMITS = `Savage, never cruel: roast the snacking habit and the spen
 ${KINDNESS}`;
 
 // how to read a pace, for every roast with Strava numbers
-const PACE_GUIDE = `Pace is minutes per km, so lower is faster: under 5:30/km is quick, 6:00 to 8:00/km is a steady jog, 9:00/km and slower is barely faster than a walk, and slower than 11:30/km counts as a walk. Points (the run score) reward distance and speed together. Roast with all three: km, pace and points. Every comparison must make sense: only things that move can be faster or slower than a runner, so never compare a pace with food or objects that don't move (no "even the jelly moves faster"). If a joke needs explaining, write another.`;
+const PACE_GUIDE = `Pace is minutes per km, so lower is faster: under 5:30/km is quick, 6:00 to 8:00/km is a steady jog, 9:00/km and slower is barely faster than a walk, and slower than 12:00/km counts as a walk: it scores 0, though the runner still shows on the board, unranked. Points (the run score) reward distance and speed together. Roast with all three: km, pace and points. Every comparison must make sense: only things that move can be faster or slower than a runner, so never compare a pace with food or objects that don't move (no "even the jelly moves faster"). If a joke needs explaining, write another.`;
 
 // added after ROAST_LIMITS when Strava numbers are in the facts
 const RUN_EXCEPTION = `Running is the one exception to the fitness rule: roast their Strava numbers like the snacking ones (the km, the pace, the points, early alarms, runs against snacks). ${PACE_GUIDE} Tease the numbers only, never their body, weight, looks or health. Genuinely fast runs (in the facts) deserve real credit: give one running roast to that, a compliment with at most a light jab. With none, roast the running freely.`;
@@ -273,13 +273,18 @@ Write exactly 3 roasts (topic running), each about different runners where there
 
 ${RUN_LIMITS}`);
 
+  const scored = entries.filter((entry) => entry.rank !== null);
+  const slow = entries.length - scored.length;
   return {
     ...output,
     facts: [
-      `${entries.length} runner${entries.length === 1 ? "" : "s"}`,
-      `top ${entries[0].score.toFixed(2)}`,
-      entries[0].name.split(" ")[0],
-    ].join(" · "),
+      `${scored.length} runner${scored.length === 1 ? "" : "s"}`,
+      slow > 0 && `${slow} too slow`,
+      scored[0] && `top ${scored[0].score.toFixed(2)}`,
+      scored[0]?.name.split(" ")[0],
+    ]
+      .filter(Boolean)
+      .join(" · "),
     board: key,
   };
 }

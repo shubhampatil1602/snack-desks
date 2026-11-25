@@ -278,5 +278,7 @@ export const runsBoard: RunsLeaderboard = {
     { userId: "riya", name: "Riya Shah", photoUrl: null, distance: 2400, movingTime: 768, score: 15.97, rank: 3 },
     { userId: "arjun", name: "Arjun Kulkarni", photoUrl: null, distance: 4000, movingTime: 1800, score: 13.93, rank: 4 },
     { userId: "isha", name: "Isha Joshi", photoUrl: null, distance: 1800, movingTime: 738, score: 11.11, rank: 5 },
+    // slower than 12:00/km: on the board, but no score
+    { userId: "tanvi", name: "Tanvi Rao", photoUrl: null, distance: 2100, movingTime: 1600, score: 0, rank: null },
   ],
 };

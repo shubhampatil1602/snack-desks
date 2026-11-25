@@ -3,12 +3,14 @@ import { addDays, format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 
 import {
+  firstBoardDay,
   getRunsLeaderboard,
   isDayKey,
   istDay,
   istDayRange,
   type RunsLeaderboard,
 } from "@/modules/strava/leaderboard";
+import { getStravaReach, type StravaReach } from "@/modules/strava/queries";
 import { formatKm, formatPace } from "@/modules/strava/run-score";
 
 import { SnackySummarySkeleton } from "@/app/admin/dashboard/_components/SnackySummaryCard";
@@ -69,11 +71,20 @@ export async function RunsLeaderboardView({
   notice,
 }: Props) {
   const today = istDay();
-  const day = isDayKey(requested) && requested <= today ? requested : today;
-  const leaderboard = await getRunsLeaderboard(organizationId, day);
+  const firstDay = await firstBoardDay(organizationId);
+  // any day from the office's first run to today; others snap to the nearest end
+  const day = !isDayKey(requested) || requested > today
+    ? today
+    : requested < firstDay
+      ? firstDay
+      : requested;
+  const [leaderboard, reach] = await Promise.all([
+    getRunsLeaderboard(organizationId, day),
+    getStravaReach(organizationId),
+  ]);
 
   const { start } = istDayRange(day);
-  const previous = istDay(addDays(start, -1));
+  const previous = day > firstDay ? istDay(addDays(start, -1)) : null;
   const next = day < today ? istDay(addDays(start, 1)) : null;
 
   return (
@@ -88,7 +99,13 @@ export async function RunsLeaderboardView({
         </div>
         <div className='flex flex-wrap items-center gap-2'>
           <RunScoreCalculator />
-          <DayPicker basePath={basePath} day={day} previous={previous} next={next} />
+          <DayPicker
+            basePath={basePath}
+            day={day}
+            firstDay={firstDay}
+            previous={previous}
+            next={next}
+          />
         </div>
       </div>
 
@@ -98,6 +115,7 @@ export async function RunsLeaderboardView({
         leaderboard={leaderboard}
         isToday={day === today}
         viewerId={viewerId}
+        reach={reach}
         roast={
           <Suspense fallback={<SnackySummarySkeleton />}>
             <RunsRoast
@@ -117,11 +135,13 @@ export function RunsLeaderboardBody({
   leaderboard,
   isToday,
   viewerId,
+  reach,
   roast,
 }: {
   leaderboard: RunsLeaderboard;
   isToday: boolean;
   viewerId?: string;
+  reach?: StravaReach; // who's on Strava, in the title bar
   roast?: ReactNode; // Snacky's take, between the numbers and the table
 }) {
   const { entries, lockedAt } = leaderboard;
@@ -137,6 +157,8 @@ export function RunsLeaderboardBody({
       : "No spin that day";
 
   const top = entries.filter((entry) => entry.rank === 1);
+  const scored = entries.filter((entry) => entry.rank !== null);
+  const slow = entries.length - scored.length;
   const mine = viewerId
     ? entries.find((entry) => entry.userId === viewerId)
     : undefined;
@@ -144,8 +166,8 @@ export function RunsLeaderboardBody({
   const stats: Stat[] = [
     {
       label: "Runners",
-      value: String(entries.length),
-      note: "with a scoring run",
+      value: String(scored.length),
+      note: slow > 0 ? `with a score, ${slow} too slow` : "with a scoring run",
     },
     {
       label: "Top score",
@@ -156,9 +178,13 @@ export function RunsLeaderboardBody({
     viewerId
       ? {
           label: "Your score",
-          value: mine ? mine.score.toFixed(2) : "–",
-          note: mine ? `#${mine.rank} of ${entries.length}` : "no scoring run",
-          dim: !mine,
+          value: mine?.rank ? mine.score.toFixed(2) : "–",
+          note: mine?.rank
+            ? `#${mine.rank} of ${scored.length}`
+            : mine
+              ? "too slow to score"
+              : "no scoring run",
+          dim: !mine?.rank,
         }
       : {
           label: "First spin",
@@ -174,7 +200,11 @@ export function RunsLeaderboardBody({
 
   return (
     <>
-      <StatGroup title={`${date} · ${status}`} stats={stats} />
+      <StatGroup
+        title={`${date} · ${status}`}
+        stats={stats}
+        action={reach && <ReachNote reach={reach} />}
+      />
 
       {roast}
 
@@ -182,7 +212,8 @@ export function RunsLeaderboardBody({
         <CardHeader>
           <CardTitle>Leaderboard</CardTitle>
           <CardDescription>
-            Ranked by run score. Equal scores share a rank.
+            Ranked by run score. Equal scores share a rank. Runs slower
+            than 12:00/km show but don&apos;t score.
           </CardDescription>
           <CardAction>
             <RunScoreInfo label='How scoring works' />
@@ -192,7 +223,7 @@ export function RunsLeaderboardBody({
         <CardContent>
           {entries.length === 0 ? (
             <p className='py-6 text-center text-sm text-muted-foreground'>
-              Nobody had a scoring run{isToday ? " yet today" : " this day"}.
+              Nobody ran{isToday ? " yet today" : " this day"}.
               Everyone in a window can be drawn.
             </p>
           ) : (
@@ -209,13 +240,19 @@ export function RunsLeaderboardBody({
               <TableBody>
                 {entries.map((entry) => {
                   const isViewer = entry.userId === viewerId;
+                  const tooSlow = entry.rank === null;
                   return (
                     <TableRow
                       key={entry.userId}
                       className={cn(isViewer && "bg-muted/60")}
                     >
-                      <TableCell className='font-semibold tabular-nums'>
-                        {entry.rank}
+                      <TableCell
+                        className={cn(
+                          "font-semibold tabular-nums",
+                          tooSlow && "text-muted-foreground",
+                        )}
+                      >
+                        {entry.rank ?? "–"}
                       </TableCell>
                       <TableCell>
                         <div className='flex min-w-0 items-center gap-3'>
@@ -237,7 +274,13 @@ export function RunsLeaderboardBody({
                         {formatPace(entry.distance, entry.movingTime)}
                       </TableCell>
                       <TableCell className='text-right font-semibold tabular-nums'>
-                        {entry.score.toFixed(2)}
+                        {tooSlow ? (
+                          <span className='text-xs font-normal text-muted-foreground'>
+                            Too slow
+                          </span>
+                        ) : (
+                          entry.score.toFixed(2)
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -256,6 +299,16 @@ export function RunsLeaderboardBody({
         </CardFooter>
       </Card>
     </>
+  );
+}
+
+// "6 of 14 on Strava"
+function ReachNote({ reach }: { reach: StravaReach }) {
+  return (
+    <p className='text-xs text-muted-foreground tabular-nums'>
+      <span className='font-semibold text-foreground'>{reach.connected}</span> of{" "}
+      {reach.members} on Strava
+    </p>
   );
 }
 

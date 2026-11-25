@@ -3,11 +3,12 @@ import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { scoreDay } from "@/modules/strava/run-score";
+import { boardDay } from "@/modules/strava/run-score";
 import { importActivitiesSince } from "@/modules/strava/sync";
 
 // The Runs Leaderboard (CONTEXT.md): an org's Strava-connected members
-// ordered by the day's run score. It's live until the org's first spin of the
+// ordered by the day's run score. Anyone who recorded a Run shows; runs
+// slower than 12:00/km score 0 and sit unranked at the bottom. It's live until the org's first spin of the
 // day, which locks it for every window that day (ADR 0003).
 //
 // Not cached: Strava's webhook changes activities outside server actions.
@@ -35,9 +36,9 @@ export type RunsEntry = {
   photoUrl: string | null;
   distance: number; // metres
   movingTime: number; // seconds
-  score: number;
-  // equal scores share a rank
-  rank: number;
+  score: number; // 0 when every run was too slow to score
+  // equal scores share a rank; null when too slow to score
+  rank: number | null;
 };
 
 export type RunsLeaderboard = {
@@ -47,10 +48,10 @@ export type RunsLeaderboard = {
 };
 
 function ranked(rows: Omit<RunsEntry, "rank">[]): RunsEntry[] {
-  const sorted = [...rows].sort((a, b) => b.score - a.score);
+  const sorted = [...rows].sort((a, b) => b.score - a.score || b.distance - a.distance);
   return sorted.map((row) => ({
     ...row,
-    rank: sorted.findIndex((other) => other.score === row.score) + 1,
+    rank: row.score > 0 ? sorted.findIndex((other) => other.score === row.score) + 1 : null,
   }));
 }
 
@@ -70,7 +71,7 @@ async function liveEntries(organizationId: string, day: string) {
   });
 
   const rows = connections.flatMap((connection) => {
-    const total = scoreDay(connection.activities);
+    const total = boardDay(connection.activities);
     if (!total) return [];
     return [
       {
@@ -176,6 +177,29 @@ export async function lockRunsLeaderboard(organizationId: string, day: string) {
     }
   }
   return getRunsLeaderboard(organizationId, day);
+}
+
+/**
+ * The first day the office's board can show anything: its earliest stored
+ * run or locked day, or today when there are none.
+ */
+export async function firstBoardDay(organizationId: string) {
+  const [run, lock] = await Promise.all([
+    prisma.stravaActivity.findFirst({
+      where: { connection: { user: { members: { some: { organizationId } } } } },
+      orderBy: { startDate: "asc" },
+      select: { startDate: true },
+    }),
+    prisma.runsLeaderboardLock.findFirst({
+      where: { organizationId },
+      orderBy: { day: "asc" },
+      select: { day: true },
+    }),
+  ]);
+  const days = [run && istDay(run.startDate), lock?.day, istDay()].filter(
+    (day): day is string => !!day,
+  );
+  return days.sort()[0];
 }
 
 /**

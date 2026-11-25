@@ -73,7 +73,7 @@ function clock(seconds: number) {
   return `${m}:${String(Math.round(seconds % 60)).padStart(2, "0")}`;
 }
 
-// a walk, or a Run slower than 11:30/km (CONTEXT.md)
+// a walk, or a Run slower than 12:00/km (CONTEXT.md)
 function isWalk(activity: ActivityRow) {
   if (activity.sportType === "Walk" || activity.sportType === "Hike") return true;
   return activity.sportType === "Run" && !activity.manual && !isScoringRun(activity);
@@ -214,13 +214,17 @@ export async function orgRunFacts(organizationId: string, period: string) {
 export function boardKey(board: RunsLeaderboard) {
   return [
     board.lockedAt ? "locked" : "live",
-    ...board.entries.map((entry) => `${entry.userId}:${entry.score.toFixed(2)}`),
+    ...board.entries.map(
+      (entry) => `${entry.userId}:${entry.score.toFixed(2)}:${Math.round(entry.distance)}`,
+    ),
   ].join(",");
 }
 
 /** One day's runs leaderboard, for the roast on the leaderboard page. */
 export function dayBoardFacts(board: RunsLeaderboard) {
-  const { entries, lockedAt } = board;
+  const { lockedAt } = board;
+  const entries = board.entries.filter((entry) => entry.rank !== null);
+  const slow = board.entries.filter((entry) => entry.rank === null);
   const isToday = board.day === istDay();
   return [
     `Day: ${dayLabel(board.day, "EEEE d MMM")}${isToday ? " (today)" : ""}`,
@@ -229,12 +233,21 @@ export function dayBoardFacts(board: RunsLeaderboard) {
       : isToday
         ? "The board is live until the day's first spin; more runs may still come"
         : "There was no spin that day, so nobody sat out",
-    `The board, best first: ${entries
-      .map(
-        (entry) =>
-          `#${entry.rank} ${firstName(entry.name)} ${entry.score.toFixed(2)} points (${km(entry.distance, 2)} in ${clock(entry.movingTime)}, ${formatPace(entry.distance, entry.movingTime)})${isGenuinelyFast(entry.distance, entry.movingTime) ? ", GENUINELY FAST" : ""}`,
-      )
-      .join("; ")}`,
+    entries.length === 0
+      ? "Nobody scored: every run was slower than 12:00/km"
+      : `The board, best first: ${entries
+          .map(
+            (entry) =>
+              `#${entry.rank} ${firstName(entry.name)} ${entry.score.toFixed(2)} points (${km(entry.distance, 2)} in ${clock(entry.movingTime)}, ${formatPace(entry.distance, entry.movingTime)})${isGenuinelyFast(entry.distance, entry.movingTime) ? ", GENUINELY FAST" : ""}`,
+          )
+          .join("; ")}`,
+    slow.length > 0 &&
+      `On the board but too slow to score (slower than 12:00/km, so it counts as a walk and scores 0): ${slow
+        .map(
+          (entry) =>
+            `${firstName(entry.name)} (${km(entry.distance, 2)} in ${clock(entry.movingTime)}, ${formatPace(entry.distance, entry.movingTime)})`,
+        )
+        .join("; ")}`,
     `${FAST_RULE}. ${
       entries.some((entry) => isGenuinelyFast(entry.distance, entry.movingTime))
         ? "Runners marked GENUINELY FAST earned it"

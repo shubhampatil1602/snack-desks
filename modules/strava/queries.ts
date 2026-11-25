@@ -1,4 +1,3 @@
-import { subDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
 import { prisma } from "@/lib/db";
@@ -13,9 +12,9 @@ import { isScoringRun, scoreDay } from "@/modules/strava/run-score";
 // Reads for the Strava page. Not cached: activities arrive by webhook,
 // outside server actions (lib/cache-tags.ts).
 
-// the training log covers this many days, today included; connecting imports
-// the same 90 days (app/api/strava/callback)
-export const LOG_DAYS = 90;
+// The training log runs from the person's first stored activity: connecting
+// imports their last 90 days (app/api/strava/callback), and the webhook adds
+// every activity after that, so it grows with them.
 const RECENT_COUNT = 5;
 
 /** Shown on the sidebar item: "Connect with Strava" or "Your Strava activity". */
@@ -31,6 +30,25 @@ export async function stravaSpotsLeft() {
   return Math.max(0, STRAVA_CAPACITY - (await prisma.stravaConnection.count()));
 }
 
+export type StravaReach = {
+  connected: number; // people in the org with Strava connected
+  members: number; // people in the org who can connect (admins can't)
+  spotsLeft: number; // for the whole app: one Strava app serves every org
+};
+
+/** How many of the org's people are on Strava, and how many spots are left. */
+export async function getStravaReach(organizationId: string): Promise<StravaReach> {
+  const employees = { organizationId, role: { notIn: ["admin", "owner"] } };
+  const [connected, members, spotsLeft] = await Promise.all([
+    prisma.stravaConnection.count({
+      where: { user: { members: { some: employees } } },
+    }),
+    prisma.member.count({ where: employees }),
+    stravaSpotsLeft(),
+  ]);
+  return { connected, members, spotsLeft };
+}
+
 export type ActivityKind = "run" | "walk" | "other";
 
 type ActivityRow = {
@@ -42,7 +60,7 @@ type ActivityRow = {
 };
 
 // same rules as the run score (CONTEXT.md): only scoring runs are runs, a Run
-// slower than 11:30/km is a walk, and typed-in runs go under other
+// slower than 12:00/km is a walk, and typed-in runs go under other
 function kindOf(activity: ActivityRow): ActivityKind {
   if (isScoringRun(activity)) return "run";
   if (activity.sportType === "Run" && !activity.manual) return "walk";
@@ -109,13 +127,15 @@ export type LogDay = {
 
 type ScoreRow = { userId: string; score: number };
 
+// their rank among the people who scored; too-slow runs (score 0) have none
 function placeOf(rows: ScoreRow[], userId: string) {
-  const mine = rows.find((row) => row.userId === userId);
+  const scored = rows.filter((row) => row.score > 0);
+  const mine = scored.find((row) => row.userId === userId);
   if (!mine) return null;
   return {
     score: mine.score,
-    rank: rows.filter((row) => row.score > mine.score).length + 1,
-    of: rows.length,
+    rank: scored.filter((row) => row.score > mine.score).length + 1,
+    of: scored.length,
   };
 }
 
@@ -127,7 +147,12 @@ export async function getStravaOverview(userId: string, organizationId: string) 
   if (!connection) return null;
 
   const today = istDay();
-  const firstDay = istDay(subDays(new Date(), LOG_DAYS - 1));
+  const first = await prisma.stravaActivity.findFirst({
+    where: { userId },
+    orderBy: { startDate: "asc" },
+    select: { startDate: true },
+  });
+  const firstDay = istDay(first?.startDate ?? connection.connectedAt);
   const { start } = istDayRange(firstDay);
 
   const [rows, locks, entries, orgRows, leaderboard] = await Promise.all([
@@ -254,7 +279,7 @@ export async function getStravaOverview(userId: string, organizationId: string) 
     athlete: connection,
     today: {
       entry: mine,
-      rankedCount: leaderboard.entries.length,
+      rankedCount: leaderboard.entries.filter((entry) => entry.rank !== null).length,
       lockedAt: leaderboard.lockedAt,
     },
     log: { firstDay, today, days },

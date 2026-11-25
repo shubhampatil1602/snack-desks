@@ -157,7 +157,7 @@ function Result({ values }: { values: { km: number; pace: number } | null }) {
   if (paceSeconds > WALK_PACE_SECONDS_PER_KM) {
     return (
       <p aria-live='polite' className='border-t pt-4 text-muted-foreground'>
-        Slower than 11:30/km counts as a walk, so it scores 0.
+        Slower than 12:00/km scores 0. You&apos;d still show on the leaderboard, unranked.
       </p>
     );
   }

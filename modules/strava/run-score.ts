@@ -4,8 +4,9 @@
 // 5:15/km to outscore 10 km at 10:00/km.
 const DISTANCE_WEIGHT = 0.4;
 
-// slower than 11:30/km is a walk, even when it was recorded as a Run
-export const WALK_PACE_SECONDS_PER_KM = 690;
+// slower than 12:00/km is a walk, even when it was recorded as a Run: it
+// shows on the leaderboard but doesn't score
+export const WALK_PACE_SECONDS_PER_KM = 720;
 
 type ActivityLike = {
   sportType: string;
@@ -18,13 +19,20 @@ export function paceSecondsPerKm(distance: number, movingTime: number) {
   return distance > 0 ? movingTime / (distance / 1000) : Infinity;
 }
 
-/** A recorded Run at 11:30/km or faster. */
-export function isScoringRun(activity: ActivityLike) {
+/** A Run recorded on Strava, not typed in by hand, at any pace. */
+export function isRecordedRun(activity: ActivityLike) {
   return (
     activity.sportType === "Run" &&
     !activity.manual &&
     activity.distance > 0 &&
-    activity.movingTime > 0 &&
+    activity.movingTime > 0
+  );
+}
+
+/** A recorded Run at 12:00/km or faster. */
+export function isScoringRun(activity: ActivityLike) {
+  return (
+    isRecordedRun(activity) &&
     paceSecondsPerKm(activity.distance, activity.movingTime) <=
       WALK_PACE_SECONDS_PER_KM
   );
@@ -46,6 +54,22 @@ export function scoreDay(activities: ActivityLike[]) {
   const distance = runs.reduce((sum, run) => sum + run.distance, 0);
   const movingTime = runs.reduce((sum, run) => sum + run.movingTime, 0);
   return { distance, movingTime, score: runScore(distance, movingTime) };
+}
+
+/**
+ * One person's line on the day's leaderboard: their scoring runs, or else
+ * their too-slow runs with a score of 0, or null if they recorded no Run.
+ */
+export function boardDay(activities: ActivityLike[]) {
+  const scored = scoreDay(activities);
+  if (scored) return scored;
+  const runs = activities.filter(isRecordedRun);
+  if (runs.length === 0) return null;
+  return {
+    distance: runs.reduce((sum, run) => sum + run.distance, 0),
+    movingTime: runs.reduce((sum, run) => sum + run.movingTime, 0),
+    score: 0,
+  };
 }
 
 export function formatPace(distance: number, movingTime: number) {

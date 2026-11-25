@@ -68,8 +68,9 @@ export function RunScoreInfo({ label, className }: Props) {
 
         <ul className='list-disc space-y-1 border-t pt-3 pl-4 text-xs text-muted-foreground'>
           <li>
-            Only Runs recorded on Strava count, at 11:30/km or faster. Runs
-            typed in by hand don&apos;t.
+            Only Runs recorded on Strava score, at 12:00/km or faster.
+            Slower ones still show on the board. Runs typed in by hand
+            don&apos;t count.
           </li>
           <li>Ran twice in a day? Both runs are added together.</li>
           <li>The day&apos;s scores lock at its first spin.</li>

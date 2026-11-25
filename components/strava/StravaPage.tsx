@@ -5,8 +5,7 @@ import { toZonedTime } from "date-fns-tz";
 import { stravaConfigured } from "@/lib/strava/api";
 import {
   getStravaOverview,
-  LOG_DAYS,
-  stravaSpotsLeft,
+  getStravaReach,
   type StravaOverview,
 } from "@/modules/strava/queries";
 import { formatKm, formatPace } from "@/modules/strava/run-score";
@@ -92,14 +91,18 @@ export async function StravaPage({
         </p>
       )}
 
-      {overview ? <ConnectedView overview={overview} /> : <ConnectCard />}
+      {overview ? (
+        <ConnectedView overview={overview} />
+      ) : (
+        <ConnectCard organizationId={organizationId} />
+      )}
     </div>
   );
 }
 
-async function ConnectCard() {
+async function ConnectCard({ organizationId }: { organizationId: string }) {
   const configured = stravaConfigured();
-  const spotsLeft = await stravaSpotsLeft();
+  const { connected, members, spotsLeft } = await getStravaReach(organizationId);
 
   return (
     <Card size='sm' className='max-w-xl'>
@@ -114,14 +117,21 @@ async function ConnectCard() {
             <RunScoreInfo label='How scoring works' />
           </li>
           <li>
-            Slower than 11:30/km counts as a walk, and runs typed in by hand
-            don&apos;t count.
+            Slower than 12:00/km still shows on the leaderboard but scores
+            0. Runs typed in by hand don&apos;t count.
           </li>
           <li>
             The leaderboard locks at the day&apos;s first spin. In each window,
             whoever ranks highest sits out.
           </li>
         </ul>
+
+        {configured && (
+          <p className='text-xs text-muted-foreground tabular-nums'>
+            <span className='font-semibold text-foreground'>{connected}</span> of{" "}
+            {members} people here are on Strava
+          </p>
+        )}
 
         {!configured ? (
           <p className='border border-border bg-muted px-4 py-3 font-medium'>
@@ -170,7 +180,8 @@ function ConnectedView({ overview }: { overview: StravaOverview }) {
         <CardHeader>
           <CardTitle>Training log</CardTitle>
           <CardDescription>
-            Last {LOG_DAYS} days. Tap a day to see it.
+            Since {dayLabel(log.firstDay, "d MMM yyyy")}. Tap a day to see
+            it.
           </CardDescription>
           <CardAction>
             <div aria-hidden className='flex gap-3 pt-1.5 text-xs text-muted-foreground'>
@@ -253,7 +264,7 @@ function TodayCard({ today }: { today: StravaOverview["today"] }) {
     : "live until the first spin";
   const runners = `${rankedCount} runner${rankedCount === 1 ? "" : "s"}`;
 
-  const stats: Stat[] = entry
+  const stats: Stat[] = entry?.rank
     ? [
         { label: "Rank", value: `#${entry.rank}`, note: `of ${runners}` },
         {
@@ -271,10 +282,19 @@ function TodayCard({ today }: { today: StravaOverview["today"] }) {
         {
           label: "Rank",
           value: "–",
-          note: lockedAt ? "no run before the spin" : "no scoring run yet",
+          note: entry
+            ? "too slow to score"
+            : lockedAt
+              ? "no run before the spin"
+              : "no scoring run yet",
           dim: true,
         },
-        { label: "Run score", value: "–", note: "no scoring run", dim: true },
+        {
+          label: "Run score",
+          value: "–",
+          note: entry ? `slower than 12:00/km` : "no scoring run",
+          dim: true,
+        },
         {
           label: "On the board",
           value: String(rankedCount),
