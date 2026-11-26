@@ -180,6 +180,7 @@ Optional, to share one athlete's token with another app of the same owner (`/api
 ```env
 STRAVA_SHARE_SECRET=
 STRAVA_SHARE_ATHLETE_ID=
+PORTFOLIO_STRAVA_REFRESH_URL=   # optional, POSTed (same secret) when that athlete's activities change
 ```
 
 ---

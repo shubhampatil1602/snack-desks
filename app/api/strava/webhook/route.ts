@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { refreshPortfolio } from "@/modules/strava/portfolio";
 import {
   checkStillAuthorized,
   refreshActivity,
@@ -62,14 +63,20 @@ export async function POST(request: Request) {
     if (!connection) return;
 
     if (event.object_type === "activity" && typeof event.object_id === "number") {
-      await refreshActivity(connection.userId, event.object_id);
+      await Promise.all([
+        refreshActivity(connection.userId, event.object_id),
+        refreshPortfolio(event.owner_id),
+      ]);
       return;
     }
 
     // they removed SnackDesk from their Strava settings
     if (event.object_type === "athlete" && event.updates?.authorized === "false") {
       const stillAuthorized = await checkStillAuthorized(connection.userId);
-      if (!stillAuthorized) await removeStravaData(connection.userId);
+      if (!stillAuthorized) {
+        await removeStravaData(connection.userId);
+        await refreshPortfolio(event.owner_id);
+      }
     }
   });
 
